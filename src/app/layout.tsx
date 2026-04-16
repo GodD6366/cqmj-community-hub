@@ -6,7 +6,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "邻里圈",
-  description: "面向小区的需求发布、闲置交易和邻里交流社区网站原型。",
+  description: "部署在 Vercel、数据库接入 Supabase 的小区社区网站。",
 };
 
 export default function RootLayout({

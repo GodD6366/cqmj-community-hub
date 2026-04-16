@@ -1,10 +1,29 @@
 services:
+  db:
+    image: postgres:16-alpine
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: community_hub
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d community_hub"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
   web:
     build: .
+    depends_on:
+      db:
+        condition: service_healthy
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: file:./dev.db
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/community_hub?schema=public
       NODE_ENV: development
     volumes:
       - .:/app
@@ -13,3 +32,4 @@ services:
 
 volumes:
   node_modules:
+  postgres_data:
