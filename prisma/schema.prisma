@@ -1,0 +1,133 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum PostCategory {
+  request
+  secondhand
+  discussion
+}
+
+enum VisibilityScope {
+  community
+  building
+  private
+}
+
+enum PostStatus {
+  published
+  pending
+  rejected
+}
+
+model User {
+  id           String      @id @default(cuid())
+  username     String      @unique
+  name         String
+  roomNumber   String?     @unique
+  passwordHash String
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  sessions     Session[]
+  posts        Post[]
+  comments     Comment[]
+  favorites    Favorite[]
+  reports      Report[]
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+}
+
+model Post {
+  id            String           @id @default(cuid())
+  title         String
+  content       String
+  category      PostCategory
+  tags          String           @default("[]")
+  authorName    String
+  authorId      String?
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+  commentCount  Int              @default(0)
+  favoriteCount Int              @default(0)
+  visibility    VisibilityScope
+  status        PostStatus       @default(published)
+  pinned        Boolean          @default(false)
+  featured      Boolean          @default(false)
+  author        User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  comments      Comment[]
+  favorites     Favorite[]
+  reports       Report[]
+
+  @@index([status, visibility])
+  @@index([createdAt])
+  @@index([authorId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  postId     String
+  authorName String
+  authorId   String?
+  content    String
+  createdAt  DateTime @default(now())
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author     User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([postId, createdAt])
+  @@index([authorId])
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([postId])
+}
+
+model Report {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  reason    String?
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([userId])
+  @@index([postId])
+}
+
+model InviteCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  note      String?
+  active    Boolean  @default(true)
+  maxUses   Int?
+  usedCount Int      @default(0)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

@@ -1,0 +1,9 @@
+node_modules
+.next
+.git
+.DS_Store
+coverage
+*.log
+dev.db
+dev.db-journal
+src/generated/prisma

@@ -1,0 +1,15 @@
+services:
+  web:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: file:./dev.db
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - node_modules:/app/node_modules
+    command: sh -lc "pnpm prisma generate && pnpm prisma db push && pnpm dev --hostname 0.0.0.0"
+
+volumes:
+  node_modules:
