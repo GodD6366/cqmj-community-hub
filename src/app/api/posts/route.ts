@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
 import { createPostForViewer, listPostsForViewer } from "@/lib/community-server";
+import { isPostCategory } from "@/lib/types";
 
 function parseDraft(body: unknown) {
   if (!body || typeof body !== "object") return null;
@@ -31,7 +32,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "标题、内容和标签不能为空" }, { status: 400 });
   }
 
-  if (draft.category !== "request" && draft.category !== "secondhand" && draft.category !== "discussion") {
+  if (!isPostCategory(draft.category)) {
     return NextResponse.json({ error: "分类不合法" }, { status: 400 });
   }
 

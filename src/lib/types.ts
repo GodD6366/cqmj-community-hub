@@ -1,7 +1,17 @@
-export type PostCategory = "request" | "secondhand" | "discussion";
+export type PostCategory = "request" | "secondhand" | "discussion" | "play";
 export type SortMode = "latest" | "popular" | "featured";
 export type VisibilityScope = "community" | "building" | "private";
 export type PostStatus = "published" | "pending" | "rejected";
+
+export const postCategories = ["request", "secondhand", "discussion", "play"] as const;
+
+export function isPostCategory(value: unknown): value is PostCategory {
+  return typeof value === "string" && (postCategories as readonly string[]).includes(value);
+}
+
+export function parsePostCategoryFilter(value: string | null | undefined): PostCategory | "all" {
+  return isPostCategory(value) ? value : "all";
+}
 
 export interface CommunityComment {
   id: string;
@@ -67,6 +77,12 @@ export const categoryMeta: Record<
     badge: "交流",
     accent: "from-sky-500 to-blue-500",
     description: "公告、讨论、反馈、经验分享。",
+  },
+  play: {
+    label: "发起约玩",
+    badge: "约玩",
+    accent: "from-rose-500 to-orange-400",
+    description: "组队运动、桌游、遛娃、饭搭子、同路活动。",
   },
 };
 

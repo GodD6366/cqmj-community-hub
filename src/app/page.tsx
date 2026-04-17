@@ -108,16 +108,12 @@ export default async function Home() {
   const secondhand = posts
     .filter((post) => post.category === 'secondhand')
     .slice(0, 4);
+  const plays = posts
+    .filter((post) => post.category === 'play')
+    .slice(0, 4);
   const discussions = posts
     .filter((post) => post.category === 'discussion')
     .slice(0, 4);
-
-  const counts = {
-    total: posts.length,
-    requests: posts.filter((post) => post.category === 'request').length,
-    secondhand: posts.filter((post) => post.category === 'secondhand').length,
-    discussions: posts.filter((post) => post.category === 'discussion').length,
-  };
 
   return (
     <PageShell className='space-y-4'>
@@ -164,7 +160,7 @@ export default async function Home() {
               {
                 href: '/publish',
                 label: '发布中心',
-                desc: '发需求、闲置和讨论内容',
+                desc: '发需求、闲置、约玩和讨论内容',
               },
               {
                 href: '/rules',
@@ -221,7 +217,7 @@ export default async function Home() {
             </Card.Content>
           </SectionCard>
 
-          <div className='board-grid lg:grid-cols-3'>
+          <div className='board-grid md:grid-cols-2 2xl:grid-cols-4'>
             <CompactColumn
               title='需求互助'
               href='/posts?category=request'
@@ -231,6 +227,11 @@ export default async function Home() {
               title='闲置交换'
               href='/posts?category=secondhand'
               posts={secondhand}
+            />
+            <CompactColumn
+              title='约玩组队'
+              href='/posts?category=play'
+              posts={plays}
             />
             <CompactColumn
               title='社区交流'

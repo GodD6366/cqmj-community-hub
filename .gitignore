@@ -33,6 +33,7 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 !.env.example
+.env.development.local
 
 # local databases
 *.db
@@ -47,3 +48,4 @@ next-env.d.ts
 .omx/
 
 /src/generated/prisma
+.env*.local

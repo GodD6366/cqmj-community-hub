@@ -18,7 +18,7 @@ export function verifyPassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
-export function toCommunityUser(user: { id: string; username: string; roomNumber?: string | null; createdAt: Date }): CommunityUser {
+export function toCommunityUser(user: { id: string; username: string; roomNumber?: string | null; createdAt: Date }) : CommunityUser {
   return {
     id: user.id,
     username: user.username,
@@ -79,6 +79,10 @@ export async function registerUser(input: { username: string; password: string; 
     throw new Error("INVALID_USERNAME");
   }
 
+  if (input.password.length < 6) {
+    throw new Error("INVALID_PASSWORD");
+  }
+
   const roomNumber = normalizeRoomNumber(input.roomNumber);
   if (!roomNumber) {
     throw new Error("INVALID_ROOM_NUMBER");
@@ -89,26 +93,37 @@ export async function registerUser(input: { username: string; password: string; 
     throw new Error("INVALID_INVITE_CODE");
   }
 
-  const existingUsername = await prisma.user.findUnique({ where: { username } });
+  const [existingUsername, existingRoom] = await Promise.all([
+    prisma.user.findUnique({ where: { username } }),
+    prisma.user.findUnique({ where: { roomNumber } }),
+  ]);
+
   if (existingUsername) {
     throw new Error("USERNAME_EXISTS");
   }
 
-  const existingRoom = await prisma.user.findUnique({ where: { roomNumber } });
   if (existingRoom) {
     throw new Error("ROOM_NUMBER_EXISTS");
   }
 
   await consumeInviteCode(inviteCode);
 
-  return prisma.user.create({
-    data: {
-      username,
-      name: username,
-      roomNumber,
-      passwordHash: await hashPassword(input.password),
-    },
-  });
+  try {
+    return await prisma.user.create({
+      data: {
+        username,
+        name: username,
+        roomNumber,
+        passwordHash: await hashPassword(input.password),
+      },
+    });
+  } catch (error) {
+    await prisma.inviteCode.updateMany({
+      where: { code: inviteCode, usedCount: { gt: 0 } },
+      data: { usedCount: { decrement: 1 } },
+    }).catch(() => undefined);
+    throw error;
+  }
 }
 
 export async function loginUser(input: { username: string; password: string }) {

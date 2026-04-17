@@ -32,30 +32,66 @@
 - **TypeScript**
 - **Tailwind CSS 4**
 - **Prisma**
-- **PostgreSQL**
+- **PostgreSQL**（本地使用 Docker，线上使用 Supabase 托管）
 - **Vercel** 用于部署
 
 ## 数据与运行说明
 
 - Prisma schema 位于 [prisma/schema.prisma](./prisma/schema.prisma)
 - 首页文案优先读取 [why.md](./why.md)，缺失时回退到 `README.md`
-- 本地默认使用 `DATABASE_URL` 连接 PostgreSQL
+- Prisma 唯一 datasource 为 `postgresql`，通过 `DATABASE_URL` 连接数据库
+- 本地主开发路径使用 Docker Postgres，线上通过 `DATABASE_URL` 连接 Supabase Postgres
 - 管理员密码与初始邀请码通过环境变量注入
 
 ## 本地开发
 
+先启动本地 PostgreSQL：
+
+```bash
+docker compose up -d db
+```
+
+再在宿主机启动开发服务：
+
 ```bash
 pnpm install
-pnpm prisma generate
-pnpm prisma db push
+pnpm db:generate
+pnpm db:push
 pnpm dev
 ```
 
-如果希望直接用 Docker 启动本地 PostgreSQL：
+默认情况下，宿主机通过 `localhost:55432` 连接 Docker 中的 PostgreSQL。
+
+## 本地 Docker 部署
+
+仓库同时提供“应用 + PostgreSQL”一体化本地部署，用于演示或整体验证；它不是默认开发入口。
+
+如果使用默认配置，直接执行：
 
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
+
+应用默认会监听 `http://localhost:30080`，数据库默认会监听 `localhost:55432`，数据库数据持久化在 Docker volume `postgres_data` 中。
+
+如果希望自定义数据库名、账号、管理员密码或邀请码，可以先准备一个 Docker 专用环境文件：
+
+```bash
+cp .env.docker.example .env.docker
+docker compose --env-file .env.docker up -d --build
+```
+
+常用管理命令：
+
+```bash
+docker compose ps
+docker compose logs -f web
+docker compose down
+docker compose down -v
+```
+
+- `docker compose down`：停止容器，保留数据库数据
+- `docker compose down -v`：连同数据库 volume 一起清空
 
 ## 环境变量
 
@@ -68,14 +104,19 @@ docker compose up --build
 本地可以参考 [.env.example](./.env.example)：
 
 ```env
-DATABASE_URL="postgresql://postgres:postgres@localhost:5432/community_hub?schema=public"
+DATABASE_URL="postgresql://postgres:postgres@localhost:55432/community_hub?schema=public"
 COMMUNITY_ADMIN_PASSWORD="admin"
 COMMUNITY_INVITE_CODES="WELCOME-2026,NEIGHBOR-2026"
 ```
 
+Docker 部署时推荐使用 [.env.docker.example](./.env.docker.example) 作为模板，通过 `docker compose --env-file .env.docker up -d --build` 注入变量。
+如果你希望把应用映射回宿主机 `3000`，可以设置 `HOST_WEB_PORT=3000`；如果你希望把数据库映射回宿主机 `5432`，可以设置 `HOST_DB_PORT=5432`。前提都是本机对应端口没有被其他服务占用。
+
 ## 部署说明
 
 - 在 Vercel 中配置 `DATABASE_URL`、`COMMUNITY_ADMIN_PASSWORD` 和 `COMMUNITY_INVITE_CODES`
-- 每次 schema 变更后运行 `pnpm prisma generate`
-- 首次部署到空库时运行 `pnpm prisma db push`
+- 线上 `DATABASE_URL` 指向 Supabase 提供的 PostgreSQL 连接串；本项目不要求本地接入 Supabase CLI
+- 每次 schema 变更后运行 `pnpm db:generate`
+- 首次部署到空库时运行 `pnpm db:push`
 - 应用启动后如果发现帖子表为空，会自动写入一批演示数据
+- 不支持 SQLite / PostgreSQL 双轨，也不提供旧数据库流程兼容层

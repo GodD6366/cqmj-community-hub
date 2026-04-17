@@ -1,35 +1,46 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     ports:
-      - "5432:5432"
+      - "${HOST_DB_PORT:-55432}:5432"
     environment:
-      POSTGRES_DB: community_hub
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-community_hub}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres -d community_hub"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-community_hub}"]
       interval: 5s
       timeout: 5s
       retries: 12
 
   web:
-    build: .
+    build:
+      context: .
+      target: runner
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     ports:
-      - "3000:3000"
+      - "${HOST_WEB_PORT:-30080}:3000"
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@db:5432/community_hub?schema=public
-      NODE_ENV: development
-    volumes:
-      - .:/app
-      - node_modules:/app/node_modules
-    command: sh -lc "pnpm prisma generate && pnpm prisma db push && pnpm dev --hostname 0.0.0.0"
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-community_hub}?schema=public
+      COMMUNITY_ADMIN_PASSWORD: ${COMMUNITY_ADMIN_PASSWORD:-admin}
+      COMMUNITY_INVITE_CODES: ${COMMUNITY_INVITE_CODES:-WELCOME-2026,NEIGHBOR-2026}
+      PORT: 3000
+    command: sh -lc "pnpm prisma db push && pnpm start"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "node -e \"fetch('http://127.0.0.1:3000').then((res) => process.exit(res.ok ? 0 : 1)).catch(() => process.exit(1))\"",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 12
 
 volumes:
-  node_modules:
   postgres_data:

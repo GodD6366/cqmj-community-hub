@@ -12,6 +12,7 @@ enum PostCategory {
   request
   secondhand
   discussion
+  play
 }
 
 enum VisibilityScope {

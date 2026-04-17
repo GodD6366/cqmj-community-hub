@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Chip, Input, TextArea } from "@heroui/react";
 import type { PostCategory, PostDraft, VisibilityScope } from "../lib/types";
-import { categoryMeta, visibilityMeta } from "../lib/types";
+import { categoryMeta, isPostCategory, visibilityMeta } from "../lib/types";
 import { splitTags } from "../lib/utils";
 import { SectionCard } from "./ui";
 
@@ -40,7 +40,7 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
         return;
       }
       const draft = JSON.parse(raw) as Partial<PostDraft> & { title?: string; content?: string; tags?: string[] };
-      if (draft.category === "request" || draft.category === "secondhand" || draft.category === "discussion") setCategory(draft.category);
+      if (isPostCategory(draft.category)) setCategory(draft.category);
       if (draft.visibility === "community" || draft.visibility === "building" || draft.visibility === "private") setVisibility(draft.visibility);
       if (typeof draft.title === "string") setTitle(draft.title);
       if (typeof draft.content === "string") setContent(draft.content);
@@ -135,7 +135,7 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
               variant={category === value ? "primary" : "secondary"}
             >
               <span className="flex flex-col items-start">
-                <span className="text-base font-semibold">{meta.label}</span>
+              <span className="text-base font-semibold">{meta.label}</span>
                 <span className={`mt-1 text-sm leading-6 ${category === value ? "text-slate-200" : "text-slate-500"}`}>{meta.description}</span>
               </span>
             </Button>

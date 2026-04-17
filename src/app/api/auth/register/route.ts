@@ -36,6 +36,9 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "INVALID_ROOM_NUMBER") {
       return NextResponse.json({ error: "房号格式不正确，请输入如 1-905" }, { status: 400 });
     }
+    if (error instanceof Error && error.message === "INVALID_PASSWORD") {
+      return NextResponse.json({ error: "密码至少需要 6 位" }, { status: 400 });
+    }
     if (error instanceof Error && error.message === "INVITE_CODE_EXPIRED") {
       return NextResponse.json({ error: "邀请码已过期" }, { status: 401 });
     }

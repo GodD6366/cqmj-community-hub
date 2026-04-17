@@ -65,7 +65,7 @@ export function PublishClient() {
           />
         ) : (
           <div className="paper-panel rounded-[1.35rem] border border-dashed p-8 text-center text-sm leading-7 text-slate-600">
-            登录后即可发布需求、闲置和交流内容。
+            登录后即可发布需求、闲置、约玩和交流内容。
           </div>
         )}
       </div>

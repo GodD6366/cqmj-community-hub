@@ -36,9 +36,6 @@ export function PostsClient({
   const stats = useMemo(
     () => ({
       total: filterPublicPosts(sourcePosts).length,
-      requests: sourcePosts.filter((post) => post.category === "request" && post.status === "published" && post.visibility !== "private").length,
-      secondhand: sourcePosts.filter((post) => post.category === "secondhand" && post.status === "published" && post.visibility !== "private").length,
-      discussions: sourcePosts.filter((post) => post.category === "discussion" && post.status === "published" && post.visibility !== "private").length,
     }),
     [sourcePosts],
   );

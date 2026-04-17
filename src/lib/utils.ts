@@ -87,6 +87,8 @@ export function getPostBadge(category: PostCategory) {
       return "闲置";
     case "discussion":
       return "交流";
+    case "play":
+      return "约玩";
   }
 }
 

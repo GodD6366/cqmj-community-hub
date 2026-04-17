@@ -1,3 +1,4 @@
+import { Prisma } from "../generated/prisma/client";
 import { normalizeInviteCode, normalizeRoomNumber, parseDelimitedCodes } from "./access-control";
 
 const DEFAULT_INVITE_CODES = parseDelimitedCodes(
@@ -6,29 +7,16 @@ const DEFAULT_INVITE_CODES = parseDelimitedCodes(
 
 export { normalizeRoomNumber };
 
-async function ensureDefaultInviteCodes() {
-  const { prisma } = await import("./db");
-  const count = await prisma.inviteCode.count();
-  if (count > 0) {
-    return;
-  }
-
-  if (DEFAULT_INVITE_CODES.length === 0) {
-    return;
-  }
-
-  await prisma.inviteCode.createMany({
-    data: DEFAULT_INVITE_CODES.map((code) => ({
-      code,
-      note: "默认邀请码",
-      active: true,
-      usedCount: 0,
-    })),
-  });
-}
+export type InviteValidationResult =
+  | { ok: true; normalizedCode: string; remainingUses: number | null; expiresAt: string | null; note: string | null }
+  | { ok: false; normalizedCode: string | null; reason: "empty" | "invalid" | "inactive" | "expired" | "exhausted" };
 
 export function parseInviteCodes(value: string) {
   return parseDelimitedCodes(value);
+}
+
+export function getDefaultInviteCodes() {
+  return DEFAULT_INVITE_CODES;
 }
 
 export function isInviteCodeAllowed(value: string, allowedCodes: readonly string[]) {
@@ -41,7 +29,6 @@ export function isInviteCodeAllowed(value: string, allowedCodes: readonly string
 
 export async function listInviteCodes() {
   const { prisma } = await import("./db");
-  await ensureDefaultInviteCodes();
   return prisma.inviteCode.findMany({ orderBy: [{ active: "desc" }, { createdAt: "desc" }] });
 }
 
@@ -104,29 +91,73 @@ export async function deleteInviteCode(id: string) {
 
 export async function getActiveInviteCode(code: string) {
   const { prisma } = await import("./db");
-  await ensureDefaultInviteCodes();
   const normalized = normalizeInviteCode(code);
   if (!normalized) return null;
   return prisma.inviteCode.findUnique({ where: { code: normalized } });
 }
 
-export async function consumeInviteCode(code: string) {
-  const { prisma } = await import("./db");
+export async function validateInviteCode(code: string): Promise<InviteValidationResult> {
   const inviteCode = await getActiveInviteCode(code);
-  if (!inviteCode || !inviteCode.active) {
-    throw new Error("INVALID_INVITE_CODE");
+  const normalizedCode = normalizeInviteCode(code);
+
+  if (!normalizedCode) {
+    return { ok: false, normalizedCode: null, reason: code.trim() ? "invalid" : "empty" };
+  }
+
+  if (!inviteCode) {
+    return { ok: false, normalizedCode, reason: "invalid" };
+  }
+
+  if (!inviteCode.active) {
+    return { ok: false, normalizedCode, reason: "inactive" };
   }
 
   if (inviteCode.expiresAt && inviteCode.expiresAt.getTime() <= Date.now()) {
-    throw new Error("INVITE_CODE_EXPIRED");
+    return { ok: false, normalizedCode, reason: "expired" };
   }
 
   if (inviteCode.maxUses !== null && inviteCode.usedCount >= inviteCode.maxUses) {
-    throw new Error("INVITE_CODE_EXHAUSTED");
+    return { ok: false, normalizedCode, reason: "exhausted" };
   }
 
-  return prisma.inviteCode.update({
-    where: { id: inviteCode.id },
-    data: { usedCount: { increment: 1 } },
-  });
+  return {
+    ok: true,
+    normalizedCode,
+    remainingUses: inviteCode.maxUses === null ? null : Math.max(inviteCode.maxUses - inviteCode.usedCount, 0),
+    expiresAt: inviteCode.expiresAt?.toISOString() ?? null,
+    note: inviteCode.note,
+  };
+}
+
+export async function consumeInviteCode(code: string) {
+  const { prisma } = await import("./db");
+  const normalized = normalizeInviteCode(code);
+  if (!normalized) {
+    throw new Error("INVALID_INVITE_CODE");
+  }
+
+  return prisma.$transaction(
+    async (tx) => {
+      const inviteCode = await tx.inviteCode.findUnique({ where: { code: normalized } });
+      if (!inviteCode || !inviteCode.active) {
+        throw new Error("INVALID_INVITE_CODE");
+      }
+
+      if (inviteCode.expiresAt && inviteCode.expiresAt.getTime() <= Date.now()) {
+        throw new Error("INVITE_CODE_EXPIRED");
+      }
+
+      if (inviteCode.maxUses !== null && inviteCode.usedCount >= inviteCode.maxUses) {
+        throw new Error("INVITE_CODE_EXHAUSTED");
+      }
+
+      return tx.inviteCode.update({
+        where: { id: inviteCode.id },
+        data: { usedCount: { increment: 1 } },
+      });
+    },
+    {
+      isolationLevel: Prisma.TransactionIsolationLevel.Serializable,
+    },
+  );
 }

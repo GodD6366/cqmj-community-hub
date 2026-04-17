@@ -169,6 +169,35 @@ export const seedPosts: CommunityPost[] = [
     ],
   },
   {
+    id: "post-weekend-badminton",
+    title: "约玩：周六上午羽毛球 2 缺 2，南门球馆拼场",
+    content:
+      "目前两位邻居已确定，想再约两位一起打双打。周六上午 10 点到 12 点，AA 场地费，初学者也欢迎来活动一下。",
+    category: "play",
+    tags: ["羽毛球", "周末", "AA", "组队"],
+    authorName: "5号楼住户",
+    createdAt: "2026-04-13T11:20:00.000Z",
+    updatedAt: "2026-04-13T11:20:00.000Z",
+    commentCount: 2,
+    favoriteCount: 11,
+    visibility: "community",
+    status: "published",
+    comments: [
+      {
+        id: "comment-11a",
+        authorName: "9号楼住户",
+        content: "我可以补一个位置，水平一般，可以吗？",
+        createdAt: "2026-04-13T11:35:00.000Z",
+      },
+      {
+        id: "comment-11b",
+        authorName: "发布者",
+        content: "完全没问题，主要是周末一起动一动，我私信你细节。",
+        createdAt: "2026-04-13T11:42:00.000Z",
+      },
+    ],
+  },
+  {
     id: "post-moving-help",
     title: "求助：月底搬家，能推荐靠谱的同城搬运吗？",
     content:
