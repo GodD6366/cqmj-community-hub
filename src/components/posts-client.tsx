@@ -54,7 +54,7 @@ export function PostsClient({
   return (
     <PageShell className="space-y-4">
       <section className="grid gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
+        <aside className="min-w-0 space-y-4 xl:sticky xl:top-24 xl:self-start">
           <FilterBar
             category={category}
             onCategoryChange={setCategory}
@@ -87,11 +87,11 @@ export function PostsClient({
           </SectionCard>
         </aside>
 
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           <SectionCard className="overflow-hidden">
             <Card.Header className="border-b-2 border-[var(--border-strong)] bg-[var(--surface-muted)] px-4 py-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+                <div className="min-w-0">
                   <div className="section-kicker">Feed Output</div>
                   <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
                     {hasFilters ? `筛选结果 ${filtered.length} 条` : `全部公开帖子 ${stats.total} 条`}

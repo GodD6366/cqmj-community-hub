@@ -42,7 +42,7 @@ export function FilterBar({
       <div className="space-y-3">
         <div className="space-y-2">
           <p className="text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase">频道切换</p>
-          <ScrollShadow hideScrollBar orientation="horizontal" size={42}>
+          <ScrollShadow className="w-full max-w-full" hideScrollBar orientation="horizontal" size={42}>
             <div className="flex min-w-max gap-2 pb-1 pr-3">
               {categories.map((item) => (
                 <Button
@@ -60,7 +60,7 @@ export function FilterBar({
 
         <div className="space-y-2">
           <p className="text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase">排序视角</p>
-          <ScrollShadow hideScrollBar orientation="horizontal" size={42}>
+          <ScrollShadow className="w-full max-w-full" hideScrollBar orientation="horizontal" size={42}>
             <div className="flex min-w-max gap-2 pb-1 pr-3">
               {Object.entries(sortMeta).map(([value, meta]) => (
                 <Button

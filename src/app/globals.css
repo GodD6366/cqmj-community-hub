@@ -71,9 +71,11 @@
 html {
   scroll-behavior: smooth;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: clip;
 }
 
 body {
+  margin: 0;
   min-height: 100vh;
   background:
     linear-gradient(90deg, transparent 0, transparent calc(100% - 1px), var(--grid) calc(100% - 1px)),
@@ -82,10 +84,12 @@ body {
   background-size: 72px 72px, 72px 72px, auto;
   color: var(--foreground);
   font-family: var(--font-sans);
+  overflow-x: clip;
   text-rendering: optimizeLegibility;
 }
 
 .site-frame {
+  overflow-x: clip;
   position: relative;
 }
 
@@ -126,6 +130,7 @@ body {
   margin-inline: auto;
   width: 100%;
   max-width: 92rem;
+  overflow-x: clip;
   padding: 1rem;
 }
 
