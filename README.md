@@ -117,6 +117,7 @@ Docker 部署时推荐使用 [.env.docker.example](./.env.docker.example) 作为
 - 在 Vercel 中配置 `DATABASE_URL`、`COMMUNITY_ADMIN_PASSWORD` 和 `COMMUNITY_INVITE_CODES`
 - 线上 `DATABASE_URL` 指向 Supabase 提供的 PostgreSQL 连接串；本项目不要求本地接入 Supabase CLI
 - 每次 schema 变更后运行 `pnpm db:generate`
-- 首次部署到空库时运行 `pnpm db:push`
+- 项目已提交 Prisma migrations；部署构建会自动执行 `prisma migrate deploy`
+- 如果需要手动补跑线上结构变更，执行 `pnpm db:migrate:deploy`
 - 应用启动后如果发现帖子表为空，会自动写入一批演示数据
 - 不支持 SQLite / PostgreSQL 双轨，也不提供旧数据库流程兼容层
