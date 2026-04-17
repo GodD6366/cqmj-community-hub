@@ -1,0 +1,26 @@
+<svg width="512" height="512" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="board" x1="16" y1="12" x2="94" y2="100" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F78A3D"/>
+      <stop offset="1" stop-color="#DB5F2A"/>
+    </linearGradient>
+    <linearGradient id="hub" x1="30" y1="44" x2="76" y2="98" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#122A46"/>
+      <stop offset="1" stop-color="#081521"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="22" y="24" width="82" height="82" rx="22" fill="#FFD34D"/>
+  <rect x="14" y="14" width="82" height="82" rx="22" fill="url(#board)" stroke="#081521" stroke-width="6"/>
+  <rect x="28" y="28" width="12" height="12" rx="2" fill="#FFD34D" stroke="#081521" stroke-width="4"/>
+
+  <path
+    fill-rule="evenodd"
+    clip-rule="evenodd"
+    d="M30 44H64L78 58V98H58V78H48V98H30V44ZM48 58V66H66V78H56V70H48V78H40V58H48Z"
+    fill="url(#hub)"
+  />
+
+  <circle cx="84" cy="44" r="8" fill="#FFF7EA" stroke="#081521" stroke-width="4"/>
+  <circle cx="84" cy="44" r="3" fill="#DB5F2A"/>
+</svg>

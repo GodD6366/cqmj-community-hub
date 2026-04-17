@@ -3,14 +3,16 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { Avatar, Badge, Button, Chip } from "@heroui/react";
 import { useCommunityPosts } from "./community-provider";
+import { ButtonLink } from "./ui";
+import { SystemLogo } from "./system-logo";
 
 const navItems = [
-  { href: "/posts", label: "帖子" },
-  { href: "/publish", label: "发布" },
-  { href: "/rules", label: "规则" },
-  { href: "/about", label: "关于" },
-  { href: "/admin", label: "后台" },
+  { href: "/posts", label: "帖子广场", index: "01" },
+  { href: "/publish", label: "发布中心", index: "02" },
+  { href: "/rules", label: "社区规则", index: "03" },
+  { href: "/about", label: "项目说明", index: "04" },
 ] as const;
 
 export function SiteNav() {
@@ -18,75 +20,107 @@ export function SiteNav() {
   const { currentUser, logout } = useCommunityPosts();
   const [loggingOut, setLoggingOut] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const isLoginPage = pathname === "/login";
 
   useEffect(() => {
     setMenuOpen(false);
   }, [pathname]);
 
   return (
-    <header className="border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="mx-auto w-full max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between gap-3">
-          <Link href="/" className="min-w-0 flex-1">
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
-                邻
-              </span>
-              <div className="min-w-0">
-                <p className="truncate text-xs font-medium text-slate-500 sm:text-sm">小区社区网站</p>
-                <p className="truncate text-base font-semibold tracking-tight text-slate-900">邻里圈</p>
+    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4 sm:pt-4">
+      <div className="mx-auto max-w-7xl">
+        <div className="glass-card px-4 py-4 sm:px-5">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <Link href="/" className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-3">
+                <SystemLogo />
               </div>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/publish"
-              className="hidden rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 sm:inline-flex"
-            >
-              发帖
             </Link>
-            <button
-              type="button"
-              aria-controls="site-nav-menu"
-              aria-expanded={menuOpen}
-              onClick={() => setMenuOpen((open) => !open)}
-              className="inline-flex h-10 items-center justify-center rounded-full border border-slate-200 px-4 text-sm font-medium text-slate-700 transition hover:bg-slate-50 sm:hidden"
-            >
-              {menuOpen ? "收起" : "菜单"}
-            </button>
+
+            <div className="flex items-center gap-2 text-white">
+              {!isLoginPage ? (
+                <ButtonLink href="/publish" className="hidden sm:inline-flex">
+                  发布内容
+                </ButtonLink>
+              ) : null}
+              <Button className="sm:hidden" onPress={() => setMenuOpen((open) => !open)} variant="secondary">
+                {menuOpen ? "收起" : "菜单"}
+              </Button>
+            </div>
           </div>
-        </div>
 
-        <div className="mt-4 hidden items-center justify-between gap-4 sm:flex">
-          <nav className="flex flex-wrap items-center gap-2 text-sm font-medium text-slate-600">
-            {navItems.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  aria-current={active ? "page" : undefined}
-                  className={`rounded-full px-3 py-2 transition ${
-                    active ? "bg-slate-900 text-white" : "hover:bg-slate-100 hover:text-slate-900"
-                  }`}
-                >
-                  {item.label}
-                </Link>
-              );
-            })}
-          </nav>
+          <div className="mt-4 hidden gap-4 border-t border-[var(--separator)] pt-4 sm:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+            <nav className="grid gap-2 md:grid-cols-3 xl:grid-cols-5">
+              {navItems.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-          <div className="flex items-center gap-2 text-sm font-medium text-slate-600">
-            {currentUser ? (
-              <>
-                <span className="max-w-[18rem] truncate rounded-full bg-emerald-50 px-3 py-2 text-emerald-700">
-                  {currentUser.username} · {currentUser.roomNumber}
-                </span>
-                <button
-                  type="button"
-                  disabled={loggingOut}
-                  onClick={async () => {
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    className={cn(
+                      "route-card grid gap-1 px-3 py-3 transition hover:-translate-y-[1px]",
+                      active ? "bg-[var(--primary)] text-white" : "bg-[rgba(255,250,241,0.9)]",
+                    )}
+                  >
+                    <span className={cn("text-[11px] font-bold tracking-[0.24em] uppercase", active ? "text-white/68" : "text-slate-500")}>
+                      {item.index}
+                    </span>
+                    <span className="text-sm font-semibold">{item.label}</span>
+                  </Link>
+                );
+              })}
+            </nav>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {currentUser ? (
+                <>
+                  <Badge.Anchor>
+                    <Avatar className="border-2 border-[var(--border-strong)] bg-[var(--signal)] text-[var(--primary-strong)]" size="md">
+                      <Avatar.Fallback>{currentUser.username.slice(0, 1).toUpperCase()}</Avatar.Fallback>
+                    </Avatar>
+                    <Badge color="success" placement="bottom-right" size="sm" />
+                  </Badge.Anchor>
+                  <Chip color="success" variant="soft">
+                    {currentUser.username} · {currentUser.roomNumber}
+                  </Chip>
+                  <Button
+                    isPending={loggingOut}
+                    onPress={async () => {
+                      setLoggingOut(true);
+                      try {
+                        await logout();
+                      } finally {
+                        setLoggingOut(false);
+                      }
+                    }}
+                    variant="secondary"
+                  >
+                    {loggingOut ? "退出中..." : "退出"}
+                  </Button>
+                </>
+              ) : !isLoginPage ? (
+                <ButtonLink href="/login" variant="secondary">
+                  登录
+                </ButtonLink>
+              ) : null}
+            </div>
+          </div>
+
+          {menuOpen ? (
+            <div className="mt-4 grid gap-3 border-t border-[var(--separator)] pt-4 sm:hidden">
+              {navItems.map((item) => {
+                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                return (
+                  <ButtonLink key={item.href} href={item.href} variant={active ? "primary" : "secondary"}>
+                    {item.index} · {item.label}
+                  </ButtonLink>
+                );
+              })}
+              {currentUser ? (
+                <Button
+                  isPending={loggingOut}
+                  onPress={async () => {
                     setLoggingOut(true);
                     try {
                       await logout();
@@ -94,95 +128,23 @@ export function SiteNav() {
                       setLoggingOut(false);
                     }
                   }}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-2 text-slate-600 transition hover:bg-slate-50 disabled:opacity-60"
+                  variant="secondary"
                 >
                   {loggingOut ? "退出中..." : "退出"}
-                </button>
-              </>
-            ) : (
-              <Link
-                href="/login"
-                className="rounded-full border border-slate-200 bg-white px-3 py-2 text-slate-600 transition hover:bg-slate-50"
-              >
-                登录
-              </Link>
-            )}
-          </div>
-        </div>
-
-        {menuOpen ? (
-          <div
-            id="site-nav-menu"
-            className="mt-4 space-y-4 rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:hidden"
-          >
-            <nav className="grid gap-2 text-sm font-medium text-slate-700">
-              {navItems.map((item) => {
-                const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
-                return (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    aria-current={active ? "page" : undefined}
-                    className={`rounded-2xl px-4 py-3 transition ${
-                      active ? "bg-slate-900 text-white" : "bg-slate-50 hover:bg-slate-100"
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
-                );
-              })}
-            </nav>
-
-            <div className="border-t border-slate-200 pt-4">
-              {currentUser ? (
-                <div className="space-y-3">
-                  <p className="rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700">
-                    {currentUser.username} · {currentUser.roomNumber}
-                  </p>
-                  <div className="grid gap-2">
-                    <Link
-                      href="/publish"
-                      className="rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-slate-700"
-                    >
-                      发帖
-                    </Link>
-                    <button
-                      type="button"
-                      disabled={loggingOut}
-                      onClick={async () => {
-                        setLoggingOut(true);
-                        try {
-                          await logout();
-                        } finally {
-                          setLoggingOut(false);
-                        }
-                      }}
-                      className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 transition hover:bg-slate-50 disabled:opacity-60"
-                    >
-                      {loggingOut ? "退出中..." : "退出"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  <Link
-                    href="/login"
-                    className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-center text-sm font-medium text-slate-700 transition hover:bg-slate-50"
-                  >
-                    登录
-                  </Link>
-                  <Link
-                    href="/publish"
-                    className="rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-medium text-white transition hover:bg-slate-700"
-                  >
-                    发帖
-                  </Link>
-                </div>
-              )}
+                </Button>
+              ) : !isLoginPage ? (
+                <ButtonLink href="/login" variant="secondary">
+                  登录
+                </ButtonLink>
+              ) : null}
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </div>
       </div>
     </header>
   );
+}
+
+function cn(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
 }

@@ -1,55 +1,60 @@
-
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
+import { Button, Card, Chip, Skeleton } from "@heroui/react";
 import { FilterBar } from "./filter-bar";
 import { PostCard } from "./post-card";
 import { useCommunityPosts } from "./community-provider";
-import type { PostCategory, SortMode } from "../lib/types";
+import type { CommunityPost, PostCategory, SortMode } from "../lib/types";
 import { filterPublicPosts } from "../lib/community-store";
 import { filterPosts, sortPosts } from "../lib/utils";
+import { PageShell, SectionCard } from "./ui";
 
-export function PostsClient() {
+export function PostsClient({
+  initialPosts = [],
+  initialCategory = "all",
+  initialSort = "latest",
+  initialQuery = "",
+}: {
+  initialPosts?: CommunityPost[];
+  initialCategory?: PostCategory | "all";
+  initialSort?: SortMode;
+  initialQuery?: string;
+}) {
   const { posts, hydrated } = useCommunityPosts();
-  const [category, setCategory] = useState<PostCategory | "all">("all");
-  const [sort, setSort] = useState<SortMode>("latest");
-  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState<PostCategory | "all">(initialCategory);
+  const [sort, setSort] = useState<SortMode>(initialSort);
+  const [query, setQuery] = useState(initialQuery);
+  const sourcePosts = hydrated ? posts : initialPosts;
 
   const filtered = useMemo(() => {
-    const publicPosts = filterPublicPosts(posts);
+    const publicPosts = filterPublicPosts(sourcePosts);
     const matched = filterPosts(publicPosts, { category, query });
     return sortPosts(matched, sort);
-  }, [category, posts, query, sort]);
+  }, [category, query, sort, sourcePosts]);
 
   const stats = useMemo(
     () => ({
-      total: filterPublicPosts(posts).length,
-      requests: posts.filter((post) => post.category === "request" && post.status === "published" && post.visibility !== "private").length,
-      secondhand: posts.filter((post) => post.category === "secondhand" && post.status === "published" && post.visibility !== "private").length,
-      discussions: posts.filter((post) => post.category === "discussion" && post.status === "published" && post.visibility !== "private").length,
+      total: filterPublicPosts(sourcePosts).length,
+      requests: sourcePosts.filter((post) => post.category === "request" && post.status === "published" && post.visibility !== "private").length,
+      secondhand: sourcePosts.filter((post) => post.category === "secondhand" && post.status === "published" && post.visibility !== "private").length,
+      discussions: sourcePosts.filter((post) => post.category === "discussion" && post.status === "published" && post.visibility !== "private").length,
     }),
-    [posts],
+    [sourcePosts],
   );
 
-  return (
-    <main className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      <div className="grid gap-6 xl:grid-cols-[1fr_320px]">
-        <section className="space-y-6">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm sm:p-8">
-            <p className="text-sm font-medium text-slate-500">帖子广场</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-tight text-slate-900">需求、闲置和交流，一页看完</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">
-              你可以按类别、关键词和热度筛选帖子。后续接入数据库后，这里可以无缝切换到真实数据源。
-            </p>
-            <div className="mt-6 flex flex-wrap gap-3 text-sm text-slate-600">
-              <span className="rounded-full bg-slate-100 px-3 py-1">共 {stats.total} 条</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">需求 {stats.requests} 条</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">闲置 {stats.secondhand} 条</span>
-              <span className="rounded-full bg-slate-100 px-3 py-1">交流 {stats.discussions} 条</span>
-            </div>
-          </div>
+  const hasFilters = category !== "all" || sort !== "latest" || query.trim().length > 0;
 
+  function resetFilters() {
+    setCategory("all");
+    setSort("latest");
+    setQuery("");
+  }
+
+  return (
+    <PageShell className="space-y-4">
+      <section className="grid gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]">
+        <aside className="space-y-4 xl:sticky xl:top-24 xl:self-start">
           <FilterBar
             category={category}
             onCategoryChange={setCategory}
@@ -59,50 +64,79 @@ export function PostsClient() {
             onQueryChange={setQuery}
           />
 
-          {!hydrated ? (
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 text-sm text-slate-500 shadow-sm">
-              正在加载本地社区数据...
-            </div>
-          ) : filtered.length === 0 ? (
-            <div className="rounded-3xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500 shadow-sm">
-              没有找到符合条件的帖子，换个关键词试试。
-            </div>
-          ) : (
-            <div className="grid gap-4">
-              {filtered.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </div>
-          )}
-        </section>
-
-        <aside className="space-y-4">
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-6 shadow-sm">
-            <p className="text-sm font-medium text-slate-500">快捷入口</p>
-            <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">有事先发帖</h2>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              需求、闲置、交流三种类型已经够第一版跑通。先把规则和秩序立住，后面再谈更复杂的能力。
-            </p>
-            <div className="mt-4 flex flex-col gap-2">
-              <Link href="/publish" className="rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-medium text-white">
-                去发布
-              </Link>
-              <Link href="/rules" className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-center text-sm font-medium text-slate-700">
-                看社区规则
-              </Link>
-            </div>
-          </div>
-
-          <div className="rounded-[2rem] border border-slate-200 bg-slate-950 p-6 text-white shadow-sm">
-            <p className="text-sm font-medium text-slate-300">治理提醒</p>
-            <ul className="mt-3 space-y-3 text-sm leading-6 text-slate-200">
-              <li>• 闲置交易优先自提，平台不做担保</li>
-              <li>• 敏感求助默认走私密范围</li>
-              <li>• 违规内容先举报再处理</li>
-            </ul>
-          </div>
+          <SectionCard className="p-4">
+            <Card.Header className="p-0">
+              <Card.Title className="text-lg font-semibold text-slate-950">当前状态</Card.Title>
+            </Card.Header>
+            <Card.Content className="space-y-3 p-0 pt-4">
+              <div className="route-card p-3">
+                <div className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">结果</div>
+                <div className="mt-2 text-2xl font-semibold text-slate-950">{filtered.length}</div>
+                <div className="mt-1 text-xs text-slate-600">{hasFilters ? "已应用筛选条件" : "全量浏览模式"}</div>
+              </div>
+              <div className="route-card p-3">
+                <div className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">建议</div>
+                <div className="mt-2 text-sm leading-6 text-slate-700">先锁定频道，再决定用“最新”还是“精选”，信息噪音会少很多。</div>
+              </div>
+              {hasFilters ? (
+                <Button onPress={resetFilters} variant="secondary">
+                  重置筛选
+                </Button>
+              ) : null}
+            </Card.Content>
+          </SectionCard>
         </aside>
-      </div>
-    </main>
+
+        <div className="space-y-4">
+          <SectionCard className="overflow-hidden">
+            <Card.Header className="border-b-2 border-[var(--border-strong)] bg-[var(--surface-muted)] px-4 py-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="section-kicker">Feed Output</div>
+                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                    {hasFilters ? `筛选结果 ${filtered.length} 条` : `全部公开帖子 ${stats.total} 条`}
+                  </h2>
+                </div>
+                <Chip color="accent" variant="soft">
+                  {sort === "latest" ? "按最新查看" : sort === "popular" ? "按热度查看" : "按精选查看"}
+                </Chip>
+              </div>
+            </Card.Header>
+            <Card.Content className="p-4">
+              {!hydrated ? (
+                filtered.length > 0 ? (
+                  <div className="post-stream">
+                    {filtered.slice(0, 6).map((post) => (
+                      <PostCard key={post.id} post={post} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="post-stream">
+                    {Array.from({ length: 4 }).map((_, index) => (
+                      <Card key={index} className="glass-card p-4">
+                        <Skeleton className="h-5 w-28 rounded-full" />
+                        <Skeleton className="mt-4 h-10 w-3/4 rounded-xl" />
+                        <Skeleton className="mt-3 h-4 w-full rounded-xl" />
+                        <Skeleton className="mt-2 h-4 w-5/6 rounded-xl" />
+                      </Card>
+                    ))}
+                  </div>
+                )
+              ) : filtered.length === 0 ? (
+                <div className="paper-panel rounded-[1rem] p-10 text-center text-sm leading-7 text-slate-600">
+                  当前条件下没有匹配内容。换个关键词，或者回到全部频道。
+                </div>
+              ) : (
+                <div className="post-stream">
+                  {filtered.map((post) => (
+                    <PostCard key={post.id} post={post} />
+                  ))}
+                </div>
+              )}
+            </Card.Content>
+          </SectionCard>
+        </div>
+      </section>
+    </PageShell>
   );
 }

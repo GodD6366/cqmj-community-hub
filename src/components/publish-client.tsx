@@ -3,9 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { Alert } from "@heroui/react";
 import { PostEditor } from "./post-editor";
 import { useCommunityPosts } from "./community-provider";
 import type { PostDraft } from "../lib/types";
+import { PageShell } from "./ui";
 
 export function PublishClient() {
   const router = useRouter();
@@ -23,24 +25,32 @@ export function PublishClient() {
   };
 
   return (
-    <main className="mx-auto w-full max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
+    <PageShell className="max-w-6xl">
       <div className="space-y-4">
         {!currentUser ? (
-          <div className="rounded-[2rem] border border-amber-200 bg-amber-50 p-6 text-sm leading-6 text-amber-800 shadow-sm">
-            你还没有登录。要先 <Link href="/login" className="font-semibold underline underline-offset-4">登录或注册</Link>，才能发布帖子。
-          </div>
+          <Alert status="warning">
+            <Alert.Content>
+              <Alert.Description>
+                你还没有登录。要先 <Link href="/login?next=/publish" className="font-semibold text-[var(--primary)] underline underline-offset-4">登录或注册</Link>，才能发布帖子。
+              </Alert.Description>
+            </Alert.Content>
+          </Alert>
         ) : null}
 
         {successMessage ? (
-          <div className="rounded-3xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-            {successMessage}
-          </div>
+          <Alert status="success">
+            <Alert.Content>
+              <Alert.Description>{successMessage}</Alert.Description>
+            </Alert.Content>
+          </Alert>
         ) : null}
 
         {errorMessage ? (
-          <div className="rounded-3xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
-            {errorMessage}
-          </div>
+          <Alert status="danger">
+            <Alert.Content>
+              <Alert.Description>{errorMessage}</Alert.Description>
+            </Alert.Content>
+          </Alert>
         ) : null}
 
         {currentUser ? (
@@ -54,11 +64,11 @@ export function PublishClient() {
             }}
           />
         ) : (
-          <div className="rounded-[2rem] border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-600 shadow-sm">
+          <div className="paper-panel rounded-[1.35rem] border border-dashed p-8 text-center text-sm leading-7 text-slate-600">
             登录后即可发布需求、闲置和交流内容。
           </div>
         )}
       </div>
-    </main>
+    </PageShell>
   );
 }

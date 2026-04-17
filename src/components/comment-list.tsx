@@ -1,4 +1,4 @@
-
+import { Avatar, Card, Chip } from "@heroui/react";
 import { formatDateTime } from "../lib/utils";
 import type { CommunityComment } from "../lib/types";
 
@@ -9,7 +9,7 @@ interface CommentListProps {
 export function CommentList({ comments }: CommentListProps) {
   if (comments.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-slate-300 bg-slate-50 p-6 text-sm text-slate-500">
+      <div className="paper-panel rounded-[1.3rem] border border-dashed p-6 text-sm leading-6 text-slate-500">
         还没有评论，先发第一条吧。
       </div>
     );
@@ -18,13 +18,24 @@ export function CommentList({ comments }: CommentListProps) {
   return (
     <div className="space-y-3">
       {comments.map((comment) => (
-        <article key={comment.id} className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center justify-between gap-4 text-sm">
-            <span className="font-medium text-slate-900">{comment.authorName}</span>
-            <span className="text-slate-500">{formatDateTime(comment.createdAt)}</span>
-          </div>
-          <p className="mt-2 text-sm leading-6 text-slate-700">{comment.content}</p>
-        </article>
+        <Card key={comment.id} className="glass-card p-4">
+          <Card.Header className="flex flex-row items-center justify-between gap-3 p-0">
+            <div className="flex min-w-0 items-center gap-3">
+              <Avatar className="bg-[var(--primary-soft)] text-[var(--primary)]" size="sm">
+                <Avatar.Fallback>{comment.authorName.slice(0, 1).toUpperCase()}</Avatar.Fallback>
+              </Avatar>
+              <div className="min-w-0">
+                <div className="truncate text-sm font-semibold text-slate-900">{comment.authorName}</div>
+              </div>
+            </div>
+            <Chip size="sm" variant="soft">
+              {formatDateTime(comment.createdAt)}
+            </Chip>
+          </Card.Header>
+          <Card.Content className="p-0 pt-4">
+            <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{comment.content}</p>
+          </Card.Content>
+        </Card>
       ))}
     </div>
   );

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Alert, Button, TextArea } from "@heroui/react";
 
 interface CommentFormProps {
   onSubmit: (content: string) => void | Promise<void>;
@@ -13,7 +14,7 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
 
   return (
     <form
-      className="space-y-3 rounded-3xl border border-slate-200 bg-white p-4 shadow-sm"
+      className="glass-card space-y-4 rounded-[1.4rem] p-4 sm:p-5"
       onSubmit={async (event) => {
         event.preventDefault();
         const value = content.trim();
@@ -33,22 +34,32 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
         }
       }}
     >
-      <label className="block text-sm font-medium text-slate-700" htmlFor="comment-content">
-        发表评论
-      </label>
-      <textarea
+      <div className="space-y-1">
+        <label className="block text-sm font-semibold text-slate-800" htmlFor="comment-content">
+          发表评论
+        </label>
+        <p className="text-xs leading-5 text-slate-500">补充进展、确认交易细节，或给邻居更明确的回复。</p>
+      </div>
+      <TextArea
         id="comment-content"
+        fullWidth
         value={content}
         onChange={(event) => setContent(event.target.value)}
         rows={4}
-        className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400"
         placeholder="写下你的补充说明、问题反馈或交易确认"
       />
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
-      <div className="flex justify-end">
-        <button disabled={submitting} className="rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-700 disabled:opacity-60">
+      {error ? (
+        <Alert status="danger">
+          <Alert.Content>
+            <Alert.Description>{error}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="text-xs leading-5 text-slate-500">建议写明时间、地点或联系方式偏好，方便对方继续跟进。</div>
+        <Button className="sm:w-auto" fullWidth isPending={submitting} type="submit">
           {submitting ? "发送中..." : "发送评论"}
-        </button>
+        </Button>
       </div>
     </form>
   );

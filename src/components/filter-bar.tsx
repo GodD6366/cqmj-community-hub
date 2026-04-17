@@ -1,6 +1,6 @@
-
 "use client";
 
+import { Button, Input, ScrollShadow } from "@heroui/react";
 import type { PostCategory, SortMode } from "../lib/types";
 import { categoryMeta, sortMeta } from "../lib/types";
 
@@ -27,53 +27,53 @@ export function FilterBar({
   ] as const;
 
   return (
-    <div className="space-y-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div>
-          <p className="text-sm font-medium text-slate-500">筛选和排序</p>
-          <h2 className="mt-1 text-xl font-semibold tracking-tight text-slate-900">快速找到需要的信息</h2>
-        </div>
-        <input
+    <div className="glass-card space-y-4 rounded-[1rem] p-4 sm:p-5">
+      <div className="space-y-2">
+        <p className="section-kicker">搜索与筛选</p>
+        <Input
+          aria-label="搜索帖子"
+          fullWidth
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm outline-none transition placeholder:text-slate-400 focus:border-slate-400 lg:max-w-sm"
           placeholder="搜索标题、正文、标签、作者"
         />
       </div>
 
-      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-        <div className="flex flex-wrap gap-2">
-          {categories.map((item) => (
-            <button
-              key={item.value}
-              type="button"
-              onClick={() => onCategoryChange(item.value as PostCategory | "all")}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                category === item.value
-                  ? "bg-slate-900 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+      <div className="space-y-3">
+        <div className="space-y-2">
+          <p className="text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase">频道切换</p>
+          <ScrollShadow hideScrollBar orientation="horizontal" size={42}>
+            <div className="flex min-w-max gap-2 pb-1 pr-3">
+              {categories.map((item) => (
+                <Button
+                  key={item.value}
+                  className="min-w-[5rem]"
+                  onPress={() => onCategoryChange(item.value as PostCategory | "all")}
+                  variant={category === item.value ? "primary" : "secondary"}
+                >
+                  {item.label}
+                </Button>
+              ))}
+            </div>
+          </ScrollShadow>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {Object.entries(sortMeta).map(([value, meta]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => onSortChange(value as SortMode)}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
-                sort === value
-                  ? "bg-emerald-600 text-white"
-                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-              }`}
-            >
-              {meta.label}
-            </button>
-          ))}
+        <div className="space-y-2">
+          <p className="text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase">排序视角</p>
+          <ScrollShadow hideScrollBar orientation="horizontal" size={42}>
+            <div className="flex min-w-max gap-2 pb-1 pr-3">
+              {Object.entries(sortMeta).map(([value, meta]) => (
+                <Button
+                  key={value}
+                  className="min-w-[5rem]"
+                  onPress={() => onSortChange(value as SortMode)}
+                  variant={sort === value ? "primary" : "secondary"}
+                >
+                  {meta.label}
+                </Button>
+              ))}
+            </div>
+          </ScrollShadow>
         </div>
       </div>
     </div>
