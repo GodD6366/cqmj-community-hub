@@ -3,7 +3,7 @@
 面向真实小区住户的社区协作平台原型仓库。
 
 项目愿景、白皮书和非技术说明已移到 [why.md](./why.md)。
-本文件聚焦仓库结构、当前实现和开发接入。
+本文件聚焦仓库结构、当前实现和 Docker 部署方式。
 
 ## 当前仓库已实现的能力
 
@@ -32,66 +32,97 @@
 - **TypeScript**
 - **Tailwind CSS 4**
 - **Prisma**
-- **PostgreSQL**（本地使用 Docker，线上使用 Supabase 托管）
-- **Vercel** 用于部署
+- **PostgreSQL**
+- **Docker Compose**
 
 ## 数据与运行说明
 
 - Prisma schema 位于 [prisma/schema.prisma](./prisma/schema.prisma)
 - 首页文案优先读取 [why.md](./why.md)，缺失时回退到 `README.md`
 - Prisma 唯一 datasource 为 `postgresql`，通过 `DATABASE_URL` 连接数据库
-- 本地主开发路径使用 Docker Postgres，线上通过 `DATABASE_URL` 连接 Supabase Postgres
+- 开发与生产都以本地 Docker 作为标准部署方式
 - 管理员密码与初始邀请码通过环境变量注入
 
-## 本地开发
+## 开发环境 Docker
 
-先启动本地 PostgreSQL：
+开发环境会启动 `web` + `db` 两个容器，并挂载本地源码目录，适合热更新和日常开发。
 
-```bash
-docker compose up -d db
-```
-
-再在宿主机启动开发服务：
+首次使用先准备环境文件：
 
 ```bash
-pnpm install
-pnpm db:generate
-pnpm db:push
-pnpm dev
+cp .env.docker.dev.example .env.docker.dev
 ```
 
-默认情况下，宿主机通过 `localhost:55432` 连接 Docker 中的 PostgreSQL。
-
-## 本地 Docker 部署
-
-仓库同时提供“应用 + PostgreSQL”一体化本地部署，用于演示或整体验证；它不是默认开发入口。
-
-如果使用默认配置，直接执行：
+启动开发容器：
 
 ```bash
-docker compose up -d --build
+docker compose -f docker-compose.dev.yml --env-file .env.docker.dev up --build
 ```
 
-应用默认会监听 `http://localhost:30080`，数据库默认会监听 `localhost:55432`，数据库数据持久化在 Docker volume `postgres_data` 中。
-
-如果希望自定义数据库名、账号、管理员密码或邀请码，可以先准备一个 Docker 专用环境文件：
+或直接使用脚本：
 
 ```bash
-cp .env.docker.example .env.docker
-docker compose --env-file .env.docker up -d --build
+pnpm docker:dev
 ```
 
-常用管理命令：
+默认访问地址：
+
+- 应用：`http://localhost:3000`
+- 数据库：`localhost:55432`
+
+常用命令：
 
 ```bash
-docker compose ps
-docker compose logs -f web
-docker compose down
-docker compose down -v
+docker compose -f docker-compose.dev.yml --env-file .env.docker.dev down
+docker compose -f docker-compose.dev.yml --env-file .env.docker.dev logs -f web
 ```
 
-- `docker compose down`：停止容器，保留数据库数据
-- `docker compose down -v`：连同数据库 volume 一起清空
+开发容器启动时会自动执行：
+
+- `pnpm install`
+- `pnpm prisma generate`
+- `pnpm prisma db push`
+- `pnpm dev --hostname 0.0.0.0 --port 3000`
+
+## 生产环境 Docker
+
+生产环境会先构建镜像，再启动 `web` + `db` 容器，适合本机演示、局域网部署或自托管服务器部署。
+
+默认情况下，生产环境会避开开发环境端口，方便两套同时运行：
+
+- 应用：`http://localhost:3001`
+- 数据库：`localhost:55433`
+
+先准备生产环境文件：
+
+```bash
+cp .env.docker.prod.example .env.docker.prod
+```
+
+启动生产容器：
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.docker.prod up -d --build
+```
+
+或直接使用脚本：
+
+```bash
+pnpm docker:prod
+```
+
+常用命令：
+
+```bash
+docker compose -f docker-compose.prod.yml --env-file .env.docker.prod ps
+docker compose -f docker-compose.prod.yml --env-file .env.docker.prod logs -f web
+docker compose -f docker-compose.prod.yml --env-file .env.docker.prod down
+```
+
+生产容器启动时会自动执行：
+
+- `pnpm db:migrate:deploy`
+- `pnpm start`
 
 ## 环境变量
 
@@ -101,7 +132,7 @@ docker compose down -v
 - `COMMUNITY_ADMIN_PASSWORD`
 - `COMMUNITY_INVITE_CODES`
 
-本地可以参考 [.env.example](./.env.example)：
+如果不走 Docker，也可以参考 [.env.example](./.env.example) 在宿主机本地运行：
 
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:55432/community_hub?schema=public"
@@ -109,15 +140,18 @@ COMMUNITY_ADMIN_PASSWORD="admin"
 COMMUNITY_INVITE_CODES="WELCOME-2026,NEIGHBOR-2026"
 ```
 
-Docker 部署时推荐使用 [.env.docker.example](./.env.docker.example) 作为模板，通过 `docker compose --env-file .env.docker up -d --build` 注入变量。
-如果你希望把应用映射回宿主机 `3000`，可以设置 `HOST_WEB_PORT=3000`；如果你希望把数据库映射回宿主机 `5432`，可以设置 `HOST_DB_PORT=5432`。前提都是本机对应端口没有被其他服务占用。
+Docker 运行时推荐分别使用：
+
+- 开发模板：[.env.docker.dev.example](./.env.docker.dev.example)
+- 生产模板：[.env.docker.prod.example](./.env.docker.prod.example)
+
+旧的 [.env.docker.example](./.env.docker.example) 仍可作为通用模板，但更推荐按环境拆分配置。
 
 ## 部署说明
 
-- 在 Vercel 中配置 `DATABASE_URL`、`COMMUNITY_ADMIN_PASSWORD` 和 `COMMUNITY_INVITE_CODES`
-- 线上 `DATABASE_URL` 指向 Supabase 提供的 PostgreSQL 连接串；本项目不要求本地接入 Supabase CLI
-- 每次 schema 变更后运行 `pnpm db:generate`
-- 项目已提交 Prisma migrations；部署构建会自动执行 `prisma migrate deploy`
-- 如果需要手动补跑线上结构变更，执行 `pnpm db:migrate:deploy`
+- 项目已提交 Prisma migrations
+- 生产镜像构建阶段只执行 `next build`
+- 数据库迁移改为在生产容器启动时执行 `prisma migrate deploy`
+- 开发环境使用 `prisma db push`，避免每次开发都依赖完整迁移流程
 - 应用启动后如果发现帖子表为空，会自动写入一批演示数据
-- 不支持 SQLite / PostgreSQL 双轨，也不提供旧数据库流程兼容层
+- 如果需要反向代理，建议在 Next.js 容器前增加 Nginx 或 Caddy
