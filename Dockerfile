@@ -6,7 +6,8 @@ ENV PATH=$PNPM_HOME:$PATH
 RUN apt-get update \
   && apt-get install -y --no-install-recommends openssl ca-certificates \
   && rm -rf /var/lib/apt/lists/* \
-  && corepack enable
+  && corepack enable \
+  && corepack prepare pnpm@10.33.0 --activate
 WORKDIR /app
 
 FROM base AS deps
@@ -14,9 +15,19 @@ COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma
 RUN pnpm install --frozen-lockfile
 
+FROM base AS dev
+COPY package.json pnpm-lock.yaml ./
+COPY prisma ./prisma
+RUN pnpm install
+
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY package.json pnpm-lock.yaml next.config.ts tsconfig.json next-env.d.ts postcss.config.mjs ./
+COPY prisma ./prisma
+COPY public ./public
+COPY src ./src
+COPY README.md ./README.md
+COPY why.md ./why.md
 RUN pnpm prisma generate
 RUN pnpm build
 
