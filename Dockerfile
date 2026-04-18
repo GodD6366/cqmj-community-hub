@@ -22,12 +22,13 @@ RUN pnpm install
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json pnpm-lock.yaml next.config.ts tsconfig.json next-env.d.ts postcss.config.mjs ./
+COPY package.json pnpm-lock.yaml next.config.ts tsconfig.json postcss.config.mjs ./
 COPY prisma ./prisma
 COPY public ./public
 COPY src ./src
 COPY README.md ./README.md
 COPY why.md ./why.md
+RUN printf '%s\n' '/// <reference types="next" />' '/// <reference types="next/image-types/global" />' '' '// NOTE: This file should not be edited' '// see https://nextjs.org/docs/app/api-reference/config/typescript for more information.' > next-env.d.ts
 RUN pnpm prisma generate
 RUN pnpm build
 
