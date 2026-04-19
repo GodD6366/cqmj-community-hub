@@ -231,3 +231,36 @@ export async function reportPostForViewer(postId: string, viewerId: string, reas
 
   return true;
 }
+
+export async function listPostsForAdmin() {
+  await ensureSeeded();
+  const posts = await prisma.post.findMany({
+    include: {
+      comments: { orderBy: { createdAt: "asc" } },
+      favorites: { select: { userId: true } },
+      reports: { select: { userId: true } },
+    },
+    orderBy: [{ pinned: "desc" }, { featured: "desc" }, { createdAt: "desc" }],
+  });
+
+  return posts.map((post) => mapPost(post, null));
+}
+
+export async function deletePostForAdmin(postId: string) {
+  await ensureSeeded();
+
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true },
+  });
+
+  if (!post) {
+    return false;
+  }
+
+  await prisma.post.delete({
+    where: { id: postId },
+  });
+
+  return true;
+}

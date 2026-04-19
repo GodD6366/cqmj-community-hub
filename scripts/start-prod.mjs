@@ -3,6 +3,7 @@ import { spawn } from "node:child_process";
 
 const DATABASE_CONNECT_TIMEOUT_MS = 60_000;
 const DATABASE_RETRY_INTERVAL_MS = 2_000;
+const MIGRATE_RETRY_COUNT = 15;
 
 function getDatabaseTarget() {
   const databaseUrl = process.env.DATABASE_URL;
@@ -83,11 +84,39 @@ function run(command, args) {
   });
 }
 
+async function runWithRetries(command, args, retries, delayMs) {
+  let lastError;
+
+  for (let attempt = 1; attempt <= retries; attempt += 1) {
+    try {
+      if (attempt > 1) {
+        console.log(`Retrying ${command} ${args.join(" ")} (${attempt}/${retries})...`);
+      }
+
+      await run(command, args);
+      return;
+    } catch (error) {
+      lastError = error;
+
+      if (attempt === retries) {
+        break;
+      }
+
+      console.log(
+        `${command} ${args.join(" ")} failed on attempt ${attempt}/${retries}. Waiting ${delayMs}ms before retry...`,
+      );
+      await sleep(delayMs);
+    }
+  }
+
+  throw lastError;
+}
+
 async function main() {
   const port = process.env.PORT || "3000";
 
   await waitForDatabase();
-  await run("pnpm", ["prisma", "migrate", "deploy"]);
+  await runWithRetries("pnpm", ["prisma", "migrate", "deploy"], MIGRATE_RETRY_COUNT, DATABASE_RETRY_INTERVAL_MS);
   await run("pnpm", ["exec", "next", "start", "--hostname", "0.0.0.0", "--port", port]);
 }
 

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Input } from "@heroui/react";
 import { PageShell, SectionCard } from "./ui";
+import { categoryMeta } from "@/lib/types";
 
 type InviteCode = {
   id: string;
@@ -13,6 +14,24 @@ type InviteCode = {
   usedCount: number;
   expiresAt: string | null;
   createdAt: string;
+};
+
+type AdminPost = {
+  id: string;
+  title: string;
+  content: string;
+  category: keyof typeof categoryMeta;
+  tags: string[];
+  authorName: string;
+  createdAt: string;
+  updatedAt: string;
+  commentCount: number;
+  favoriteCount: number;
+  visibility: string;
+  status: string;
+  comments: Array<{ id: string }>;
+  pinned?: boolean;
+  featured?: boolean;
 };
 
 async function readJson<T>(response: Response): Promise<T> {
@@ -36,6 +55,7 @@ export function AdminInviteClient() {
   const [adminPassword, setAdminPassword] = useState("");
   const [loggedIn, setLoggedIn] = useState(false);
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
+  const [posts, setPosts] = useState<AdminPost[]>([]);
   const [code, setCode] = useState("");
   const [note, setNote] = useState("");
   const [maxUses, setMaxUses] = useState("");
@@ -45,6 +65,7 @@ export function AdminInviteClient() {
   const [loading, setLoading] = useState(false);
 
   const sortedCodes = useMemo(() => inviteCodes.slice().sort((a, b) => Number(b.active) - Number(a.active)), [inviteCodes]);
+  const sortedPosts = useMemo(() => posts.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)), [posts]);
 
   const loadCodes = async () => {
     const response = await fetch("/api/admin/invite-codes", { cache: "no-store" });
@@ -57,8 +78,19 @@ export function AdminInviteClient() {
     setLoggedIn(true);
   };
 
+  const loadPosts = async () => {
+    const response = await fetch("/api/admin/posts", { cache: "no-store" });
+    if (response.status === 401) {
+      setLoggedIn(false);
+      return;
+    }
+    const data = await readJson<{ posts: AdminPost[] }>(response);
+    setPosts(data.posts ?? []);
+    setLoggedIn(true);
+  };
+
   useEffect(() => {
-    void loadCodes().catch(() => undefined);
+    void Promise.all([loadCodes(), loadPosts()]).catch(() => undefined);
   }, []);
 
   const login = async () => {
@@ -73,7 +105,7 @@ export function AdminInviteClient() {
         }),
       );
       setLoggedIn(true);
-      await loadCodes();
+      await Promise.all([loadCodes(), loadPosts()]);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "管理员登录失败");
     } finally {
@@ -197,9 +229,11 @@ export function AdminInviteClient() {
               <Button
                 onPress={async () => {
                   await fetch("/api/admin/logout", { method: "POST" });
-                  setLoggedIn(false);
-                  setAdminPassword("");
-                }}
+      setLoggedIn(false);
+      setAdminPassword("");
+      setPosts([]);
+      setInviteCodes([]);
+    }}
                 variant="secondary"
               >
                 退出管理员
@@ -291,6 +325,77 @@ export function AdminInviteClient() {
                         </Button>
                         <Button isDisabled={loading} onPress={() => removeInvite(item.id)} variant="danger">
                           删除
+                        </Button>
+                      </div>
+                    </div>
+                  </article>
+                ))
+              )}
+            </Card.Content>
+          </SectionCard>
+
+          <SectionCard className="mt-4 p-6 sm:mt-6 sm:p-8">
+            <Card.Header className="p-0">
+              <Card.Title className="text-xl font-semibold text-slate-900">帖子管理</Card.Title>
+              <Card.Description className="mt-2 text-sm leading-6 text-slate-600">
+                管理员可快速查看当前帖子，并删除违规、重复或失效内容。
+              </Card.Description>
+            </Card.Header>
+            <Card.Content className="mt-4 space-y-4 p-0">
+              {sortedPosts.length === 0 ? (
+                <p className="text-sm text-slate-500">当前还没有帖子。</p>
+              ) : (
+                sortedPosts.map((post) => (
+                  <article key={post.id} className="rounded-[1.15rem] bg-[var(--surface-muted)] p-4">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <h3 className="text-lg font-semibold text-slate-900">{post.title}</h3>
+                          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-700">
+                            {categoryMeta[post.category]?.label ?? post.category}
+                          </span>
+                          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-700">
+                            {post.status}
+                          </span>
+                        </div>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">
+                          作者：{post.authorName} · 发布：{formatDate(post.createdAt)}
+                        </p>
+                        <p className="mt-3 line-clamp-3 whitespace-pre-wrap text-sm leading-7 text-slate-700">
+                          {post.content}
+                        </p>
+                        <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+                          <span className="rounded-2xl bg-white/80 px-3 py-2">评论 {post.commentCount}</span>
+                          <span className="rounded-2xl bg-white/80 px-3 py-2">收藏 {post.favoriteCount}</span>
+                          <span className="rounded-2xl bg-white/80 px-3 py-2">可见性 {post.visibility}</span>
+                          {post.tags.length > 0 ? <span className="rounded-2xl bg-white/80 px-3 py-2">标签 {post.tags.join(" / ")}</span> : null}
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 flex-wrap gap-2 text-sm">
+                        <Button
+                          isDisabled={loading}
+                          onPress={async () => {
+                            setLoading(true);
+                            setError("");
+                            setMessage("");
+                            try {
+                              await readJson(
+                                await fetch(`/api/admin/posts/${post.id}`, {
+                                  method: "DELETE",
+                                  credentials: "include",
+                                }),
+                              );
+                              setMessage(`已删除帖子：${post.title}`);
+                              await loadPosts();
+                            } catch (submitError) {
+                              setError(submitError instanceof Error ? submitError.message : "删帖失败");
+                            } finally {
+                              setLoading(false);
+                            }
+                          }}
+                          variant="danger"
+                        >
+                          删除帖子
                         </Button>
                       </div>
                     </div>
