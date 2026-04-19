@@ -75,6 +75,11 @@ export function SiteNav() {
             <div className="flex flex-wrap items-center gap-2">
               {currentUser ? (
                 <>
+                  {currentUser.role === "admin" ? (
+                    <ButtonLink href="/admin" variant="secondary">
+                      管理后台
+                    </ButtonLink>
+                  ) : null}
                   <Badge.Anchor>
                     <Avatar className="border-2 border-[var(--border-strong)] bg-[var(--signal)] text-[var(--primary-strong)]" size="md">
                       <Avatar.Fallback>{currentUser.username.slice(0, 1).toUpperCase()}</Avatar.Fallback>
@@ -82,7 +87,9 @@ export function SiteNav() {
                     <Badge color="success" placement="bottom-right" size="sm" />
                   </Badge.Anchor>
                   <Chip color="success" variant="soft">
-                    {currentUser.username} · {currentUser.roomNumber}
+                    {currentUser.role === "admin"
+                      ? `${currentUser.username} · 管理员`
+                      : `${currentUser.username} · ${currentUser.roomNumber}`}
                   </Chip>
                   <Button
                     isPending={loggingOut}
@@ -118,20 +125,27 @@ export function SiteNav() {
                 );
               })}
               {currentUser ? (
-                <Button
-                  isPending={loggingOut}
-                  onPress={async () => {
-                    setLoggingOut(true);
-                    try {
-                      await logout();
-                    } finally {
-                      setLoggingOut(false);
-                    }
-                  }}
-                  variant="secondary"
-                >
-                  {loggingOut ? "退出中..." : "退出"}
-                </Button>
+                <>
+                  {currentUser.role === "admin" ? (
+                    <ButtonLink href="/admin" variant="secondary">
+                      管理后台
+                    </ButtonLink>
+                  ) : null}
+                  <Button
+                    isPending={loggingOut}
+                    onPress={async () => {
+                      setLoggingOut(true);
+                      try {
+                        await logout();
+                      } finally {
+                        setLoggingOut(false);
+                      }
+                    }}
+                    variant="secondary"
+                  >
+                    {loggingOut ? "退出中..." : "退出"}
+                  </Button>
+                </>
               ) : !isLoginPage ? (
                 <ButtonLink href="/login" variant="secondary">
                   登录

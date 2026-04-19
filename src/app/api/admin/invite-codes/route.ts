@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentAdminFromCookie } from "@/lib/admin-auth";
+import { getCurrentUserFromCookie, isAdminUser } from "@/lib/auth-server";
 import { createInviteCode, listInviteCodes } from "@/lib/invite";
 
 function parseBody(body: unknown) {
@@ -13,9 +13,12 @@ function parseBody(body: unknown) {
 }
 
 export async function GET() {
-  const admin = await getCurrentAdminFromCookie();
-  if (!admin) {
-    return NextResponse.json({ error: "请先登录管理员后台" }, { status: 401 });
+  const currentUser = await getCurrentUserFromCookie();
+  if (!currentUser) {
+    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  }
+  if (!isAdminUser(currentUser)) {
+    return NextResponse.json({ error: "只有管理员可以访问后台" }, { status: 403 });
   }
 
   const inviteCodes = await listInviteCodes();
@@ -23,9 +26,12 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const admin = await getCurrentAdminFromCookie();
-  if (!admin) {
-    return NextResponse.json({ error: "请先登录管理员后台" }, { status: 401 });
+  const currentUser = await getCurrentUserFromCookie();
+  if (!currentUser) {
+    return NextResponse.json({ error: "请先登录" }, { status: 401 });
+  }
+  if (!isAdminUser(currentUser)) {
+    return NextResponse.json({ error: "只有管理员可以执行该操作" }, { status: 403 });
   }
 
   const parsed = parseBody(await request.json().catch(() => null));

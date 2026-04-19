@@ -42,7 +42,7 @@
 - Prisma 唯一 datasource 为 `postgresql`，通过 `DATABASE_URL` 连接数据库
 - 本地开发默认直接使用 Node.js + pnpm
 - 生产部署默认使用 Coolify 的 Nixpacks 构建
-- 管理员密码与初始邀请码通过环境变量注入
+- 默认管理员账号与初始邀请码通过环境变量注入
 
 ## 本地开发
 
@@ -96,6 +96,7 @@ pnpm test
 部署前至少配置以下环境变量：
 
 - `DATABASE_URL`
+- `COMMUNITY_ADMIN_USERNAME`
 - `COMMUNITY_ADMIN_PASSWORD`
 - `COMMUNITY_INVITE_CODES`
 
@@ -106,14 +107,22 @@ pnpm test
 最少需要以下变量：
 
 - `DATABASE_URL`
+- `COMMUNITY_ADMIN_USERNAME`
 - `COMMUNITY_ADMIN_PASSWORD`
 - `COMMUNITY_INVITE_CODES`
+
+默认管理员会在首次数据库访问前自动初始化：
+
+- 用户名默认 `admin`
+- 密码默认 `cqmjadmin`
+- 管理员统一通过 `/login` 登录，然后访问 `/admin`
 
 本地运行可以参考 [.env.example](./.env.example)：
 
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/community_hub?schema=public"
-COMMUNITY_ADMIN_PASSWORD="admin"
+COMMUNITY_ADMIN_USERNAME="admin"
+COMMUNITY_ADMIN_PASSWORD="cqmjadmin"
 COMMUNITY_INVITE_CODES="WELCOME-2026,NEIGHBOR-2026"
 ```
 

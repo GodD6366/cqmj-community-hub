@@ -124,12 +124,16 @@ export function LoginClient() {
   if (currentUser) {
     return (
       <PageShell className="max-w-3xl py-6">
-        <Card className="glass-card p-6 sm:p-8">
+          <Card className="glass-card p-6 sm:p-8">
           <Card.Header className="p-0">
             <div>
               <p className="section-kicker">当前已登录</p>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{currentUser.username}</h1>
-              <p className="mt-2 text-sm leading-7 text-slate-600">房号：{currentUser.roomNumber}</p>
+              <p className="mt-2 text-sm leading-7 text-slate-600">
+                {currentUser.role === "admin"
+                  ? "角色：管理员"
+                  : `房号：${currentUser.roomNumber || "未绑定"}`}
+              </p>
             </div>
           </Card.Header>
           <Card.Content className="flex flex-col gap-3 p-0 pt-6 sm:flex-row">

@@ -44,6 +44,7 @@ export interface CommunityUser {
   id: string;
   username: string;
   roomNumber: string;
+  role: "user" | "admin";
   createdAt: string;
 }
 

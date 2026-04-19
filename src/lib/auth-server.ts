@@ -5,6 +5,7 @@ import { prisma } from "./db";
 import { consumeInviteCode } from "./invite";
 import { normalizeInviteCode, normalizeRoomNumber, normalizeUsername } from "./access-control";
 import type { CommunityUser } from "./types";
+import { ensureAdminUserInitialized } from "./admin-bootstrap";
 
 export const SESSION_COOKIE = "community_hub_session";
 export const SESSION_DAYS = 30;
@@ -18,11 +19,12 @@ export function verifyPassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
-export function toCommunityUser(user: { id: string; username: string; roomNumber?: string | null; createdAt: Date }) : CommunityUser {
+export function toCommunityUser(user: { id: string; username: string; roomNumber?: string | null; role: "user" | "admin"; createdAt: Date }) : CommunityUser {
   return {
     id: user.id,
     username: user.username,
     roomNumber: user.roomNumber ?? "",
+    role: user.role,
     createdAt: user.createdAt.toISOString(),
   };
 }
@@ -56,6 +58,7 @@ export function getSessionCookieOptions(expiresAt: Date) {
 
 export async function getCurrentUserFromCookie() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  await ensureAdminUserInitialized();
   if (!token) return null;
 
   const session = await prisma.session.findUnique({
@@ -71,6 +74,10 @@ export async function getCurrentUserFromCookie() {
   }
 
   return toCommunityUser(session.user);
+}
+
+export function isAdminUser(user: Pick<CommunityUser, "role"> | null | undefined) {
+  return user?.role === "admin";
 }
 
 export async function registerUser(input: { username: string; password: string; inviteCode: string; roomNumber: string }) {
@@ -127,6 +134,7 @@ export async function registerUser(input: { username: string; password: string; 
 }
 
 export async function loginUser(input: { username: string; password: string }) {
+  await ensureAdminUserInitialized();
   const username = normalizeUsername(input.username);
   if (!username) {
     throw new Error("INVALID_USERNAME");
