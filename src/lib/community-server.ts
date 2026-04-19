@@ -1,6 +1,5 @@
 import type { CommunityComment, CommunityPost, PostCategory, PostDraft, PostStatus, VisibilityScope } from "./types";
 import { prisma } from "./db";
-import { ensureSeeded } from "./seed";
 import type { Prisma } from "@/generated/prisma/client";
 
 type PostRecord = Prisma.PostGetPayload<{
@@ -71,7 +70,6 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
 }
 
 export async function listPostsForViewer(viewerId: string | null) {
-  await ensureSeeded();
   const posts = await prisma.post.findMany({
     where: viewerId
       ? {
@@ -96,7 +94,6 @@ export async function listPostsForViewer(viewerId: string | null) {
 }
 
 export async function getPostForViewer(postId: string, viewerId: string | null) {
-  await ensureSeeded();
   const post = await prisma.post.findUnique({
     where: { id: postId },
     include: {
@@ -117,7 +114,6 @@ export async function createPostForViewer(
   viewer: { id: string; username: string },
   draft: PostDraft,
 ) {
-  await ensureSeeded();
   const post = await prisma.post.create({
     data: {
       title: draft.title,
@@ -141,7 +137,6 @@ export async function addCommentForViewer(
   viewer: { id: string; username: string },
   content: string,
 ) {
-  await ensureSeeded();
   const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post || !canViewPost(post, viewer.id)) {
     return null;
@@ -168,7 +163,6 @@ export async function addCommentForViewer(
 }
 
 export async function toggleFavoriteForViewer(postId: string, viewerId: string) {
-  await ensureSeeded();
   const favorite = await prisma.favorite.findUnique({
     where: {
       postId_userId: {
@@ -206,7 +200,6 @@ export async function toggleFavoriteForViewer(postId: string, viewerId: string) 
 }
 
 export async function reportPostForViewer(postId: string, viewerId: string, reason?: string) {
-  await ensureSeeded();
   const post = await prisma.post.findUnique({ where: { id: postId } });
   if (!post || !canViewPost(post, viewerId)) {
     return null;
@@ -233,7 +226,6 @@ export async function reportPostForViewer(postId: string, viewerId: string, reas
 }
 
 export async function listPostsForAdmin() {
-  await ensureSeeded();
   const posts = await prisma.post.findMany({
     include: {
       comments: { orderBy: { createdAt: "asc" } },
@@ -247,8 +239,6 @@ export async function listPostsForAdmin() {
 }
 
 export async function deletePostForAdmin(postId: string) {
-  await ensureSeeded();
-
   const post = await prisma.post.findUnique({
     where: { id: postId },
     select: { id: true },

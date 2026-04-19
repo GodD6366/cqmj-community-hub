@@ -31,34 +31,34 @@ export function FilterBar({
     activeValue: T,
     onChange: (value: T) => void,
   ) {
-    const renderButtons = () =>
-      items.map((item) => (
-        <Button
-          key={item.value}
-          className="min-w-[5rem]"
-          onPress={() => onChange(item.value)}
-          variant={activeValue === item.value ? "primary" : "secondary"}
-        >
-          {item.label}
-        </Button>
-      ));
+    const buttons = items.map((item) => (
+      <Button
+        key={item.value}
+        className="min-w-[4.5rem]"
+        size="sm"
+        onPress={() => onChange(item.value)}
+        variant={activeValue === item.value ? "primary" : "secondary"}
+      >
+        {item.label}
+      </Button>
+    ));
 
     return (
       <>
         <div className="min-w-0 md:hidden">
           <ScrollShadow className="w-full max-w-full" hideScrollBar orientation="horizontal" size={42}>
-            <div className="flex min-w-max gap-2 pb-1 pr-3">{renderButtons()}</div>
+            <div className="flex min-w-max gap-2 pb-1 pr-3">{buttons}</div>
           </ScrollShadow>
         </div>
-        <div className="hidden flex-wrap gap-2 md:flex">{renderButtons()}</div>
+        <div className="hidden flex-wrap gap-2 md:flex">{buttons}</div>
       </>
     );
   }
 
   return (
-    <div className="glass-card space-y-4 rounded-[1rem] p-4 sm:p-5">
+    <div className="space-y-4">
       <div className="space-y-2">
-        <p className="section-kicker">搜索与筛选</p>
+        <p className="section-kicker">搜索</p>
         <Input
           aria-label="搜索帖子"
           fullWidth
@@ -68,20 +68,18 @@ export function FilterBar({
         />
       </div>
 
-      <div className="space-y-3">
-        <div className="space-y-2">
-          <p className="text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase">频道切换</p>
-          {renderOptionBar(categories, category, onCategoryChange)}
-        </div>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">频道</p>
+        {renderOptionBar(categories, category, onCategoryChange)}
+      </div>
 
-        <div className="space-y-2">
-          <p className="text-xs font-semibold tracking-[0.18em] text-slate-500 uppercase">排序视角</p>
-          {renderOptionBar(
-            Object.entries(sortMeta).map(([value, meta]) => ({ value: value as SortMode, label: meta.label })),
-            sort,
-            onSortChange,
-          )}
-        </div>
+      <div className="space-y-2">
+        <p className="text-xs font-semibold tracking-[0.16em] text-slate-500 uppercase">排序</p>
+        {renderOptionBar(
+          Object.entries(sortMeta).map(([value, meta]) => ({ value: value as SortMode, label: meta.label })),
+          sort,
+          onSortChange,
+        )}
       </div>
     </div>
   );

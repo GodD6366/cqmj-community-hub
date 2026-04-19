@@ -25,6 +25,7 @@ export function PostsClient({
   const [category, setCategory] = useState<PostCategory | "all">(initialCategory);
   const [sort, setSort] = useState<SortMode>(initialSort);
   const [query, setQuery] = useState(initialQuery);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const sourcePosts = hydrated ? posts : initialPosts;
 
   const filtered = useMemo(() => {
@@ -33,106 +34,80 @@ export function PostsClient({
     return sortPosts(matched, sort);
   }, [category, query, sort, sourcePosts]);
 
-  const stats = useMemo(
-    () => ({
-      total: filterPublicPosts(sourcePosts).length,
-    }),
-    [sourcePosts],
-  );
-
+  const totalPublic = useMemo(() => filterPublicPosts(sourcePosts).length, [sourcePosts]);
   const hasFilters = category !== "all" || sort !== "latest" || query.trim().length > 0;
-
-  function resetFilters() {
-    setCategory("all");
-    setSort("latest");
-    setQuery("");
-  }
 
   return (
     <PageShell className="space-y-4">
-      <section className="grid gap-4 xl:grid-cols-[20rem_minmax(0,1fr)]">
-        <aside className="min-w-0 space-y-4 xl:sticky xl:top-24 xl:self-start">
-          <FilterBar
-            category={category}
-            onCategoryChange={setCategory}
-            sort={sort}
-            onSortChange={setSort}
-            query={query}
-            onQueryChange={setQuery}
-          />
-
-          <SectionCard className="p-4">
-            <Card.Header className="p-0">
-              <Card.Title className="text-lg font-semibold text-slate-950">当前状态</Card.Title>
-            </Card.Header>
-            <Card.Content className="space-y-3 p-0 pt-4">
-              <div className="route-card p-3">
-                <div className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">结果</div>
-                <div className="mt-2 text-2xl font-semibold text-slate-950">{filtered.length}</div>
-                <div className="mt-1 text-xs text-slate-600">{hasFilters ? "已应用筛选条件" : "全量浏览模式"}</div>
-              </div>
-              <div className="route-card p-3">
-                <div className="text-xs font-bold tracking-[0.16em] text-slate-500 uppercase">建议</div>
-                <div className="mt-2 text-sm leading-6 text-slate-700">先锁定频道，再决定用“最新”还是“精选”，信息噪音会少很多。</div>
-              </div>
-              {hasFilters ? (
-                <Button onPress={resetFilters} variant="secondary">
-                  重置筛选
+      <section className="grid gap-4 xl:grid-cols-[17rem_minmax(0,1fr)]">
+        <aside className="forum-sidebar min-w-0 xl:sticky xl:top-24 xl:self-start">
+          <SectionCard className="overflow-hidden">
+            <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="section-kicker">检索工具</p>
+                  <h2 className="mt-2 text-lg font-semibold text-slate-950">搜索与筛选</h2>
+                </div>
+                <Button className="xl:hidden" onPress={() => setFiltersOpen((open) => !open)} size="sm" variant="secondary">
+                  {filtersOpen ? "收起" : "展开"}
                 </Button>
-              ) : null}
+              </div>
+            </Card.Header>
+            <Card.Content className={filtersOpen ? "grid gap-4 p-4" : "hidden gap-4 p-4 xl:grid"}>
+              <FilterBar
+                category={category}
+                onCategoryChange={setCategory}
+                sort={sort}
+                onSortChange={setSort}
+                query={query}
+                onQueryChange={setQuery}
+              />
             </Card.Content>
           </SectionCard>
+
         </aside>
 
-        <div className="min-w-0 space-y-4">
-          <SectionCard className="overflow-hidden">
-            <Card.Header className="border-b-2 border-[var(--border-strong)] bg-[var(--surface-muted)] px-4 py-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="section-kicker">Feed Output</div>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-                    {hasFilters ? `筛选结果 ${filtered.length} 条` : `全部公开帖子 ${stats.total} 条`}
-                  </h2>
-                </div>
-                <Chip color="accent" variant="soft">
-                  {sort === "latest" ? "按最新查看" : sort === "popular" ? "按热度查看" : "按精选查看"}
-                </Chip>
+        <SectionCard className="overflow-hidden">
+          <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3 sm:px-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="section-kicker">帖子广场</p>
+                <h1 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">
+                  {hasFilters ? `筛选结果 ${filtered.length} 条` : `全部公开帖子 ${totalPublic} 条`}
+                </h1>
               </div>
-            </Card.Header>
-            <Card.Content className="p-4">
-              {!hydrated ? (
-                filtered.length > 0 ? (
-                  <div className="post-stream">
-                    {filtered.slice(0, 6).map((post) => (
-                      <PostCard key={post.id} post={post} />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="post-stream">
-                    {Array.from({ length: 4 }).map((_, index) => (
-                      <Card key={index} className="glass-card p-4">
-                        <Skeleton className="h-5 w-28 rounded-full" />
-                        <Skeleton className="mt-4 h-10 w-3/4 rounded-xl" />
-                        <Skeleton className="mt-3 h-4 w-full rounded-xl" />
-                        <Skeleton className="mt-2 h-4 w-5/6 rounded-xl" />
-                      </Card>
-                    ))}
-                  </div>
-                )
-              ) : filtered.length === 0 ? (
-                <div className="paper-panel rounded-[1rem] p-10 text-center text-sm leading-7 text-slate-600">
-                  当前条件下没有匹配内容。换个关键词，或者回到全部频道。
+              <Chip color="accent" size="sm" variant="soft">
+                {category === "all" ? "全部频道" : "频道已锁定"}
+              </Chip>
+            </div>
+          </Card.Header>
+          <Card.Content className="p-0">
+            {!hydrated ? (
+              <div className="post-stream p-4">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Card key={index} className="glass-card p-4">
+                    <Skeleton className="h-5 w-28 rounded-full" />
+                    <Skeleton className="mt-3 h-6 w-4/5 rounded-xl" />
+                    <Skeleton className="mt-2 h-4 w-full rounded-xl" />
+                    <Skeleton className="mt-2 h-4 w-3/4 rounded-xl" />
+                  </Card>
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div className="px-4 py-6 sm:px-5">
+                <div className="forum-panel rounded-[1rem] border-dashed px-4 py-5 text-sm leading-7 text-slate-600">
+                  当前筛选下没有匹配内容。可以换关键词、切回全部频道，或尝试不同排序方式。
                 </div>
-              ) : (
-                <div className="post-stream">
-                  {filtered.map((post) => (
-                    <PostCard key={post.id} post={post} />
-                  ))}
-                </div>
-              )}
-            </Card.Content>
-          </SectionCard>
-        </div>
+              </div>
+            ) : (
+              <div className="forum-list">
+                {filtered.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            )}
+          </Card.Content>
+        </SectionCard>
       </section>
     </PageShell>
   );

@@ -14,7 +14,7 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
 
   return (
     <form
-      className="glass-card space-y-4 rounded-[1.4rem] p-4 sm:p-5"
+      className="glass-card space-y-4 rounded-[1.2rem] p-4"
       onSubmit={async (event) => {
         event.preventDefault();
         const value = content.trim();
@@ -45,7 +45,7 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
         fullWidth
         value={content}
         onChange={(event) => setContent(event.target.value)}
-        rows={4}
+        rows={3}
         placeholder="写下你的补充说明、问题反馈或交易确认"
       />
       {error ? (

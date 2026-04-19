@@ -16,9 +16,9 @@ export function CommentList({ comments }: CommentListProps) {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       {comments.map((comment) => (
-        <Card key={comment.id} className="glass-card p-4">
+        <Card key={comment.id} className="glass-card p-3.5 sm:p-4">
           <Card.Header className="flex flex-row items-center justify-between gap-3 p-0">
             <div className="flex min-w-0 items-center gap-3">
               <Avatar className="bg-[var(--primary-soft)] text-[var(--primary)]" size="sm">
@@ -32,8 +32,8 @@ export function CommentList({ comments }: CommentListProps) {
               {formatDateTime(comment.createdAt)}
             </Chip>
           </Card.Header>
-          <Card.Content className="p-0 pt-4">
-            <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{comment.content}</p>
+          <Card.Content className="p-0 pt-3">
+            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{comment.content}</p>
           </Card.Content>
         </Card>
       ))}
