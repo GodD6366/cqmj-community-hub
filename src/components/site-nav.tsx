@@ -27,10 +27,10 @@ export function SiteNav() {
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-40 px-3 pt-3 sm:px-4 sm:pt-4">
+    <header className="sticky top-0 z-40 px-3 pt-2 sm:px-4 sm:pt-3">
       <div className="mx-auto max-w-7xl">
-        <div className="glass-card px-4 py-4 sm:px-5">
-          <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="glass-card px-4 py-3 sm:px-5 sm:py-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <Link href="/" className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-3">
                 <SystemLogo />
@@ -39,7 +39,7 @@ export function SiteNav() {
 
             <div className="flex items-center gap-2 text-white">
               {!isLoginPage ? (
-                <ButtonLink href="/publish" className="hidden sm:inline-flex">
+                <ButtonLink href="/publish" className="hidden sm:inline-flex" size="sm">
                   发布内容
                 </ButtonLink>
               ) : null}
@@ -49,8 +49,8 @@ export function SiteNav() {
             </div>
           </div>
 
-          <div className="mt-4 hidden gap-4 border-t border-[var(--separator)] pt-4 sm:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
-            <nav className="grid gap-2 md:grid-cols-3 xl:grid-cols-5">
+          <div className="mt-3 hidden gap-3 border-t border-[var(--separator)] pt-3 sm:grid lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <nav className="grid gap-2 md:grid-cols-4">
               {navItems.map((item) => {
                 const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
 
@@ -59,39 +59,40 @@ export function SiteNav() {
                     key={item.href}
                     href={item.href}
                     className={cn(
-                      "route-card grid gap-1 px-3 py-3 transition hover:-translate-y-[1px]",
+                      "route-card grid gap-0.5 px-3 py-2.5 transition hover:-translate-y-[1px]",
                       active ? "bg-[var(--primary)] text-white" : "bg-[rgba(255,250,241,0.9)]",
                     )}
                   >
                     <span className={cn("text-[11px] font-bold tracking-[0.24em] uppercase", active ? "text-white/68" : "text-slate-500")}>
                       {item.index}
                     </span>
-                    <span className="text-sm font-semibold">{item.label}</span>
+                    <span className="text-[0.95rem] font-semibold leading-tight">{item.label}</span>
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-1.5">
               {currentUser ? (
                 <>
                   {currentUser.role === "admin" ? (
-                    <ButtonLink href="/admin" variant="secondary">
+                    <ButtonLink href="/admin" variant="secondary" size="sm">
                       管理后台
                     </ButtonLink>
                   ) : null}
                   <Badge.Anchor>
-                    <Avatar className="border-2 border-[var(--border-strong)] bg-[var(--signal)] text-[var(--primary-strong)]" size="md">
+                    <Avatar className="border-2 border-[var(--border-strong)] bg-[var(--signal)] text-[var(--primary-strong)]" size="sm">
                       <Avatar.Fallback>{currentUser.username.slice(0, 1).toUpperCase()}</Avatar.Fallback>
                     </Avatar>
                     <Badge color="success" placement="bottom-right" size="sm" />
                   </Badge.Anchor>
-                  <Chip color="success" variant="soft">
+                  <Chip color="success" size="sm" variant="soft">
                     {currentUser.role === "admin"
                       ? `${currentUser.username} · 管理员`
                       : `${currentUser.username} · ${currentUser.roomNumber}`}
                   </Chip>
                   <Button
+                    size="sm"
                     isPending={loggingOut}
                     onPress={async () => {
                       setLoggingOut(true);
@@ -107,7 +108,7 @@ export function SiteNav() {
                   </Button>
                 </>
               ) : !isLoginPage ? (
-                <ButtonLink href="/login" variant="secondary">
+                <ButtonLink href="/login" variant="secondary" size="sm">
                   登录
                 </ButtonLink>
               ) : null}
