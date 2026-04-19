@@ -44,7 +44,7 @@ export function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => searchParams.get("next") || "/", [searchParams]);
-  const { login, currentUser } = useCommunityPosts();
+  const { login, register, currentUser } = useCommunityPosts();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -110,18 +110,9 @@ export function LoginClient() {
         if (password !== confirmPassword) {
           throw new Error("两次输入的密码不一致");
         }
-        const response = await fetch("/api/auth/register", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ username, password, inviteCode, roomNumber }),
-        });
-        const data = await response.json().catch(() => null);
-        if (!response.ok) {
-          throw new Error(data?.error || "注册失败");
-        }
+        const user = await register({ username, password, inviteCode, roomNumber });
         setMessage("注册并绑定成功，正在跳转...");
-        window.setTimeout(() => router.push(getPostLoginDestination(nextPath, data.user)), 500);
+        window.setTimeout(() => router.push(getPostLoginDestination(nextPath, user)), 500);
       }
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "操作失败");

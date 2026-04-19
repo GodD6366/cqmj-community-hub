@@ -23,6 +23,7 @@ interface CommunityStore {
   toggleFavorite: (postId: string) => Promise<boolean>;
   reportPost: (postId: string, reason?: string) => Promise<void>;
   login: (payload: AuthPayload) => Promise<CommunityUser>;
+  register: (payload: Required<AuthPayload>) => Promise<CommunityUser>;
   logout: () => Promise<void>;
 }
 
@@ -141,6 +142,21 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const register = useCallback(
+    async (payload: Required<AuthPayload>) => {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      const data = await readJson<{ user: CommunityUser }>(response);
+      await refresh();
+      return data.user;
+    },
+    [refresh],
+  );
+
   const logout = useCallback(async () => {
     const response = await fetch("/api/auth/logout", {
       method: "POST",
@@ -161,9 +177,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       toggleFavorite,
       reportPost,
       login,
+      register,
       logout,
     }),
-    [addComment, addPost, currentUser, hydrated, login, logout, posts, refresh, reportPost, toggleFavorite],
+    [addComment, addPost, currentUser, hydrated, login, logout, posts, refresh, register, reportPost, toggleFavorite],
   );
 
   return <CommunityPostsContext.Provider value={value}>{children}</CommunityPostsContext.Provider>;
