@@ -78,47 +78,75 @@ export default async function Home() {
 
   return (
     <PageShell className="space-y-4">
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <SectionCard className="overflow-hidden">
-          <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-4 sm:px-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="section-kicker">社区总览</p>
-                <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
-                  {currentUser ? `欢迎回来，${currentUser.username}` : "邻里圈社区门户"}
-                </h1>
-                <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-                  这里优先展示当前社区里真正需要被看到的信息：置顶公告、分类帖子和最新动态。
-                </p>
+      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start">
+        <div className="space-y-4">
+          <SectionCard className="overflow-hidden">
+            <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-4 sm:px-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="section-kicker">社区总览</p>
+                  <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">
+                    {currentUser ? `欢迎回来，${currentUser.username}` : "邻里圈社区门户"}
+                  </h1>
+                  <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
+                    这里优先展示当前社区里真正需要被看到的信息：置顶公告、分类帖子和最新动态。
+                  </p>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <ButtonLink href="/posts" size="sm" variant="secondary">
+                    进入广场
+                  </ButtonLink>
+                  <ButtonLink href="/publish" size="sm">
+                    发布内容
+                  </ButtonLink>
+                </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <ButtonLink href="/posts" size="sm" variant="secondary">
-                  进入广场
-                </ButtonLink>
-                <ButtonLink href="/publish" size="sm">
-                  发布内容
-                </ButtonLink>
+            </Card.Header>
+            <Card.Content className="grid gap-3 p-4 sm:grid-cols-3">
+              <div className="forum-panel rounded-[1rem] px-4 py-3">
+                <div className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">公开帖子</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-950">{posts.length}</div>
+                <div className="mt-1 text-sm text-slate-600">社区里正在被浏览的全部内容</div>
               </div>
-            </div>
-          </Card.Header>
-          <Card.Content className="grid gap-3 p-4 sm:grid-cols-3">
-            <div className="forum-panel rounded-[1rem] px-4 py-3">
-              <div className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">公开帖子</div>
-              <div className="mt-2 text-3xl font-semibold text-slate-950">{posts.length}</div>
-              <div className="mt-1 text-sm text-slate-600">社区里正在被浏览的全部内容</div>
-            </div>
-            <div className="forum-panel rounded-[1rem] px-4 py-3">
-              <div className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">置顶精选</div>
-              <div className="mt-2 text-3xl font-semibold text-slate-950">{featuredPosts.length}</div>
-              <div className="mt-1 text-sm text-slate-600">公告、重点通知和精选帖子</div>
-            </div>
-            <div className="forum-panel rounded-[1rem] px-4 py-3">
-              <div className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">最新动态</div>
-              <div className="mt-2 text-3xl font-semibold text-slate-950">{latestPosts.length}</div>
-              <div className="mt-1 text-sm text-slate-600">按时间排序的最新发帖与更新</div>
-            </div>
-          </Card.Content>
-        </SectionCard>
+              <div className="forum-panel rounded-[1rem] px-4 py-3">
+                <div className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">置顶精选</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-950">{featuredPosts.length}</div>
+                <div className="mt-1 text-sm text-slate-600">公告、重点通知和精选帖子</div>
+              </div>
+              <div className="forum-panel rounded-[1rem] px-4 py-3">
+                <div className="text-xs font-bold tracking-[0.14em] text-slate-500 uppercase">最新动态</div>
+                <div className="mt-2 text-3xl font-semibold text-slate-950">{latestPosts.length}</div>
+                <div className="mt-1 text-sm text-slate-600">按时间排序的最新发帖与更新</div>
+              </div>
+            </Card.Content>
+          </SectionCard>
+
+          <SectionCard className="overflow-hidden">
+            <Card.Header className="flex items-center justify-between border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3">
+              <div>
+                <p className="section-kicker">置顶精选</p>
+                <h2 className="mt-2 text-xl font-semibold text-slate-950">社区当前最重要的信息</h2>
+              </div>
+              <ButtonLink href="/posts?sort=featured" size="sm" variant="secondary">
+                查看全部
+              </ButtonLink>
+            </Card.Header>
+            <Card.Content className="forum-list p-0">
+              {featuredPosts.length > 0 ? (
+                featuredPosts.map((post) => <PortalRow key={post.id} post={post} />)
+              ) : (
+                <div className="px-4 py-6 text-sm text-slate-500">当前没有置顶或精选帖子。</div>
+              )}
+            </Card.Content>
+          </SectionCard>
+
+          <div className="board-grid lg:grid-cols-2">
+            <ChannelPanel href="/posts?category=request" posts={requests} title="需求互助" />
+            <ChannelPanel href="/posts?category=secondhand" posts={secondhand} title="闲置交换" />
+            <ChannelPanel href="/posts?category=play" posts={plays} title="约玩组队" />
+            <ChannelPanel href="/posts?category=discussion" posts={discussions} title="社区交流" />
+          </div>
+        </div>
 
         <div className="forum-sidebar">
           <SectionCard className="overflow-hidden">
@@ -154,63 +182,33 @@ export default async function Home() {
               ))}
             </Card.Content>
           </SectionCard>
-        </div>
-      </section>
 
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="space-y-4">
           <SectionCard className="overflow-hidden">
-            <Card.Header className="flex items-center justify-between border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3">
+            <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3">
               <div>
-                <p className="section-kicker">置顶精选</p>
-                <h2 className="mt-2 text-xl font-semibold text-slate-950">社区当前最重要的信息</h2>
+                <p className="section-kicker">最新动态</p>
+                <h2 className="mt-2 text-lg font-semibold text-slate-950">按时间浏览社区内容</h2>
               </div>
-              <ButtonLink href="/posts?sort=featured" size="sm" variant="secondary">
-                查看全部
-              </ButtonLink>
             </Card.Header>
             <Card.Content className="forum-list p-0">
-              {featuredPosts.length > 0 ? (
-                featuredPosts.map((post) => <PortalRow key={post.id} post={post} />)
+              {latestPosts.length > 0 ? (
+                latestPosts.map((post) => (
+                  <Link key={post.id} href={`/posts/${post.id}`} className="forum-row">
+                    <div className="min-w-0 text-[0.96rem] font-semibold text-slate-900">{post.title}</div>
+                    <div className="forum-meta">
+                      <span>{getPostBadge(post.category)}</span>
+                      <span>{post.authorName}</span>
+                      <span>{formatDateTime(post.createdAt)}</span>
+                      <span>{post.commentCount} 评论</span>
+                    </div>
+                  </Link>
+                ))
               ) : (
-                <div className="px-4 py-6 text-sm text-slate-500">当前没有置顶或精选帖子。</div>
+                <div className="px-4 py-6 text-sm text-slate-500">当前还没有最新动态。</div>
               )}
             </Card.Content>
           </SectionCard>
-
-          <div className="board-grid lg:grid-cols-2">
-            <ChannelPanel href="/posts?category=request" posts={requests} title="需求互助" />
-            <ChannelPanel href="/posts?category=secondhand" posts={secondhand} title="闲置交换" />
-            <ChannelPanel href="/posts?category=play" posts={plays} title="约玩组队" />
-            <ChannelPanel href="/posts?category=discussion" posts={discussions} title="社区交流" />
-          </div>
         </div>
-
-        <SectionCard className="overflow-hidden">
-          <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3">
-            <div>
-              <p className="section-kicker">最新动态</p>
-              <h2 className="mt-2 text-lg font-semibold text-slate-950">按时间浏览社区内容</h2>
-            </div>
-          </Card.Header>
-          <Card.Content className="forum-list p-0">
-            {latestPosts.length > 0 ? (
-              latestPosts.map((post) => (
-                <Link key={post.id} href={`/posts/${post.id}`} className="forum-row">
-                  <div className="min-w-0 text-[0.96rem] font-semibold text-slate-900">{post.title}</div>
-                  <div className="forum-meta">
-                    <span>{getPostBadge(post.category)}</span>
-                    <span>{post.authorName}</span>
-                    <span>{formatDateTime(post.createdAt)}</span>
-                    <span>{post.commentCount} 评论</span>
-                  </div>
-                </Link>
-              ))
-            ) : (
-              <div className="px-4 py-6 text-sm text-slate-500">当前还没有最新动态。</div>
-            )}
-          </Card.Content>
-        </SectionCard>
       </section>
     </PageShell>
   );
