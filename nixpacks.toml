@@ -1,0 +1,9 @@
+[variables]
+NODE_ENV = "production"
+NIXPACKS_NODE_VERSION = "22"
+
+[phases.setup]
+aptPkgs = ["openssl"]
+
+[start]
+cmd = "pnpm start:prod"

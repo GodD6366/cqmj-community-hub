@@ -11,11 +11,11 @@ describe("parseReadmeMarkdown", () => {
 - 支持发帖
 - 支持评论
 
-1. 启动开发容器
-2. 启动生产容器
+1. 安装依赖
+2. 启动开发服务器
 
 \`\`\`bash
-docker compose -f docker-compose.dev.yml up
+pnpm dev
 \`\`\`
 `);
 
@@ -23,8 +23,8 @@ docker compose -f docker-compose.dev.yml up
       { type: "heading", level: 1, text: "邻里圈" },
       { type: "paragraph", text: "一个社区网站。" },
       { type: "unordered-list", items: ["支持发帖", "支持评论"] },
-      { type: "ordered-list", items: ["启动开发容器", "启动生产容器"] },
-      { type: "code", language: "bash", code: "docker compose -f docker-compose.dev.yml up" },
+      { type: "ordered-list", items: ["安装依赖", "启动开发服务器"] },
+      { type: "code", language: "bash", code: "pnpm dev" },
     ]);
   });
 
