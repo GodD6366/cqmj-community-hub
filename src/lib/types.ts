@@ -49,6 +49,17 @@ export interface CommunityUser {
   createdAt: string;
 }
 
+export interface AdminUser {
+  id: string;
+  username: string;
+  roomNumber: string;
+  role: "user" | "admin";
+  disabled: boolean;
+  createdAt: string;
+  postCount: number;
+  commentCount: number;
+}
+
 export interface PostDraft {
   title: string;
   content: string;

@@ -20,7 +20,7 @@ export default async function AdminInvitesPage() {
               <p className="section-kicker">Access Denied</p>
               <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">当前账号没有后台权限</h1>
               <p className="mt-3 text-sm leading-7 text-slate-600">
-                你已登录为 {currentUser.username}，但该账号不是管理员。如需管理邀请码或帖子，请使用管理员账号登录。
+                你已登录为 {currentUser.username}，但该账号不是管理员。如需管理用户、邀请码或帖子，请使用管理员账号登录。
               </p>
             </div>
           </Card.Header>

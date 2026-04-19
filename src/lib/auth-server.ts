@@ -19,6 +19,10 @@ export function verifyPassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
+export function isUserDisabled(user: { disabledAt?: Date | null } | null | undefined) {
+  return Boolean(user?.disabledAt);
+}
+
 export function toCommunityUser(user: {
   id: string;
   username: string;
@@ -81,6 +85,11 @@ export async function getCurrentUserFromCookie() {
     return null;
   }
 
+  if (isUserDisabled(session.user)) {
+    await prisma.session.delete({ where: { token } }).catch(() => undefined);
+    return null;
+  }
+
   return toCommunityUser(session.user);
 }
 
@@ -108,17 +117,10 @@ export async function registerUser(input: { username: string; password: string; 
     throw new Error("INVALID_INVITE_CODE");
   }
 
-  const [existingUsername, existingRoom] = await Promise.all([
-    prisma.user.findUnique({ where: { username } }),
-    prisma.user.findUnique({ where: { roomNumber } }),
-  ]);
+  const existingUsername = await prisma.user.findUnique({ where: { username } });
 
   if (existingUsername) {
     throw new Error("USERNAME_EXISTS");
-  }
-
-  if (existingRoom) {
-    throw new Error("ROOM_NUMBER_EXISTS");
   }
 
   await consumeInviteCode(inviteCode);
@@ -151,6 +153,10 @@ export async function loginUser(input: { username: string; password: string }) {
   const user = await prisma.user.findUnique({ where: { username } });
   if (!user) {
     throw new Error("INVALID_CREDENTIALS");
+  }
+
+  if (isUserDisabled(user)) {
+    throw new Error("USER_DISABLED");
   }
 
   const ok = await verifyPassword(input.password, user.passwordHash);

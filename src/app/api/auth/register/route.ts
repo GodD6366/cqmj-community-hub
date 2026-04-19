@@ -27,9 +27,6 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "USERNAME_EXISTS") {
       return NextResponse.json({ error: "这个用户名已经被占用了" }, { status: 409 });
     }
-    if (error instanceof Error && error.message === "ROOM_NUMBER_EXISTS") {
-      return NextResponse.json({ error: "这个房号已经绑定过了" }, { status: 409 });
-    }
     if (error instanceof Error && error.message === "INVALID_INVITE_CODE") {
       return NextResponse.json({ error: "邀请码不正确" }, { status: 401 });
     }

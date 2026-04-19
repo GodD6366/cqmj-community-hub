@@ -25,6 +25,9 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "INVALID_CREDENTIALS") {
       return NextResponse.json({ error: "用户名或密码不正确" }, { status: 401 });
     }
+    if (error instanceof Error && error.message === "USER_DISABLED") {
+      return NextResponse.json({ error: "该账号已被管理员禁用" }, { status: 403 });
+    }
     return NextResponse.json({ error: "登录失败" }, { status: 500 });
   }
 }

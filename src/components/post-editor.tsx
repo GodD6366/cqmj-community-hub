@@ -151,7 +151,7 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
                 </div>
               </ScrollShadow>
             </div>
-            <div className="hidden gap-2 sm:grid sm:grid-cols-2">
+            <div className="hidden gap-2 sm:flex sm:flex-row sm:flex-wrap">
               {categoryOptions.map(([value, meta]) => (
                 <Button
                   key={value}
@@ -168,7 +168,7 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
             </div>
           </div>
 
-          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
+          <div className="gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
             <div className="space-y-5">
               <label className="space-y-2 text-sm font-semibold text-slate-800">
                 <span className="flex items-center justify-between gap-3">

@@ -165,12 +165,12 @@ export function LoginClient() {
             邀请码 + 房号，完成社区身份绑定
           </h1>
           <p className="mt-4 max-w-xl text-sm leading-7 text-slate-200 sm:text-base">
-            第一次注册用邀请码和房号完成身份校验。校验完成后，后续只保留最短路径：用户名 + 密码。
+            第一次注册用邀请码和房号完成身份校验。房号可绑定同住成员，校验完成后后续直接使用用户名 + 密码登录。
           </p>
           <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
             {[
               ["1", "输入邀请码", "先确认邀请码可用，再继续注册。"],
-              ["2", "绑定房号", "一户一绑，避免社区身份混乱。"],
+              ["2", "绑定房号", "支持同一房号下的多位住户分别建号。"],
               ["3", "长期登录", "完成后即可直接登录、评论和发帖。"],
             ].map(([step, title, desc]) => (
               <div key={step} className="stat-block rounded-[0.9rem] p-4">
@@ -183,20 +183,20 @@ export function LoginClient() {
         </section>
 
         <section className="glass-card rounded-[1rem] p-4 sm:p-6">
-          <div className="grid grid-cols-2 gap-2 rounded-[0.95rem] bg-[var(--surface-muted)] p-1.5">
+          <div className="flex flex-row gap-2 rounded-[0.95rem] bg-[var(--surface-muted)] p-1.5">
             <Button
               className={mode === "login" ? "bg-white text-slate-950 shadow-none" : "border-transparent bg-transparent text-slate-600 shadow-none"}
               onPress={() => setMode("login")}
               variant="secondary"
             >
-              已有账号
+              登录
             </Button>
             <Button
               className={mode === "register" ? "bg-white text-slate-950 shadow-none" : "border-transparent bg-transparent text-slate-600 shadow-none"}
               onPress={() => setMode("register")}
               variant="secondary"
             >
-              首次绑定
+              注册
             </Button>
           </div>
 
@@ -206,7 +206,7 @@ export function LoginClient() {
               {mode === "login" ? "用户名 + 密码登录" : "邀请码 + 房号完成注册"}
             </h2>
             <p className="mt-2 text-sm leading-7 text-slate-600">
-              {mode === "login" ? "使用你已经绑定好的用户名和密码登录。" : "注册时会实时校验邀请码是否可用，并校验房号格式。"}
+              {mode === "login" ? "使用你已经绑定好的用户名和密码登录。" : "注册时会实时校验邀请码是否可用，并校验房号格式；同一房号可绑定多个用户。"}
             </p>
           </div>
 

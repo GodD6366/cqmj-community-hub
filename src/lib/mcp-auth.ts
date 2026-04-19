@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { prisma } from "./db";
-import { toCommunityUser } from "./auth-server";
+import { isUserDisabled, toCommunityUser } from "./auth-server";
 
 const TOKEN_PREFIX = "mcp";
 
@@ -62,6 +62,7 @@ export async function ensureUserMcpAccess(userId: string) {
       username: true,
       roomNumber: true,
       role: true,
+      disabledAt: true,
       mcpTokenVersion: true,
       createdAt: true,
     },
@@ -69,6 +70,20 @@ export async function ensureUserMcpAccess(userId: string) {
 
   if (!user) {
     throw new Error("USER_NOT_FOUND");
+  }
+
+  if (isUserDisabled(user)) {
+    await prisma.$transaction([
+      prisma.session.deleteMany({ where: { userId } }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          mcpTokenVersion: 0,
+          mcpTokenIssuedAt: null,
+        },
+      }),
+    ]);
+    throw new Error("USER_DISABLED");
   }
 
   const now = new Date();
@@ -83,6 +98,7 @@ export async function ensureUserMcpAccess(userId: string) {
             username: true,
             roomNumber: true,
             role: true,
+            disabledAt: true,
             mcpTokenVersion: true,
             createdAt: true,
           },
@@ -99,6 +115,7 @@ export async function ensureUserMcpAccess(userId: string) {
             username: true,
             roomNumber: true,
             role: true,
+            disabledAt: true,
             mcpTokenVersion: true,
             createdAt: true,
           },
@@ -111,6 +128,32 @@ export async function ensureUserMcpAccess(userId: string) {
 }
 
 export async function rotateUserMcpToken(userId: string) {
+  const existing = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      disabledAt: true,
+    },
+  });
+
+  if (!existing) {
+    throw new Error("USER_NOT_FOUND");
+  }
+
+  if (isUserDisabled(existing)) {
+    await prisma.$transaction([
+      prisma.session.deleteMany({ where: { userId } }),
+      prisma.user.update({
+        where: { id: userId },
+        data: {
+          mcpTokenVersion: 0,
+          mcpTokenIssuedAt: null,
+        },
+      }),
+    ]);
+    throw new Error("USER_DISABLED");
+  }
+
   const user = await prisma.user.update({
     where: { id: userId },
     data: {
@@ -123,6 +166,7 @@ export async function rotateUserMcpToken(userId: string) {
       username: true,
       roomNumber: true,
       role: true,
+      disabledAt: true,
       mcpTokenVersion: true,
       createdAt: true,
     },
@@ -152,12 +196,13 @@ export async function verifyUserMcpToken(token: string) {
       username: true,
       roomNumber: true,
       role: true,
+      disabledAt: true,
       mcpTokenVersion: true,
       createdAt: true,
     },
   });
 
-  if (!user || user.mcpTokenVersion !== parsed.version || user.mcpTokenVersion <= 0) {
+  if (!user || isUserDisabled(user) || user.mcpTokenVersion !== parsed.version || user.mcpTokenVersion <= 0) {
     return null;
   }
 
