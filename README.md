@@ -21,10 +21,12 @@
 - `/`：首页，优先渲染仓库根目录 `why.md`
 - `/posts`：帖子广场
 - `/publish`：发帖页面
+- `/mcp/connect`：登录后的 MCP 接入页
 - `/login`：登录 / 注册绑定
 - `/rules`：社区规则
 - `/about`：项目介绍
 - `/admin`：邀请码管理后台
+- `/mcp`：MCP HTTP 端点
 
 ## 技术栈
 
@@ -110,6 +112,7 @@ pnpm test
 - `COMMUNITY_ADMIN_USERNAME`
 - `COMMUNITY_ADMIN_PASSWORD`
 - `COMMUNITY_INVITE_CODES`
+- `MCP_SIGNING_SECRET`
 
 默认管理员会在首次数据库访问前自动初始化：
 
@@ -124,6 +127,31 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/community_hub?schema
 COMMUNITY_ADMIN_USERNAME="admin"
 COMMUNITY_ADMIN_PASSWORD="cqmjadmin"
 COMMUNITY_INVITE_CODES="WELCOME-2026,NEIGHBOR-2026"
+MCP_SIGNING_SECRET="replace-with-a-long-random-secret"
+NEXT_PUBLIC_APP_ORIGIN="http://localhost:3000"
+```
+
+## MCP 接入
+
+- MCP HTTP 端点固定为 `/mcp`
+- 登录用户可在 `/mcp/connect` 查看自己的个人 API key，并一键复制接入文案
+- 认证方式为 `Authorization: Bearer <API_KEY>`
+- 当前只开放只读工具：
+  - `community.current_user`
+  - `community.list_posts`
+  - `community.get_post`
+
+接入页会直接生成一段中文说明，适合粘贴到支持 MCP 的平台或模型客户端。也可以按标准 MCP HTTP 方式自行接入：
+
+1. 调用 `POST /mcp`
+2. 先发送 `initialize`
+3. 再调用 `tools/list` 和 `tools/call`
+
+示例请求头：
+
+```http
+Authorization: Bearer <your-api-key>
+Content-Type: application/json
 ```
 
 ## 部署说明

@@ -45,6 +45,7 @@ export interface CommunityUser {
   username: string;
   roomNumber: string;
   role: "user" | "admin";
+  mcpTokenVersion: number;
   createdAt: string;
 }
 

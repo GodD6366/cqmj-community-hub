@@ -39,6 +39,9 @@ model User {
   roomNumber   String?     @unique
   passwordHash String
   role         UserRole    @default(user)
+  mcpTokenVersion Int      @default(0)
+  mcpTokenIssuedAt DateTime?
+  mcpGuideSeenAt  DateTime?
   createdAt    DateTime    @default(now())
   updatedAt    DateTime    @updatedAt
   sessions     Session[]

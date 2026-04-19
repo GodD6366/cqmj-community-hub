@@ -19,12 +19,20 @@ export function verifyPassword(password: string, passwordHash: string) {
   return bcrypt.compare(password, passwordHash);
 }
 
-export function toCommunityUser(user: { id: string; username: string; roomNumber?: string | null; role: "user" | "admin"; createdAt: Date }) : CommunityUser {
+export function toCommunityUser(user: {
+  id: string;
+  username: string;
+  roomNumber?: string | null;
+  role: "user" | "admin";
+  mcpTokenVersion?: number;
+  createdAt: Date;
+}) : CommunityUser {
   return {
     id: user.id,
     username: user.username,
     roomNumber: user.roomNumber ?? "",
     role: user.role,
+    mcpTokenVersion: "mcpTokenVersion" in user && typeof user.mcpTokenVersion === "number" ? user.mcpTokenVersion : 0,
     createdAt: user.createdAt.toISOString(),
   };
 }

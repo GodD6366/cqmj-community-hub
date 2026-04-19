@@ -32,6 +32,14 @@ function getInviteHint(result: InviteCheckResult | null) {
   }
 }
 
+function getPostLoginDestination(nextPath: string, user: { mcpTokenVersion: number }) {
+  if (nextPath === "/" && user.mcpTokenVersion === 0) {
+    return "/mcp/connect?welcome=1";
+  }
+
+  return nextPath;
+}
+
 export function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -92,8 +100,9 @@ export function LoginClient() {
     setMessage("");
     try {
       if (mode === "login") {
-        await login({ username, password });
+        const user = await login({ username, password });
         setMessage("登录成功，正在跳转...");
+        window.setTimeout(() => router.push(getPostLoginDestination(nextPath, user)), 500);
       } else {
         if (password.length < 6) {
           throw new Error("密码至少需要 6 位");
@@ -112,8 +121,8 @@ export function LoginClient() {
           throw new Error(data?.error || "注册失败");
         }
         setMessage("注册并绑定成功，正在跳转...");
+        window.setTimeout(() => router.push(getPostLoginDestination(nextPath, data.user)), 500);
       }
-      window.setTimeout(() => router.push(nextPath), 500);
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "操作失败");
     } finally {

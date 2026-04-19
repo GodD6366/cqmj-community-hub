@@ -102,6 +102,7 @@ describe("toCommunityUser", () => {
         username: "admin",
         roomNumber: null,
         role: "admin",
+        mcpTokenVersion: 2,
         createdAt,
       }),
     ).toEqual({
@@ -109,6 +110,7 @@ describe("toCommunityUser", () => {
       username: "admin",
       roomNumber: "",
       role: "admin",
+      mcpTokenVersion: 2,
       createdAt: "2026-04-19T12:00:00.000Z",
     });
   });
