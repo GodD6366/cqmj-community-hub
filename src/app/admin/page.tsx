@@ -3,9 +3,16 @@ import { redirect } from "next/navigation";
 import { AdminInviteClient } from "@/components/admin-invite-client";
 import { ButtonLink, PageShell } from "@/components/ui";
 import { getCurrentUserFromCookie, isAdminUser } from "@/lib/auth-server";
+import { parseAdminTab } from "@/lib/admin-tabs";
 
-export default async function AdminInvitesPage() {
+interface AdminPageProps {
+  searchParams: Promise<{ tab?: string | string[] }>;
+}
+
+export default async function AdminInvitesPage({ searchParams }: AdminPageProps) {
   const currentUser = await getCurrentUserFromCookie();
+  const { tab } = await searchParams;
+  const initialTab = parseAdminTab(tab);
 
   if (!currentUser) {
     redirect("/login?next=/admin");
@@ -35,5 +42,5 @@ export default async function AdminInvitesPage() {
     );
   }
 
-  return <AdminInviteClient />;
+  return <AdminInviteClient initialTab={initialTab} />;
 }

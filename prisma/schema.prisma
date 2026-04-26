@@ -85,11 +85,28 @@ model Post {
   author        User?            @relation(fields: [authorId], references: [id], onDelete: SetNull)
   comments      Comment[]
   favorites     Favorite[]
+  images        PostImage[]
   reports       Report[]
 
   @@index([status, visibility])
   @@index([createdAt])
   @@index([authorId])
+}
+
+model PostImage {
+  id        String   @id @default(cuid())
+  postId    String
+  objectKey String
+  url       String
+  mimeType  String
+  width     Int
+  height    Int
+  sizeBytes Int
+  sortOrder Int
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, sortOrder])
 }
 
 model Comment {

@@ -35,7 +35,7 @@ export const communityRules = [
   },
 ] as const;
 
-export const seedPosts: CommunityPost[] = [
+const seedPostsBase: Omit<CommunityPost, "images">[] = [
   {
     id: "post-aircon-cleaning",
     title: "求助：周末有没有靠谱的空调清洗师傅？",
@@ -321,3 +321,8 @@ export const seedPosts: CommunityPost[] = [
     ],
   },
 ];
+
+export const seedPosts: CommunityPost[] = seedPostsBase.map((post) => ({
+  ...post,
+  images: [],
+}));

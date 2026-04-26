@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Breadcrumbs, Button, Card, Chip } from "@heroui/react";
 import { CommentForm } from "./comment-form";
 import { CommentList } from "./comment-list";
@@ -18,7 +18,12 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   const { posts, addComment, toggleFavorite, reportPost, currentUser } = useCommunityPosts();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
   const post = useMemo(() => posts.find((item) => item.id === postId), [postId, posts]);
+
+  useEffect(() => {
+    setActiveImageIndex(0);
+  }, [postId, post?.images.length]);
 
   if (!post) {
     return (
@@ -35,6 +40,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   }
 
   const meta = categoryMeta[post.category];
+  const activeImage = post.images[activeImageIndex] ?? post.images[0] ?? null;
 
   return (
     <PageShell className="space-y-4">
@@ -86,6 +92,38 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                   <Alert.Description>当前帖子状态为「{post.status === "pending" ? "审核中" : "已拒绝"}」，普通用户可见内容会受限。</Alert.Description>
                 </Alert.Content>
               </Alert>
+            ) : null}
+
+            {activeImage ? (
+              <div className="space-y-3">
+                <div className="overflow-hidden rounded-[1rem] bg-[var(--surface-muted)]">
+                  {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured CDN URLs are not a fit for static remotePatterns here. */}
+                  <img
+                    alt={post.title}
+                    className="max-h-[32rem] w-full object-contain"
+                    src={activeImage.url}
+                  />
+                </div>
+                {post.images.length > 1 ? (
+                  <div className="flex gap-3 overflow-x-auto pb-1">
+                    {post.images.map((image, index) => (
+                      <button
+                        key={image.id}
+                        className={`overflow-hidden rounded-[0.9rem] border ${index === activeImageIndex ? "border-slate-900" : "border-[var(--separator)]"}`}
+                        onClick={() => setActiveImageIndex(index)}
+                        type="button"
+                      >
+                        {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured CDN URLs are not a fit for static remotePatterns here. */}
+                        <img
+                          alt={`${post.title} 缩略图 ${index + 1}`}
+                          className="h-20 w-20 object-cover"
+                          src={image.url}
+                        />
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
             ) : null}
 
             <div className="whitespace-pre-wrap text-[15px] leading-8 text-slate-700 sm:text-base">{post.content}</div>

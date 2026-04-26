@@ -10,6 +10,7 @@
 - 邀请码 + 房号注册绑定
 - 用户名密码登录
 - 发布需求、闲置、交流三类帖子
+- 发布帖子时支持最多 9 张图片上传
 - 帖子列表与详情浏览
 - 评论、收藏、举报
 - 社区规则页、关于页
@@ -113,6 +114,13 @@ pnpm test
 - `COMMUNITY_ADMIN_PASSWORD`
 - `COMMUNITY_INVITE_CODES`
 - `MCP_SIGNING_SECRET`
+- `S3_ENDPOINT`
+- `S3_REGION`
+- `S3_BUCKET`
+- `S3_ACCESS_KEY_ID`
+- `S3_SECRET_ACCESS_KEY`
+- `S3_PUBLIC_BASE_URL`
+- `S3_UPLOAD_PREFIX`
 
 默认管理员会在首次数据库访问前自动初始化：
 
@@ -129,7 +137,23 @@ COMMUNITY_ADMIN_PASSWORD="cqmjadmin"
 COMMUNITY_INVITE_CODES="WELCOME-2026,NEIGHBOR-2026"
 MCP_SIGNING_SECRET="replace-with-a-long-random-secret"
 NEXT_PUBLIC_APP_ORIGIN="http://localhost:3000"
+S3_ENDPOINT="https://<your-s3-endpoint>"
+S3_REGION="auto"
+S3_BUCKET="community-hub-assets"
+S3_ACCESS_KEY_ID="<your-access-key-id>"
+S3_SECRET_ACCESS_KEY="<your-secret-access-key>"
+S3_PUBLIC_BASE_URL="https://cdn.example.com"
+S3_UPLOAD_PREFIX="posts"
 ```
+
+## 图片上传
+
+- 发布页支持最多 `9` 张图片
+- 浏览器会先压缩为 `WebP`
+- 单图压缩后不超过 `2MB`
+- 最长边压缩到 `2048px`
+- 上传方式为服务端签发后直传 S3 兼容对象存储
+- 帖子列表显示首图缩略图，详情页展示全部图片
 
 ## MCP 接入
 

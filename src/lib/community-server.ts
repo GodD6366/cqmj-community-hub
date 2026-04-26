@@ -6,6 +6,7 @@ type PostRecord = Prisma.PostGetPayload<{
   include: {
     comments: true;
     favorites: { select: { userId: true } };
+    images: { orderBy: { sortOrder: "asc" } };
     reports: { select: { userId: true } };
   };
 }>;
@@ -62,6 +63,16 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
     visibility: post.visibility as VisibilityScope,
     status: post.status as PostStatus,
     comments: post.comments.map(mapComment),
+    images: post.images.map((image) => ({
+      id: image.id,
+      objectKey: image.objectKey,
+      url: image.url,
+      mimeType: image.mimeType,
+      width: image.width,
+      height: image.height,
+      sizeBytes: image.sizeBytes,
+      sortOrder: image.sortOrder,
+    })),
     pinned: post.pinned,
     featured: post.featured,
     favorited,
@@ -85,6 +96,7 @@ export async function listPostsForViewer(viewerId: string | null) {
     include: {
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
+      images: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
     },
     orderBy: [{ pinned: "desc" }, { featured: "desc" }, { createdAt: "desc" }],
@@ -99,6 +111,7 @@ export async function getPostForViewer(postId: string, viewerId: string | null) 
     include: {
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
+      images: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
     },
   });
@@ -126,6 +139,17 @@ export async function createPostForViewer(
       status: "published",
       pinned: false,
       featured: draft.category === "discussion",
+      images: {
+        create: draft.images.map((image) => ({
+          objectKey: image.objectKey,
+          url: image.url,
+          mimeType: image.mimeType,
+          width: image.width,
+          height: image.height,
+          sizeBytes: image.sizeBytes,
+          sortOrder: image.sortOrder,
+        })),
+      },
     },
   });
 
@@ -230,6 +254,7 @@ export async function listPostsForAdmin() {
     include: {
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
+      images: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
     },
     orderBy: [{ pinned: "desc" }, { featured: "desc" }, { createdAt: "desc" }],

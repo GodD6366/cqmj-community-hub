@@ -19,6 +19,8 @@
     "db:migrate:deploy": "prisma migrate deploy"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1037.0",
+    "@aws-sdk/s3-request-presigner": "^3.1037.0",
     "@heroui/react": "^3.0.2",
     "@heroui/styles": "^3.0.2",
     "@modelcontextprotocol/sdk": "^1.29.0",

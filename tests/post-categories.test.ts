@@ -17,6 +17,7 @@ const basePost: CommunityPost = {
   visibility: "community",
   status: "published",
   comments: [],
+  images: [],
 };
 
 describe("post categories", () => {

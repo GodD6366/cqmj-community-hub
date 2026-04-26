@@ -20,6 +20,28 @@ export interface CommunityComment {
   createdAt: string;
 }
 
+export interface PostImage {
+  id: string;
+  objectKey: string;
+  url: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  sizeBytes: number;
+  sortOrder: number;
+}
+
+export interface DraftPostImage {
+  id?: string;
+  objectKey: string;
+  url: string;
+  mimeType: string;
+  width: number;
+  height: number;
+  sizeBytes: number;
+  sortOrder: number;
+}
+
 export interface CommunityPost {
   id: string;
   title: string;
@@ -34,6 +56,7 @@ export interface CommunityPost {
   visibility: VisibilityScope;
   status: PostStatus;
   comments: CommunityComment[];
+  images: PostImage[];
   pinned?: boolean;
   featured?: boolean;
   favorited?: boolean;
@@ -67,6 +90,7 @@ export interface PostDraft {
   tags: string[];
   visibility: VisibilityScope;
   anonymous: boolean;
+  images: DraftPostImage[];
 }
 
 export const categoryMeta: Record<

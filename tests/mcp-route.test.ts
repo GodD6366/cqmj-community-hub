@@ -153,6 +153,7 @@ describe("/mcp route", () => {
         visibility: "private",
         status: "published",
         comments: [],
+        images: [],
         pinned: false,
         featured: false,
       },
@@ -173,6 +174,7 @@ describe("/mcp route", () => {
         visibility: "private",
         status: "published",
         comments: [],
+        images: [],
         pinned: false,
         featured: false,
       })

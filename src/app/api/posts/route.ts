@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
 import { createPostForViewer, listPostsForViewer } from "@/lib/community-server";
+import { getPublicImageBaseUrl, getUploadPrefix } from "@/lib/s3-storage";
+import { validateImageStorageFields, validatePostImages } from "@/lib/post-images";
 import { isPostCategory } from "@/lib/types";
 
 function parseDraft(body: unknown) {
@@ -12,7 +14,8 @@ function parseDraft(body: unknown) {
   const tags = Array.isArray(value.tags) ? value.tags.filter((item): item is string => typeof item === "string") : [];
   const visibility = value.visibility;
   const anonymous = Boolean(value.anonymous);
-  return { title, content, category, tags, visibility, anonymous };
+  const images = Array.isArray(value.images) ? value.images : [];
+  return { title, content, category, tags, visibility, anonymous, images };
 }
 
 export async function GET() {
@@ -40,6 +43,30 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "可见范围不合法" }, { status: 400 });
   }
 
+  const imageValidation = validatePostImages(draft.images);
+  if (!imageValidation.ok) {
+    return NextResponse.json({ error: imageValidation.error }, { status: 400 });
+  }
+
+  if (imageValidation.images.length > 0) {
+    let imageStorageValidation;
+    try {
+      imageStorageValidation = validateImageStorageFields(imageValidation.images, {
+        publicBaseUrl: getPublicImageBaseUrl(),
+        uploadPrefix: getUploadPrefix(),
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "对象存储配置错误" },
+        { status: 500 },
+      );
+    }
+
+    if (!imageStorageValidation.ok) {
+      return NextResponse.json({ error: imageStorageValidation.error }, { status: 400 });
+    }
+  }
+
   const id = await createPostForViewer(currentUser, {
     title: draft.title,
     content: draft.content,
@@ -47,6 +74,7 @@ export async function POST(request: Request) {
     tags: draft.tags,
     visibility: draft.visibility,
     anonymous: draft.anonymous,
+    images: imageValidation.images,
   });
 
   return NextResponse.json({ id }, { status: 201 });
