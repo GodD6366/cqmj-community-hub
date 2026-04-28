@@ -1,5 +1,4 @@
-
-import { PostDetailClient } from "../../../components/post-detail-client";
+import { PostDetailClient } from "@/components/post-detail-client";
 
 interface PostDetailPageProps {
   params: Promise<{ id: string }>;

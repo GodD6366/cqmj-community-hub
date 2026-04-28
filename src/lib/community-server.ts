@@ -1,6 +1,7 @@
 import type { CommunityComment, CommunityPost, PostCategory, PostDraft, PostStatus, VisibilityScope } from "./types";
 import { prisma } from "./db";
 import type { Prisma } from "@/generated/prisma/client";
+import { createNotificationRecord } from "./resident-server";
 
 type PostRecord = Prisma.PostGetPayload<{
   include: {
@@ -127,33 +128,47 @@ export async function createPostForViewer(
   viewer: { id: string; username: string },
   draft: PostDraft,
 ) {
-  const post = await prisma.post.create({
-    data: {
-      title: draft.title,
-      content: draft.content,
-      category: draft.category,
-      tags: buildTags(draft.tags),
-      authorName: draft.anonymous ? "匿名居民" : viewer.username,
-      authorId: viewer.id,
-      visibility: draft.visibility,
-      status: "published",
-      pinned: false,
-      featured: draft.category === "discussion",
-      images: {
-        create: draft.images.map((image) => ({
-          objectKey: image.objectKey,
-          url: image.url,
-          mimeType: image.mimeType,
-          width: image.width,
-          height: image.height,
-          sizeBytes: image.sizeBytes,
-          sortOrder: image.sortOrder,
-        })),
+  return prisma.$transaction(async (tx) => {
+    const post = await tx.post.create({
+      data: {
+        title: draft.title,
+        content: draft.content,
+        category: draft.category,
+        tags: buildTags(draft.tags),
+        authorName: draft.anonymous ? "匿名居民" : viewer.username,
+        authorId: viewer.id,
+        visibility: draft.visibility,
+        status: "published",
+        pinned: false,
+        featured: draft.category === "discussion",
+        images: {
+          create: draft.images.map((image) => ({
+            objectKey: image.objectKey,
+            url: image.url,
+            mimeType: image.mimeType,
+            width: image.width,
+            height: image.height,
+            sizeBytes: image.sizeBytes,
+            sortOrder: image.sortOrder,
+          })),
+        },
       },
-    },
-  });
+      select: {
+        id: true,
+        title: true,
+      },
+    });
 
-  return post.id;
+    await createNotificationRecord(tx, {
+      userId: viewer.id,
+      type: "system",
+      title: "你的内容已成功发布",
+      body: post.title,
+      href: `/posts/${post.id}`,
+    });
+
+    return post.id;
+  });
 }
 
 export async function addCommentForViewer(
@@ -161,32 +176,71 @@ export async function addCommentForViewer(
   viewer: { id: string; username: string },
   content: string,
 ) {
-  const post = await prisma.post.findUnique({ where: { id: postId } });
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      title: true,
+      authorId: true,
+      status: true,
+      visibility: true,
+      authorName: true,
+    },
+  });
   if (!post || !canViewPost(post, viewer.id)) {
     return null;
   }
 
-  const comment = await prisma.comment.create({
-    data: {
-      postId,
-      authorName: viewer.username,
-      authorId: viewer.id,
-      content,
-    },
+  const created = await prisma.$transaction(async (tx) => {
+    const comment = await tx.comment.create({
+      data: {
+        postId,
+        authorName: viewer.username,
+        authorId: viewer.id,
+        content,
+      },
+    });
+
+    await tx.post.update({
+      where: { id: postId },
+      data: {
+        commentCount: { increment: 1 },
+        updatedAt: comment.createdAt,
+      },
+    });
+
+    if (post.authorId && post.authorId !== viewer.id) {
+      await createNotificationRecord(tx, {
+        userId: post.authorId,
+        type: "comment",
+        title: `你的帖子「${post.title}」有了新评论`,
+        body: `${viewer.username} 回复了你`,
+        href: `/posts/${post.id}`,
+      });
+    }
+
+    return comment;
   });
 
-  await prisma.post.update({
-    where: { id: postId },
-    data: {
-      commentCount: { increment: 1 },
-      updatedAt: comment.createdAt,
-    },
-  });
-
-  return mapComment(comment);
+  return mapComment(created);
 }
 
 export async function toggleFavoriteForViewer(postId: string, viewerId: string) {
+  const post = await prisma.post.findUnique({
+    where: {
+      id: postId,
+    },
+    select: {
+      id: true,
+      title: true,
+      authorId: true,
+    },
+  });
+
+  if (!post) {
+    throw new Error("POST_NOT_FOUND");
+  }
+
   const favorite = await prisma.favorite.findUnique({
     where: {
       postId_userId: {
@@ -207,18 +261,28 @@ export async function toggleFavoriteForViewer(postId: string, viewerId: string) 
     return { favorited: false };
   }
 
-  await prisma.$transaction([
-    prisma.favorite.create({
+  await prisma.$transaction(async (tx) => {
+    await tx.favorite.create({
       data: {
         postId,
         userId: viewerId,
       },
-    }),
-    prisma.post.update({
+    });
+    await tx.post.update({
       where: { id: postId },
       data: { favoriteCount: { increment: 1 } },
-    }),
-  ]);
+    });
+
+    if (post.authorId && post.authorId !== viewerId) {
+      await createNotificationRecord(tx, {
+        userId: post.authorId,
+        type: "favorite",
+        title: `你的帖子「${post.title}」被收藏了`,
+        body: "有邻居把它加入了收藏列表",
+        href: `/posts/${post.id}`,
+      });
+    }
+  });
 
   return { favorited: true };
 }

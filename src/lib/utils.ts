@@ -42,6 +42,17 @@ export function createId(prefix = "item") {
   return `${prefix}_${Date.now().toString(36)}_${random}`;
 }
 
+export function uniquePosts<T extends { id: string; authorName: string; title: string; content: string; createdAt: string }>(posts: T[]) {
+  const seen = new Set<string>();
+  return posts.filter((post) => {
+    const contentSignature = [post.authorName, post.title, post.content, post.createdAt].join("\u0000");
+    if (seen.has(post.id) || seen.has(contentSignature)) return false;
+    seen.add(post.id);
+    seen.add(contentSignature);
+    return true;
+  });
+}
+
 export function filterPosts(
   posts: CommunityPost[],
   options: { category: PostCategory | "all"; query: string },

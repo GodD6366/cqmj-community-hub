@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { SiteNav } from "../components/site-nav";
 import { CommunityProvider } from "../components/community-provider";
+import { AppFrame } from "../components/app-frame";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -17,10 +17,7 @@ export default function RootLayout({
     <html lang="zh-CN" data-scroll-behavior="smooth">
       <body className="site-frame min-h-full bg-[var(--background)] text-[var(--foreground)] antialiased">
         <CommunityProvider>
-          <div className="flex min-h-screen flex-col">
-            <SiteNav />
-            <div className="flex-1 pb-8 sm:pb-10">{children}</div>
-          </div>
+          <AppFrame>{children}</AppFrame>
         </CommunityProvider>
       </body>
     </html>

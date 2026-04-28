@@ -17,6 +17,11 @@ import { SectionCard } from "./ui";
 
 interface PostEditorProps {
   onSubmit: (draft: PostDraft) => void | Promise<void>;
+  initialCategory?: PostCategory;
+  visibleCategories?: PostCategory[];
+  categoryLocked?: boolean;
+  editorTitle?: string;
+  editorDescription?: string;
 }
 
 interface UploadPresignResponse {
@@ -39,7 +44,6 @@ interface EditorImageItem extends PostImage {
   error?: string;
 }
 
-const categoryOptions = Object.entries(categoryMeta) as [PostCategory, (typeof categoryMeta)[PostCategory]][];
 const visibilityOptions = Object.entries(visibilityMeta) as [VisibilityScope, (typeof visibilityMeta)[VisibilityScope]][];
 const STORAGE_KEY = "community-hub-post-draft";
 const TITLE_MAX = 60;
@@ -170,8 +174,20 @@ function toDraftImages(items: EditorImageItem[]): DraftPostImage[] {
     }));
 }
 
-export function PostEditor({ onSubmit }: PostEditorProps) {
-  const [category, setCategory] = useState<PostCategory>("request");
+export function PostEditor({
+  onSubmit,
+  initialCategory = "request",
+  visibleCategories = ["request", "secondhand", "discussion", "play"],
+  categoryLocked = false,
+  editorTitle = "发一条对邻里有帮助的帖子",
+  editorDescription = "现在支持多图上传，适合闲置展示、活动说明和现场反馈。",
+}: PostEditorProps) {
+  const categoryOptions = useMemo(
+    () =>
+      visibleCategories.map((value) => [value, categoryMeta[value]] as [PostCategory, (typeof categoryMeta)[PostCategory]]),
+    [visibleCategories],
+  );
+  const [category, setCategory] = useState<PostCategory>(initialCategory);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [tags, setTags] = useState(DEFAULT_TAGS);
@@ -211,7 +227,9 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
         return;
       }
       const draft = JSON.parse(raw) as Partial<PostDraft> & { title?: string; content?: string; tags?: string[] };
-      if (isPostCategory(draft.category)) setCategory(draft.category);
+      if (!categoryLocked && isPostCategory(draft.category) && visibleCategories.includes(draft.category)) {
+        setCategory(draft.category);
+      }
       if (draft.visibility === "community" || draft.visibility === "building" || draft.visibility === "private") setVisibility(draft.visibility);
       if (typeof draft.title === "string") setTitle(draft.title);
       if (typeof draft.content === "string") setContent(draft.content);
@@ -237,7 +255,7 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
     } finally {
       setHydratedDraft(true);
     }
-  }, []);
+  }, [categoryLocked, visibleCategories]);
 
   useEffect(() => {
     if (!hydratedDraft) return;
@@ -257,7 +275,7 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
     for (const image of images) {
       revokeBlobUrl(image.previewUrl);
     }
-    setCategory("request");
+    setCategory(initialCategory);
     setTitle("");
     setContent("");
     setTags(DEFAULT_TAGS);
@@ -477,9 +495,9 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
         <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-4 sm:px-5">
           <div>
             <p className="section-kicker">发布内容</p>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">发一条对邻里有帮助的帖子</h1>
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{editorTitle}</h1>
             <p className="mt-2 text-sm leading-6 text-slate-600">
-              现在支持多图上传，适合闲置展示、活动说明和现场反馈。
+              {editorDescription}
             </p>
           </div>
         </Card.Header>
@@ -497,6 +515,7 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
                     <Button
                       key={value}
                       className="h-auto min-h-[6.25rem] w-[15rem] shrink-0 snap-start justify-start px-4 py-3 text-left"
+                      isDisabled={categoryLocked}
                       onPress={() => setCategory(value)}
                       type="button"
                       variant={category === value ? "primary" : "secondary"}
@@ -515,6 +534,7 @@ export function PostEditor({ onSubmit }: PostEditorProps) {
                 <Button
                   key={value}
                   className="h-auto justify-start px-4 py-3 text-left"
+                  isDisabled={categoryLocked}
                   onPress={() => setCategory(value)}
                   type="button"
                   variant={category === value ? "primary" : "secondary"}

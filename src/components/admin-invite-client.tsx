@@ -5,8 +5,8 @@ import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { Alert, Button, Card, Input, Tabs } from "@heroui/react";
 import { PageShell, SectionCard } from "./ui";
 import { useCommunityPosts } from "@/lib/community-store";
-import type { AdminUser } from "@/lib/types";
-import { categoryMeta } from "@/lib/types";
+import type { AdminUser, PollSummary, ServiceTicketSummary } from "@/lib/types";
+import { categoryMeta, pollStatusMeta, serviceTicketStatusMeta } from "@/lib/types";
 import { adminTabMeta, buildAdminTabHref, parseAdminTab, type AdminTab } from "@/lib/admin-tabs";
 
 type InviteCode = {
@@ -37,7 +37,6 @@ type AdminPost = {
   pinned?: boolean;
   featured?: boolean;
 };
-
 type UserEditorState = {
   id: string;
   username: string;
@@ -78,6 +77,8 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
   const { currentUser, logout } = useCommunityPosts();
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [posts, setPosts] = useState<AdminPost[]>([]);
+  const [polls, setPolls] = useState<PollSummary[]>([]);
+  const [serviceTickets, setServiceTickets] = useState<ServiceTicketSummary[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [code, setCode] = useState("");
   const [note, setNote] = useState("");
@@ -90,12 +91,18 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
   const [userSaving, setUserSaving] = useState(false);
   const [userActionId, setUserActionId] = useState<string | null>(null);
   const [postDeletingId, setPostDeletingId] = useState<string | null>(null);
+  const [ticketSavingId, setTicketSavingId] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const activeTab = parseAdminTab(searchParams.get("tab") ?? initialTab);
   const sortedCodes = useMemo(() => inviteCodes.slice().sort((a, b) => Number(b.active) - Number(a.active)), [inviteCodes]);
   const sortedPosts = useMemo(() => posts.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)), [posts]);
   const sortedUsers = useMemo(() => users.slice(), [users]);
+  const sortedPolls = useMemo(() => polls.slice().sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt)), [polls]);
+  const sortedTickets = useMemo(
+    () => serviceTickets.slice().sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)),
+    [serviceTickets],
+  );
 
   const readAdminJson = async <T,>(response: Response) => {
     if (response.status === 401) {
@@ -119,6 +126,20 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
     setPosts(data.posts ?? []);
   };
 
+  const loadPolls = async () => {
+    const data = await readAdminJson<{ polls: PollSummary[] }>(
+      await fetch("/api/admin/polls", { cache: "no-store" }),
+    );
+    setPolls(data.polls ?? []);
+  };
+
+  const loadServiceTickets = async () => {
+    const data = await readAdminJson<{ serviceTickets: ServiceTicketSummary[] }>(
+      await fetch("/api/admin/service-tickets", { cache: "no-store" }),
+    );
+    setServiceTickets(data.serviceTickets ?? []);
+  };
+
   const loadUsers = async () => {
     const data = await readAdminJson<{ users: AdminUser[] }>(
       await fetch("/api/admin/users", { cache: "no-store" }),
@@ -127,7 +148,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
   };
 
   const loadAdminData = useEffectEvent(async () => {
-    await Promise.all([loadUsers(), loadCodes(), loadPosts()]);
+    await Promise.all([loadUsers(), loadCodes(), loadPosts(), loadPolls(), loadServiceTickets()]);
   });
 
   useEffect(() => {
@@ -666,6 +687,114 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
                       >
                         {postDeletingId === post.id ? "处理中..." : "删除帖子"}
                       </Button>
+                    </div>
+                  </div>
+                </article>
+              ))
+            )}
+          </Card.Content>
+        </SectionCard>
+      ) : null}
+
+      {activeTab === "polls" ? (
+        <SectionCard className="mt-4 p-6 sm:mt-6 sm:p-8">
+          <Card.Header className="p-0">
+            <Card.Title className="text-xl font-semibold text-slate-900">投票管理</Card.Title>
+            <Card.Description className="mt-2 text-sm leading-6 text-slate-600">
+              当前展示邻里端的真实投票列表。MVP 阶段后台以查看参与情况为主。
+            </Card.Description>
+          </Card.Header>
+          <Card.Content className="mt-4 space-y-4 p-0">
+            {sortedPolls.length === 0 ? (
+              <p className="text-sm text-slate-500">当前还没有投票。</p>
+            ) : (
+              sortedPolls.map((poll) => (
+                <article key={poll.id} className="rounded-[1.15rem] bg-[var(--surface-muted)] p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-semibold text-slate-900">{poll.title}</h3>
+                        <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-700">
+                          {pollStatusMeta[poll.status].label}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{poll.description}</p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+                        <span className="rounded-2xl bg-white/80 px-3 py-2">发布者 {poll.authorName}</span>
+                        <span className="rounded-2xl bg-white/80 px-3 py-2">参与 {poll.totalVotes}</span>
+                        <span className="rounded-2xl bg-white/80 px-3 py-2">
+                          截止 {poll.endsAt ? formatDate(poll.endsAt) : "未设置"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+              ))
+            )}
+          </Card.Content>
+        </SectionCard>
+      ) : null}
+
+      {activeTab === "tickets" ? (
+        <SectionCard className="mt-4 p-6 sm:mt-6 sm:p-8">
+          <Card.Header className="p-0">
+            <Card.Title className="text-xl font-semibold text-slate-900">工单管理</Card.Title>
+            <Card.Description className="mt-2 text-sm leading-6 text-slate-600">
+              可切换工单状态，状态变更后会同步通知到对应住户的消息中心。
+            </Card.Description>
+          </Card.Header>
+          <Card.Content className="mt-4 space-y-4 p-0">
+            {sortedTickets.length === 0 ? (
+              <p className="text-sm text-slate-500">当前还没有服务工单。</p>
+            ) : (
+              sortedTickets.map((ticket) => (
+                <article key={ticket.id} className="rounded-[1.15rem] bg-[var(--surface-muted)] p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-lg font-semibold text-slate-900">{ticket.title}</h3>
+                        <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-700">
+                          {serviceTicketStatusMeta[ticket.status].label}
+                        </span>
+                      </div>
+                      <p className="mt-2 text-sm leading-6 text-slate-600">{ticket.description}</p>
+                      <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+                        <span className="rounded-2xl bg-white/80 px-3 py-2">发起人 {ticket.authorName}</span>
+                        <span className="rounded-2xl bg-white/80 px-3 py-2">更新 {formatDate(ticket.updatedAt)}</span>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2">
+                      {(["open", "processing", "resolved"] as const).map((status) => (
+                        <Button
+                          key={status}
+                          isDisabled={ticketSavingId !== null || ticket.status === status}
+                          onPress={async () => {
+                            setTicketSavingId(ticket.id);
+                            setError("");
+                            setMessage("");
+                            try {
+                              await readAdminJson(
+                                await fetch(`/api/admin/service-tickets/${ticket.id}`, {
+                                  method: "PATCH",
+                                  headers: { "Content-Type": "application/json" },
+                                  credentials: "include",
+                                  body: JSON.stringify({ status }),
+                                }),
+                              );
+                              setMessage(`已更新工单：${ticket.title}`);
+                              await loadServiceTickets();
+                            } catch (submitError) {
+                              setError(submitError instanceof Error ? submitError.message : "更新工单失败");
+                            } finally {
+                              setTicketSavingId(null);
+                            }
+                          }}
+                          size="sm"
+                          variant={ticket.status === status ? "primary" : "secondary"}
+                        >
+                          {ticketSavingId === ticket.id && ticket.status !== status ? "处理中..." : serviceTicketStatusMeta[status].label}
+                        </Button>
+                      ))}
                     </div>
                   </div>
                 </article>

@@ -1,6 +1,6 @@
-export type AdminTab = "users" | "invites" | "posts";
+export type AdminTab = "users" | "invites" | "posts" | "polls" | "tickets";
 
-export const adminTabs = ["users", "invites", "posts"] as const;
+export const adminTabs = ["users", "invites", "posts", "polls", "tickets"] as const;
 
 export const adminTabMeta: Record<AdminTab, { label: string; description: string }> = {
   users: {
@@ -14,6 +14,14 @@ export const adminTabMeta: Record<AdminTab, { label: string; description: string
   posts: {
     label: "帖子管理",
     description: "查看并处理社区帖子内容。",
+  },
+  polls: {
+    label: "投票管理",
+    description: "查看邻里投票与参与情况。",
+  },
+  tickets: {
+    label: "工单管理",
+    description: "切换服务工单状态并同步通知。",
   },
 };
 

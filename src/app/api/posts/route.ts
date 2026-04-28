@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
 import { createPostForViewer, listPostsForViewer } from "@/lib/community-server";
+import {
+  countUnreadNotificationsForViewer,
+  listNotificationsForViewer,
+  listPollsForViewer,
+  listServiceTicketsForViewer,
+} from "@/lib/resident-server";
 import { getPublicImageBaseUrl, getUploadPrefix } from "@/lib/s3-storage";
 import { validateImageStorageFields, validatePostImages } from "@/lib/post-images";
 import { isPostCategory } from "@/lib/types";
@@ -20,8 +26,23 @@ function parseDraft(body: unknown) {
 
 export async function GET() {
   const currentUser = await getCurrentUserFromCookie();
-  const posts = await listPostsForViewer(currentUser?.id ?? null);
-  return NextResponse.json({ posts, currentUser });
+  const viewerId = currentUser?.id ?? null;
+  const [posts, polls, serviceTickets, notifications, unreadNotificationCount] = await Promise.all([
+    listPostsForViewer(viewerId),
+    listPollsForViewer(viewerId),
+    listServiceTicketsForViewer(viewerId),
+    currentUser ? listNotificationsForViewer(currentUser.id) : Promise.resolve([]),
+    currentUser ? countUnreadNotificationsForViewer(currentUser.id) : Promise.resolve(0),
+  ]);
+
+  return NextResponse.json({
+    posts,
+    polls,
+    serviceTickets,
+    notifications,
+    unreadNotificationCount,
+    currentUser,
+  });
 }
 
 export async function POST(request: Request) {

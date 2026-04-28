@@ -1,7 +1,16 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import type { CommunityPost, CommunityUser, PostDraft } from "./types";
+import type {
+  CommunityPost,
+  CommunityUser,
+  NotificationItem,
+  PollDraft,
+  PollSummary,
+  PostDraft,
+  ServiceTicketDraft,
+  ServiceTicketSummary,
+} from "./types";
 
 interface AuthPayload {
   username: string;
@@ -12,10 +21,17 @@ interface AuthPayload {
 
 interface CommunityStore {
   posts: CommunityPost[];
+  polls: PollSummary[];
+  serviceTickets: ServiceTicketSummary[];
+  notifications: NotificationItem[];
+  unreadNotificationCount: number;
   currentUser: CommunityUser | null;
   hydrated: boolean;
   refresh: () => Promise<void>;
   addPost: (draft: PostDraft) => Promise<string>;
+  addPoll: (draft: PollDraft) => Promise<string>;
+  votePoll: (pollId: string, optionId: string) => Promise<void>;
+  addServiceTicket: (draft: ServiceTicketDraft) => Promise<string>;
   addComment: (
     postId: string,
     comment: { content: string },
@@ -36,7 +52,10 @@ const CommunityPostsContext = createContext<CommunityStore | null>(null);
 async function readJson<T>(response: Response): Promise<T> {
   const body = (await response.json().catch(() => null)) as T | null;
   if (!response.ok) {
-    const error = body && typeof body === "object" && "error" in body ? String((body as { error?: unknown }).error ?? "请求失败") : "请求失败";
+    const error =
+      body && typeof body === "object" && "error" in body
+        ? String((body as { error?: unknown }).error ?? "请求失败")
+        : "请求失败";
     throw new Error(error);
   }
   if (body === null) {
@@ -47,13 +66,29 @@ async function readJson<T>(response: Response): Promise<T> {
 
 export function CommunityProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [polls, setPolls] = useState<PollSummary[]>([]);
+  const [serviceTickets, setServiceTickets] = useState<ServiceTicketSummary[]>([]);
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
   const [currentUser, setCurrentUser] = useState<CommunityUser | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   const refresh = useCallback(async () => {
     const response = await fetch("/api/posts", { cache: "no-store" });
-    const data = await readJson<{ posts: CommunityPost[]; currentUser: CommunityUser | null }>(response);
+    const data = await readJson<{
+      posts: CommunityPost[];
+      polls: PollSummary[];
+      serviceTickets: ServiceTicketSummary[];
+      notifications: NotificationItem[];
+      unreadNotificationCount: number;
+      currentUser: CommunityUser | null;
+    }>(response);
+
     setPosts(data.posts ?? []);
+    setPolls(data.polls ?? []);
+    setServiceTickets(data.serviceTickets ?? []);
+    setNotifications(data.notifications ?? []);
+    setUnreadNotificationCount(data.unreadNotificationCount ?? 0);
     setCurrentUser(data.currentUser ?? null);
   }, []);
 
@@ -63,6 +98,10 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         await refresh();
       } catch {
         setPosts([]);
+        setPolls([]);
+        setServiceTickets([]);
+        setNotifications([]);
+        setUnreadNotificationCount(0);
         setCurrentUser(null);
       } finally {
         setHydrated(true);
@@ -85,6 +124,50 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const addPoll = useCallback(
+    async (draft: PollDraft) => {
+      const response = await fetch("/api/polls", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(draft),
+      });
+      const data = await readJson<{ id: string }>(response);
+      await refresh();
+      return data.id;
+    },
+    [refresh],
+  );
+
+  const votePoll = useCallback(
+    async (pollId: string, optionId: string) => {
+      const response = await fetch(`/api/polls/${pollId}/vote`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ optionId }),
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const addServiceTicket = useCallback(
+    async (draft: ServiceTicketDraft) => {
+      const response = await fetch("/api/service-tickets", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(draft),
+      });
+      const data = await readJson<{ id: string }>(response);
+      await refresh();
+      return data.id;
+    },
+    [refresh],
+  );
+
   const addComment = useCallback(
     async (postId: string, comment: { content: string }) => {
       const response = await fetch(`/api/posts/${postId}/comments`, {
@@ -93,7 +176,9 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         credentials: "include",
         body: JSON.stringify(comment),
       });
-      const data = await readJson<{ comment: { id: string; authorName: string; content: string; createdAt: string } }>(response);
+      const data = await readJson<{
+        comment: { id: string; authorName: string; content: string; createdAt: string };
+      }>(response);
       await refresh();
       return data.comment;
     },
@@ -169,10 +254,17 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
   const value = useMemo<CommunityStore>(
     () => ({
       posts,
+      polls,
+      serviceTickets,
+      notifications,
+      unreadNotificationCount,
       currentUser,
       hydrated,
       refresh,
       addPost,
+      addPoll,
+      votePoll,
+      addServiceTicket,
       addComment,
       toggleFavorite,
       reportPost,
@@ -180,7 +272,26 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       register,
       logout,
     }),
-    [addComment, addPost, currentUser, hydrated, login, logout, posts, refresh, register, reportPost, toggleFavorite],
+    [
+      addComment,
+      addPoll,
+      addPost,
+      addServiceTicket,
+      currentUser,
+      hydrated,
+      login,
+      logout,
+      notifications,
+      polls,
+      posts,
+      refresh,
+      register,
+      reportPost,
+      serviceTickets,
+      toggleFavorite,
+      unreadNotificationCount,
+      votePoll,
+    ],
   );
 
   return <CommunityPostsContext.Provider value={value}>{children}</CommunityPostsContext.Provider>;

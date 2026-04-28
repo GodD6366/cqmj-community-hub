@@ -32,24 +32,56 @@ enum UserRole {
   admin
 }
 
+enum PollStatus {
+  active
+  closed
+}
+
+enum ServiceTicketCategory {
+  repair
+  complaint
+  cleaning
+  facility
+  other
+}
+
+enum ServiceTicketStatus {
+  open
+  processing
+  resolved
+}
+
+enum NotificationType {
+  comment
+  favorite
+  poll
+  ticket
+  group
+  system
+}
+
 model User {
-  id           String      @id @default(cuid())
-  username     String      @unique
-  name         String
-  roomNumber   String?
-  passwordHash String
-  role         UserRole    @default(user)
-  disabledAt   DateTime?
-  mcpTokenVersion Int      @default(0)
+  id               String            @id @default(cuid())
+  username         String            @unique
+  name             String
+  roomNumber       String?
+  passwordHash     String
+  role             UserRole          @default(user)
+  disabledAt       DateTime?
+  mcpTokenVersion  Int               @default(0)
   mcpTokenIssuedAt DateTime?
-  mcpGuideSeenAt  DateTime?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime    @updatedAt
-  sessions     Session[]
-  posts        Post[]
-  comments     Comment[]
-  favorites    Favorite[]
-  reports      Report[]
+  mcpGuideSeenAt   DateTime?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  sessions         Session[]
+  posts            Post[]
+  comments         Comment[]
+  favorites        Favorite[]
+  reports          Report[]
+  polls            Poll[]
+  pollVotes        PollVote[]
+  serviceTickets   ServiceTicket[]
+  notifications    Notification[]
 
   @@index([roomNumber])
 }
@@ -148,6 +180,85 @@ model Report {
   @@unique([postId, userId])
   @@index([userId])
   @@index([postId])
+}
+
+model Poll {
+  id          String       @id @default(cuid())
+  title       String
+  description String
+  authorName  String
+  authorId    String?
+  status      PollStatus   @default(active)
+  endsAt      DateTime?
+  totalVotes  Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  author      User?        @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  options     PollOption[]
+  votes       PollVote[]
+
+  @@index([status, createdAt])
+  @@index([authorId])
+}
+
+model PollOption {
+  id        String     @id @default(cuid())
+  pollId    String
+  label     String
+  sortOrder Int
+  voteCount Int        @default(0)
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes     PollVote[]
+
+  @@index([pollId, sortOrder])
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  pollId    String
+  optionId  String
+  userId    String
+  createdAt DateTime   @default(now())
+  poll      Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([optionId])
+  @@index([userId])
+}
+
+model ServiceTicket {
+  id           String                @id @default(cuid())
+  title        String
+  description  String
+  category     ServiceTicketCategory
+  status       ServiceTicketStatus   @default(open)
+  authorName   String
+  roomNumber   String?
+  authorId     String?
+  assigneeNote String?
+  resolvedAt   DateTime?
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  author       User?                 @relation(fields: [authorId], references: [id], onDelete: SetNull)
+
+  @@index([status, createdAt])
+  @@index([authorId])
+}
+
+model Notification {
+  id        String           @id @default(cuid())
+  userId    String
+  type      NotificationType
+  title     String
+  body      String
+  href      String?
+  readAt    DateTime?
+  createdAt DateTime         @default(now())
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
 }
 
 model InviteCode {
