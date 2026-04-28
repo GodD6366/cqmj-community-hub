@@ -17,11 +17,16 @@ import { SectionCard } from "./ui";
 
 interface PostEditorProps {
   onSubmit: (draft: PostDraft) => void | Promise<void>;
+  initialDraft?: PostDraft;
   initialCategory?: PostCategory;
   visibleCategories?: PostCategory[];
   categoryLocked?: boolean;
   editorTitle?: string;
   editorDescription?: string;
+  submitLabel?: string;
+  submittingLabel?: string;
+  clearLabel?: string;
+  persistDraft?: boolean;
 }
 
 interface UploadPresignResponse {
@@ -176,24 +181,41 @@ function toDraftImages(items: EditorImageItem[]): DraftPostImage[] {
 
 export function PostEditor({
   onSubmit,
+  initialDraft,
   initialCategory = "request",
   visibleCategories = ["request", "secondhand", "discussion", "play"],
   categoryLocked = false,
   editorTitle = "发一条对邻里有帮助的帖子",
   editorDescription = "现在支持多图上传，适合闲置展示、活动说明和现场反馈。",
+  submitLabel = "立即发布",
+  submittingLabel = "发布中...",
+  clearLabel = "清空草稿",
+  persistDraft = true,
 }: PostEditorProps) {
   const categoryOptions = useMemo(
     () =>
       visibleCategories.map((value) => [value, categoryMeta[value]] as [PostCategory, (typeof categoryMeta)[PostCategory]]),
     [visibleCategories],
   );
-  const [category, setCategory] = useState<PostCategory>(initialCategory);
-  const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
-  const [tags, setTags] = useState(DEFAULT_TAGS);
-  const [visibility, setVisibility] = useState<VisibilityScope>("community");
-  const [anonymous, setAnonymous] = useState(false);
-  const [images, setImages] = useState<EditorImageItem[]>([]);
+  const [category, setCategory] = useState<PostCategory>(initialDraft?.category ?? initialCategory);
+  const [title, setTitle] = useState(initialDraft?.title ?? "");
+  const [content, setContent] = useState(initialDraft?.content ?? "");
+  const [tags, setTags] = useState(initialDraft?.tags.join(", ") ?? DEFAULT_TAGS);
+  const [visibility, setVisibility] = useState<VisibilityScope>(initialDraft?.visibility ?? "community");
+  const [anonymous, setAnonymous] = useState(initialDraft?.anonymous ?? false);
+  const [images, setImages] = useState<EditorImageItem[]>(() =>
+    (initialDraft?.images ?? []).map((image, index) => {
+      const draftImageId = image.id || createClientId();
+      return {
+        ...image,
+        id: draftImageId,
+        clientId: draftImageId,
+        previewUrl: image.url,
+        status: "uploaded" as const,
+        sortOrder: index,
+      };
+    }),
+  );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [hydratedDraft, setHydratedDraft] = useState(false);
@@ -220,6 +242,10 @@ export function PostEditor({
   }, []);
 
   useEffect(() => {
+    if (!persistDraft) {
+      setHydratedDraft(true);
+      return;
+    }
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       if (!raw) {
@@ -255,10 +281,10 @@ export function PostEditor({
     } finally {
       setHydratedDraft(true);
     }
-  }, [categoryLocked, visibleCategories]);
+  }, [categoryLocked, persistDraft, visibleCategories]);
 
   useEffect(() => {
-    if (!hydratedDraft) return;
+    if (!hydratedDraft || !persistDraft) return;
     const payload = {
       category,
       title,
@@ -269,24 +295,38 @@ export function PostEditor({
       images: uploadedImages,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [anonymous, category, content, hydratedDraft, uploadedImages, parsedTags, title, visibility]);
+  }, [anonymous, category, content, hydratedDraft, persistDraft, uploadedImages, parsedTags, title, visibility]);
 
   const clearDraft = () => {
     for (const image of images) {
       revokeBlobUrl(image.previewUrl);
     }
-    setCategory(initialCategory);
-    setTitle("");
-    setContent("");
-    setTags(DEFAULT_TAGS);
-    setVisibility("community");
-    setAnonymous(false);
-    setImages([]);
+    setCategory(initialDraft?.category ?? initialCategory);
+    setTitle(initialDraft?.title ?? "");
+    setContent(initialDraft?.content ?? "");
+    setTags(initialDraft?.tags.join(", ") ?? DEFAULT_TAGS);
+    setVisibility(initialDraft?.visibility ?? "community");
+    setAnonymous(initialDraft?.anonymous ?? false);
+    setImages(
+      (initialDraft?.images ?? []).map((image, index) => {
+        const draftImageId = image.id || createClientId();
+        return {
+          ...image,
+          id: draftImageId,
+          clientId: draftImageId,
+          previewUrl: image.url,
+          status: "uploaded" as const,
+          sortOrder: index,
+        };
+      }),
+    );
     setError("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-    window.localStorage.removeItem(STORAGE_KEY);
+    if (persistDraft) {
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
   };
 
   const removeImage = (clientId: string) => {
@@ -752,10 +792,10 @@ export function PostEditor({
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
               <Button onPress={clearDraft} size="sm" type="button" variant="secondary">
-                清空草稿
+                {clearLabel}
               </Button>
               <Button isPending={submitting} size="sm" type="submit">
-                {submitting ? "发布中..." : "立即发布"}
+                {submitting ? submittingLabel : submitLabel}
               </Button>
             </div>
           </div>

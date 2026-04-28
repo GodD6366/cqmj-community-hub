@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Chip } from "@heroui/react";
 import { CommentForm } from "./comment-form";
 import { CommentList } from "./comment-list";
 import { useCommunityPosts } from "./community-provider";
+import { PostEditor } from "./post-editor";
 import { categoryMeta, visibilityMeta } from "../lib/types";
+import type { PostDraft } from "../lib/types";
 import { formatDateTime, timeAgo } from "../lib/utils";
 import { EmptyState, ResidentAvatar } from "./resident-shared";
 
@@ -15,9 +18,11 @@ interface PostDetailClientProps {
 }
 
 export function PostDetailClient({ postId }: PostDetailClientProps) {
-  const { posts, addComment, toggleFavorite, reportPost, currentUser } = useCommunityPosts();
+  const router = useRouter();
+  const { posts, addComment, toggleFavorite, reportPost, updatePost, deletePost, currentUser } = useCommunityPosts();
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const post = useMemo(() => posts.find((item) => item.id === postId), [postId, posts]);
 
@@ -40,6 +45,49 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
   const meta = categoryMeta[post.category];
   const activeImage = post.images[activeImageIndex] ?? post.images[0] ?? null;
+  const canManagePost = Boolean(currentUser && (post.isMine || currentUser.role === "admin"));
+  const editDraft: PostDraft = {
+    title: post.title,
+    content: post.content,
+    category: post.category,
+    tags: post.tags,
+    visibility: post.visibility,
+    anonymous: post.authorName === "匿名居民",
+    images: post.images,
+  };
+
+  if (editing) {
+    return (
+      <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
+        <section className="flex flex-wrap items-center justify-between gap-3 px-1 md:px-0">
+          <button
+            type="button"
+            className="text-sm font-semibold text-[var(--primary)]"
+            onClick={() => setEditing(false)}
+          >
+            ← 返回帖子详情
+          </button>
+        </section>
+
+        <PostEditor
+          clearLabel="恢复原内容"
+          editorDescription="修改标题、正文、分类、标签、可见范围和图片后保存。"
+          editorTitle="编辑帖子"
+          initialCategory={post.category}
+          initialDraft={editDraft}
+          persistDraft={false}
+          submitLabel="保存修改"
+          submittingLabel="保存中..."
+          visibleCategories={["request", "secondhand", "discussion", "play"]}
+          onSubmit={async (draft) => {
+            await updatePost(post.id, draft);
+            setEditing(false);
+            setMessage("帖子已更新。");
+          }}
+        />
+      </main>
+    );
+  }
 
   return (
     <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
@@ -68,6 +116,45 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
               </Chip>
             </div>
           </div>
+
+          {canManagePost ? (
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                type="button"
+                variant="secondary"
+                onPress={() => {
+                  setMessage("");
+                  setEditing(true);
+                }}
+              >
+                编辑
+              </Button>
+              <Button
+                isPending={busy}
+                size="sm"
+                type="button"
+                variant="ghost"
+                onPress={async () => {
+                  if (!window.confirm("确定删除这篇帖子？删除后评论、收藏和图片记录都会一并移除。")) {
+                    return;
+                  }
+                  setBusy(true);
+                  setMessage("");
+                  try {
+                    await deletePost(post.id);
+                    router.push("/neighbors");
+                  } catch (submitError) {
+                    setMessage(submitError instanceof Error ? submitError.message : "删除失败");
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+              >
+                删除
+              </Button>
+            </div>
+          ) : null}
 
           <h1 className="mt-5 text-[1.75rem] font-semibold leading-[1.08] tracking-[-0.06em]">{post.title}</h1>
           <p className="mt-3 text-sm leading-6 text-white/76">

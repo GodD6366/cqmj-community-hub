@@ -29,6 +29,8 @@ interface CommunityStore {
   hydrated: boolean;
   refresh: () => Promise<void>;
   addPost: (draft: PostDraft) => Promise<string>;
+  updatePost: (postId: string, draft: PostDraft) => Promise<void>;
+  deletePost: (postId: string) => Promise<void>;
   addPoll: (draft: PollDraft) => Promise<string>;
   votePoll: (pollId: string, optionId: string) => Promise<void>;
   addServiceTicket: (draft: ServiceTicketDraft) => Promise<string>;
@@ -120,6 +122,32 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       const data = await readJson<{ id: string }>(response);
       await refresh();
       return data.id;
+    },
+    [refresh],
+  );
+
+  const updatePost = useCallback(
+    async (postId: string, draft: PostDraft) => {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(draft),
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deletePost = useCallback(
+    async (postId: string) => {
+      const response = await fetch(`/api/posts/${postId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
     },
     [refresh],
   );
@@ -262,6 +290,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       hydrated,
       refresh,
       addPost,
+      updatePost,
+      deletePost,
       addPoll,
       votePoll,
       addServiceTicket,
@@ -278,6 +308,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       addPost,
       addServiceTicket,
       currentUser,
+      deletePost,
       hydrated,
       login,
       logout,
@@ -290,6 +321,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       serviceTickets,
       toggleFavorite,
       unreadNotificationCount,
+      updatePost,
       votePoll,
     ],
   );

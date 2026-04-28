@@ -51,6 +51,11 @@ export function getPublicImageBaseUrl() {
   return readStorageEnv().S3_PUBLIC_BASE_URL.replace(/\/+$/g, "");
 }
 
+export function resolvePublicImageUrl(objectKey: string, fallbackUrl: string) {
+  const publicBaseUrl = process.env.S3_PUBLIC_BASE_URL?.trim();
+  return publicBaseUrl ? buildPublicImageUrl(publicBaseUrl, objectKey) : fallbackUrl;
+}
+
 export function getUploadPrefix() {
   return normalizeUploadPrefix(readStorageEnv().S3_UPLOAD_PREFIX);
 }

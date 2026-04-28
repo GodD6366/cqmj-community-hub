@@ -65,6 +65,7 @@ export interface CommunityPost {
   featured?: boolean;
   favorited?: boolean;
   reported?: boolean;
+  isMine?: boolean;
 }
 
 export interface PollOptionSummary {

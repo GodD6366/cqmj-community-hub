@@ -2,6 +2,7 @@ import type { CommunityComment, CommunityPost, PostCategory, PostDraft, PostStat
 import { prisma } from "./db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createNotificationRecord } from "./resident-server";
+import { resolvePublicImageUrl } from "./s3-storage";
 
 type PostRecord = Prisma.PostGetPayload<{
   include: {
@@ -37,6 +38,13 @@ export function canViewPost(post: { status: PostStatus; visibility: VisibilitySc
   return post.authorId === viewerId;
 }
 
+function canManagePost(
+  post: { authorId: string | null },
+  viewer: { id: string; role?: string },
+) {
+  return post.authorId === viewer.id || viewer.role === "admin";
+}
+
 function mapComment(comment: { id: string; authorName: string; content: string; createdAt: Date }): CommunityComment {
   return {
     id: comment.id,
@@ -67,7 +75,7 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
     images: post.images.map((image) => ({
       id: image.id,
       objectKey: image.objectKey,
-      url: image.url,
+      url: resolvePublicImageUrl(image.objectKey, image.url),
       mimeType: image.mimeType,
       width: image.width,
       height: image.height,
@@ -78,6 +86,7 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
     featured: post.featured,
     favorited,
     reported,
+    isMine: viewerId ? post.authorId === viewerId : false,
   };
 }
 
@@ -169,6 +178,78 @@ export async function createPostForViewer(
 
     return post.id;
   });
+}
+
+export async function updatePostForViewer(
+  postId: string,
+  viewer: { id: string; username: string; role?: string },
+  draft: PostDraft,
+) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true, authorId: true },
+  });
+
+  if (!post) {
+    return { status: "not_found" as const };
+  }
+  if (!canManagePost(post, viewer)) {
+    return { status: "forbidden" as const };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.postImage.deleteMany({
+      where: { postId },
+    });
+
+    await tx.post.update({
+      where: { id: postId },
+      data: {
+        title: draft.title,
+        content: draft.content,
+        category: draft.category,
+        tags: buildTags(draft.tags),
+        authorName: draft.anonymous ? "匿名居民" : viewer.username,
+        visibility: draft.visibility,
+        images: {
+          create: draft.images.map((image) => ({
+            objectKey: image.objectKey,
+            url: image.url,
+            mimeType: image.mimeType,
+            width: image.width,
+            height: image.height,
+            sizeBytes: image.sizeBytes,
+            sortOrder: image.sortOrder,
+          })),
+        },
+      },
+    });
+  });
+
+  return { status: "ok" as const };
+}
+
+export async function deletePostForViewer(
+  postId: string,
+  viewer: { id: string; role?: string },
+) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { id: true, authorId: true },
+  });
+
+  if (!post) {
+    return { status: "not_found" as const };
+  }
+  if (!canManagePost(post, viewer)) {
+    return { status: "forbidden" as const };
+  }
+
+  await prisma.post.delete({
+    where: { id: postId },
+  });
+
+  return { status: "ok" as const };
 }
 
 export async function addCommentForViewer(
