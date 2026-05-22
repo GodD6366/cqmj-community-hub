@@ -5,7 +5,7 @@ import { useEffect, useEffectEvent, useMemo, useState } from "react";
 import { Alert, Button, Card, Input, Tabs } from "@heroui/react";
 import { PageShell, SectionCard } from "./ui";
 import { useCommunityPosts } from "@/lib/community-store";
-import type { AdminUser, PollSummary, ServiceTicketSummary } from "@/lib/types";
+import type { AdminPollSummary, AdminUser, PollStatus, PostStatus, ServiceTicketSummary } from "@/lib/types";
 import { categoryMeta, pollStatusMeta, serviceTicketStatusMeta } from "@/lib/types";
 import { adminTabMeta, buildAdminTabHref, parseAdminTab, type AdminTab } from "@/lib/admin-tabs";
 
@@ -77,7 +77,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
   const { currentUser, logout } = useCommunityPosts();
   const [inviteCodes, setInviteCodes] = useState<InviteCode[]>([]);
   const [posts, setPosts] = useState<AdminPost[]>([]);
-  const [polls, setPolls] = useState<PollSummary[]>([]);
+  const [polls, setPolls] = useState<AdminPollSummary[]>([]);
   const [serviceTickets, setServiceTickets] = useState<ServiceTicketSummary[]>([]);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [code, setCode] = useState("");
@@ -91,6 +91,8 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
   const [userSaving, setUserSaving] = useState(false);
   const [userActionId, setUserActionId] = useState<string | null>(null);
   const [postDeletingId, setPostDeletingId] = useState<string | null>(null);
+  const [postSavingId, setPostSavingId] = useState<string | null>(null);
+  const [pollSavingId, setPollSavingId] = useState<string | null>(null);
   const [ticketSavingId, setTicketSavingId] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
@@ -127,7 +129,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
   };
 
   const loadPolls = async () => {
-    const data = await readAdminJson<{ polls: PollSummary[] }>(
+    const data = await readAdminJson<{ polls: AdminPollSummary[] }>(
       await fetch("/api/admin/polls", { cache: "no-store" }),
     );
     setPolls(data.polls ?? []);
@@ -307,6 +309,64 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
       setError(submitError instanceof Error ? submitError.message : "删除用户失败");
     } finally {
       setUserActionId(null);
+    }
+  };
+
+  const updatePostModeration = async (
+    postId: string,
+    patch: {
+      status?: PostStatus;
+      pinned?: boolean;
+      featured?: boolean;
+    },
+    successMessage: string,
+  ) => {
+    setPostSavingId(postId);
+    setError("");
+    setMessage("");
+    try {
+      await readAdminJson(
+        await fetch(`/api/admin/posts/${postId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(patch),
+        }),
+      );
+      setMessage(successMessage);
+      await loadPosts();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "更新帖子失败");
+    } finally {
+      setPostSavingId(null);
+    }
+  };
+
+  const updatePollModeration = async (
+    pollId: string,
+    patch: {
+      status?: PollStatus;
+    },
+    successMessage: string,
+  ) => {
+    setPollSavingId(pollId);
+    setError("");
+    setMessage("");
+    try {
+      await readAdminJson(
+        await fetch(`/api/admin/polls/${pollId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(patch),
+        }),
+      );
+      setMessage(successMessage);
+      await loadPolls();
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "更新投票失败");
+    } finally {
+      setPollSavingId(null);
     }
   };
 
@@ -658,12 +718,65 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
                         <span className="rounded-2xl bg-white/80 px-3 py-2">评论 {post.commentCount}</span>
                         <span className="rounded-2xl bg-white/80 px-3 py-2">收藏 {post.favoriteCount}</span>
                         <span className="rounded-2xl bg-white/80 px-3 py-2">可见性 {post.visibility}</span>
+                        {post.pinned ? <span className="rounded-2xl bg-white/80 px-3 py-2">已置顶</span> : null}
+                        {post.featured ? <span className="rounded-2xl bg-white/80 px-3 py-2">已精选</span> : null}
                         {post.tags.length > 0 ? <span className="rounded-2xl bg-white/80 px-3 py-2">标签 {post.tags.join(" / ")}</span> : null}
                       </div>
                     </div>
                     <div className="flex shrink-0 flex-wrap gap-2 text-sm">
+                      {(["published", "pending", "rejected"] as const).map((status) => (
+                        <Button
+                          key={status}
+                          isDisabled={postDeletingId !== null || postSavingId !== null || post.status === status}
+                          onPress={() =>
+                            void updatePostModeration(
+                              post.id,
+                              { status },
+                              `已更新帖子状态：${post.title}`,
+                            )
+                          }
+                          size="sm"
+                          variant={post.status === status ? "primary" : "secondary"}
+                        >
+                          {postSavingId === post.id && post.status !== status
+                            ? "处理中..."
+                            : status === "published"
+                              ? "发布"
+                              : status === "pending"
+                                ? "待审"
+                                : "驳回"}
+                        </Button>
+                      ))}
                       <Button
-                        isDisabled={postDeletingId !== null}
+                        isDisabled={postDeletingId !== null || postSavingId !== null}
+                        onPress={() =>
+                          void updatePostModeration(
+                            post.id,
+                            { pinned: !post.pinned },
+                            post.pinned ? `已取消置顶：${post.title}` : `已置顶：${post.title}`,
+                          )
+                        }
+                        size="sm"
+                        variant="secondary"
+                      >
+                        {postSavingId === post.id ? "处理中..." : post.pinned ? "取消置顶" : "置顶"}
+                      </Button>
+                      <Button
+                        isDisabled={postDeletingId !== null || postSavingId !== null}
+                        onPress={() =>
+                          void updatePostModeration(
+                            post.id,
+                            { featured: !post.featured },
+                            post.featured ? `已取消精选：${post.title}` : `已设为精选：${post.title}`,
+                          )
+                        }
+                        size="sm"
+                        variant="secondary"
+                      >
+                        {postSavingId === post.id ? "处理中..." : post.featured ? "取消精选" : "设为精选"}
+                      </Button>
+                      <Button
+                        isDisabled={postDeletingId !== null || postSavingId !== null}
                         onPress={async () => {
                           setPostDeletingId(post.id);
                           setError("");
@@ -701,7 +814,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
           <Card.Header className="p-0">
             <Card.Title className="text-xl font-semibold text-slate-900">投票管理</Card.Title>
             <Card.Description className="mt-2 text-sm leading-6 text-slate-600">
-              当前展示邻里端的真实投票列表。MVP 阶段后台以查看参与情况为主。
+              后台可查看投票状态、手动结束/重新开放，或删除无效投票。
             </Card.Description>
           </Card.Header>
           <Card.Content className="mt-4 space-y-4 p-0">
@@ -722,10 +835,59 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
                       <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
                         <span className="rounded-2xl bg-white/80 px-3 py-2">发布者 {poll.authorName}</span>
                         <span className="rounded-2xl bg-white/80 px-3 py-2">参与 {poll.totalVotes}</span>
+                        <span className="rounded-2xl bg-white/80 px-3 py-2">选项 {poll.optionCount}</span>
                         <span className="rounded-2xl bg-white/80 px-3 py-2">
                           截止 {poll.endsAt ? formatDate(poll.endsAt) : "未设置"}
                         </span>
                       </div>
+                    </div>
+                    <div className="flex shrink-0 flex-wrap gap-2 text-sm">
+                      <Button
+                        isDisabled={pollSavingId !== null || poll.status === "closed"}
+                        onPress={() =>
+                          void updatePollModeration(poll.id, { status: "closed" }, `已结束投票：${poll.title}`)
+                        }
+                        size="sm"
+                        variant="secondary"
+                      >
+                        {pollSavingId === poll.id && poll.status !== "closed" ? "处理中..." : "结束投票"}
+                      </Button>
+                      <Button
+                        isDisabled={pollSavingId !== null || poll.status === "active"}
+                        onPress={() =>
+                          void updatePollModeration(poll.id, { status: "active" }, `已重新开放投票：${poll.title}`)
+                        }
+                        size="sm"
+                        variant="secondary"
+                      >
+                        {pollSavingId === poll.id && poll.status !== "active" ? "处理中..." : "重新开放"}
+                      </Button>
+                      <Button
+                        isDisabled={pollSavingId !== null}
+                        onPress={async () => {
+                          setPollSavingId(poll.id);
+                          setError("");
+                          setMessage("");
+                          try {
+                            await readAdminJson(
+                              await fetch(`/api/admin/polls/${poll.id}`, {
+                                method: "DELETE",
+                                credentials: "include",
+                              }),
+                            );
+                            setMessage(`已删除投票：${poll.title}`);
+                            await loadPolls();
+                          } catch (submitError) {
+                            setError(submitError instanceof Error ? submitError.message : "删除投票失败");
+                          } finally {
+                            setPollSavingId(null);
+                          }
+                        }}
+                        size="sm"
+                        variant="danger"
+                      >
+                        {pollSavingId === poll.id ? "处理中..." : "删除投票"}
+                      </Button>
                     </div>
                   </div>
                 </article>

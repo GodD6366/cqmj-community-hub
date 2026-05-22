@@ -84,7 +84,7 @@ function validateDraft(draft: ReturnType<typeof parseDraft>) {
 export async function GET(_: Request, { params }: RouteParams) {
   const { id } = await params;
   const currentUser = await getCurrentUserFromCookie();
-  const post = await getPostForViewer(id, currentUser?.id ?? null);
+  const post = await getPostForViewer(id, currentUser);
 
   if (!post) {
     return NextResponse.json({ error: "帖子不存在" }, { status: 404 });

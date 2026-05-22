@@ -8,8 +8,8 @@ import { useCommunityPosts } from "./community-provider";
 
 const menuItems = [
   { label: "我的服务", href: "/services", description: "工单与物业服务", mark: "务" },
-  { label: "我的帖子", href: "/neighbors", description: "回看你的社区发布", mark: "帖" },
-  { label: "我的收藏", href: "/neighbors", description: "收藏过的内容归档", mark: "藏" },
+  { label: "我的帖子", href: "/posts?mode=mine", description: "回看你的社区发布", mark: "帖" },
+  { label: "我的收藏", href: "/posts?mode=favorites", description: "收藏过的内容归档", mark: "藏" },
   { label: "帮助与反馈", href: "/about", description: "产品说明与使用反馈", mark: "问" },
   { label: "社区规则", href: "/rules", description: "查看发帖与互动规范", mark: "规" },
 ] as const;
@@ -18,7 +18,7 @@ export function MeClient() {
   const { currentUser, posts, polls, serviceTickets, notifications } = useCommunityPosts();
 
   const stats = useMemo(() => {
-    const myPosts = currentUser ? posts.filter((post) => post.authorName === currentUser.username) : [];
+    const myPosts = currentUser ? posts.filter((post) => post.isMine) : [];
     const votedPolls = polls.filter((poll) => poll.hasVoted);
     const myTickets = serviceTickets.filter((ticket) => ticket.isMine);
     const favoritePosts = posts.filter((post) => post.favorited);
@@ -131,7 +131,7 @@ export function MeClient() {
     },
     {
       label: "我的帖子",
-      href: "/neighbors",
+      href: "/posts?mode=mine",
       value: stats.myPosts,
       hint: "查看发布",
       icon: "帖",
@@ -139,7 +139,7 @@ export function MeClient() {
     },
     {
       label: "我的收藏",
-      href: "/neighbors",
+      href: "/posts?mode=favorites",
       value: stats.favoritePosts,
       hint: "回看内容",
       icon: "藏",

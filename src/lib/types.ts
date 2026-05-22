@@ -5,7 +5,7 @@ export type PostStatus = "published" | "pending" | "rejected";
 export type PollStatus = "active" | "closed";
 export type ServiceTicketCategory = "repair" | "complaint" | "cleaning" | "facility" | "other";
 export type ServiceTicketStatus = "open" | "processing" | "resolved";
-export type NotificationType = "comment" | "favorite" | "poll" | "ticket" | "group" | "system";
+export type NotificationType = "comment" | "favorite" | "poll" | "ticket" | "system";
 
 export const postCategories = ["request", "secondhand", "discussion", "play"] as const;
 
@@ -86,6 +86,7 @@ export interface PollSummary {
   options: PollOptionSummary[];
   hasVoted: boolean;
   selectedOptionId: string | null;
+  isMine?: boolean;
 }
 
 export interface PollDraft {
@@ -124,6 +125,17 @@ export interface NotificationItem {
   href: string | null;
   createdAt: string;
   readAt: string | null;
+}
+
+export interface AdminPostUpdateInput {
+  status?: PostStatus;
+  pinned?: boolean;
+  featured?: boolean;
+}
+
+export interface AdminPollSummary extends PollSummary {
+  authorId: string | null;
+  optionCount: number;
 }
 
 export interface CommunityUser {
@@ -246,6 +258,5 @@ export const notificationTypeMeta: Record<
   favorite: { label: "收藏提醒", icon: "⭐" },
   poll: { label: "投票动态", icon: "📊" },
   ticket: { label: "工单动态", icon: "🛠" },
-  group: { label: "群组动态", icon: "👥" },
   system: { label: "系统通知", icon: "🔔" },
 };

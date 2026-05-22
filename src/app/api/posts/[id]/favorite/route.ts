@@ -14,7 +14,7 @@ export async function POST(_: Request, { params }: RouteParams) {
 
   const { id } = await params;
   try {
-    const result = await toggleFavoriteForViewer(id, currentUser.id);
+    const result = await toggleFavoriteForViewer(id, currentUser);
     return NextResponse.json(result);
   } catch (error) {
     if (error instanceof Error && error.message === "POST_NOT_FOUND") {

@@ -20,36 +20,53 @@ const topActions = [
 export function NeighborsClient({
   initialCategory = "all",
   initialQuery = "",
+  initialMode = "all",
 }: {
   initialCategory?: PostCategory | "all";
   initialQuery?: string;
+  initialMode?: "all" | "mine" | "favorites";
 }) {
-  const { posts, polls, hydrated, votePoll } = useCommunityPosts();
+  const { currentUser, posts, polls, hydrated, votePoll } = useCommunityPosts();
   const [category, setCategory] = useState<PostCategory | "all">(initialCategory);
   const [query, setQuery] = useState(initialQuery);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pendingPollId, setPendingPollId] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
-  const publicPosts = useMemo(() => uniquePosts(filterPublicPosts(posts)), [posts]);
+  const visiblePosts = useMemo(() => {
+    if (initialMode === "mine" && currentUser) {
+      return uniquePosts(posts.filter((post) => post.isMine));
+    }
+    if (initialMode === "favorites") {
+      return uniquePosts(filterPublicPosts(posts).filter((post) => post.favorited));
+    }
+    return uniquePosts(filterPublicPosts(posts));
+  }, [currentUser, initialMode, posts]);
   const categoryEntries = useMemo(
     () => Object.entries(categoryMeta) as Array<[PostCategory, (typeof categoryMeta)[PostCategory]]>,
     [],
   );
 
   const filteredPosts = useMemo(() => {
-    return sortPosts(filterPosts(publicPosts, { category, query: deferredQuery }), "latest");
-  }, [category, deferredQuery, publicPosts]);
+    return sortPosts(filterPosts(visiblePosts, { category, query: deferredQuery }), "latest");
+  }, [category, deferredQuery, visiblePosts]);
 
   const activePolls = polls.slice(0, 3);
   const featuredPoll = activePolls[0] ?? null;
   const activeCategoryMeta = category === "all" ? null : categoryMeta[category];
   const heroStats = [
-    { label: "公开动态", value: String(publicPosts.length).padStart(2, "0") },
+    { label: initialMode === "mine" ? "我的内容" : initialMode === "favorites" ? "我的收藏" : "公开动态", value: String(visiblePosts.length).padStart(2, "0") },
     { label: "热议投票", value: String(activePolls.length).padStart(2, "0") },
     { label: "当前频道", value: activeCategoryMeta?.badge ?? "全部" },
   ] as const;
-  const resultSummary = deferredQuery ? `搜索结果 ${filteredPosts.length} 条` : `共 ${publicPosts.length} 条公开动态`;
+  const resultSummary =
+    deferredQuery
+      ? `搜索结果 ${filteredPosts.length} 条`
+      : initialMode === "mine"
+        ? `共 ${visiblePosts.length} 条我的内容`
+        : initialMode === "favorites"
+          ? `共 ${visiblePosts.length} 条我的收藏`
+          : `共 ${visiblePosts.length} 条公开动态`;
 
   return (
     <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">

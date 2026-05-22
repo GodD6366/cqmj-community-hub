@@ -79,7 +79,7 @@ export function createCommunityMcpServer(viewer: CommunityUser) {
       },
     },
     async ({ id }) => {
-      const post = await getPostForViewer(id, viewer.id);
+      const post = await getPostForViewer(id, viewer);
       if (!post) {
         return textResult("帖子不存在，或你没有访问权限。", { id }, true);
       }

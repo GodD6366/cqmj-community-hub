@@ -1,6 +1,7 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "./db";
 import type {
+  AdminPollSummary,
   NotificationItem,
   NotificationType,
   PollDraft,
@@ -10,6 +11,7 @@ import type {
   ServiceTicketSummary,
 } from "./types";
 import { serviceTicketCategoryMeta } from "./types";
+import { getBuildingFromRoomNumber } from "./access-control";
 import { normalizeText } from "./utils";
 
 function toIsoString(value: Date | null | undefined) {
@@ -32,6 +34,7 @@ function mapPoll(
     title: string;
     description: string;
     authorName: string;
+    authorId?: string | null;
     status: "active" | "closed";
     endsAt: Date | null;
     createdAt: Date;
@@ -39,6 +42,7 @@ function mapPoll(
     options: Array<{ id: string; label: string; voteCount: number }>;
   },
   selectedOptionId: string | null,
+  viewerId: string | null,
 ): PollSummary {
   return {
     id: poll.id,
@@ -56,6 +60,7 @@ function mapPoll(
     })),
     hasVoted: Boolean(selectedOptionId),
     selectedOptionId,
+    isMine: Boolean(viewerId && poll.authorId && poll.authorId === viewerId),
   };
 }
 
@@ -182,7 +187,7 @@ export async function listPollsForViewer(viewerId: string | null, limit = 6) {
       : [];
 
   const voteMap = new Map(viewerVotes.map((vote) => [vote.pollId, vote.optionId]));
-  return polls.map((poll) => mapPoll(poll, voteMap.get(poll.id) ?? null));
+  return polls.map((poll) => mapPoll(poll, voteMap.get(poll.id) ?? null, viewerId));
 }
 
 export async function createPollForViewer(
@@ -425,12 +430,242 @@ export async function countUnreadNotificationsForViewer(userId: string) {
   });
 }
 
-export async function listPollsForAdmin() {
-  return listPollsForViewer(null, 24);
+export async function markNotificationsReadForViewer(userId: string, notificationIds?: string[]) {
+  const where =
+    notificationIds && notificationIds.length > 0
+      ? {
+          userId,
+          id: { in: notificationIds },
+          readAt: null,
+        }
+      : {
+          userId,
+          readAt: null,
+        };
+
+  const result = await prisma.notification.updateMany({
+    where,
+    data: {
+      readAt: new Date(),
+    },
+  });
+
+  return result.count;
+}
+
+export async function listPollsForAdmin(): Promise<AdminPollSummary[]> {
+  await closeExpiredPolls();
+
+  const polls = await prisma.poll.findMany({
+    include: {
+      options: {
+        orderBy: {
+          sortOrder: "asc",
+        },
+      },
+    },
+    orderBy: [{ status: "asc" }, { totalVotes: "desc" }, { createdAt: "desc" }],
+    take: 50,
+  });
+
+  return polls.map((poll) => ({
+    ...mapPoll(poll, null, null),
+    authorId: poll.authorId,
+    optionCount: poll.options.length,
+  }));
+}
+
+export async function updatePollForAdmin(
+  pollId: string,
+  input: {
+    title?: string;
+    description?: string;
+    endsAt?: Date | null;
+    status?: "active" | "closed";
+  },
+) {
+  const current = await prisma.poll.findUnique({
+    where: { id: pollId },
+    select: {
+      id: true,
+      title: true,
+      authorId: true,
+      status: true,
+    },
+  });
+
+  if (!current) {
+    throw new Error("POLL_NOT_FOUND");
+  }
+
+  const data: Prisma.PollUpdateInput = {};
+  if (input.title !== undefined) {
+    const title = normalizeText(input.title);
+    if (!title) throw new Error("INVALID_POLL_CONTENT");
+    data.title = title;
+  }
+  if (input.description !== undefined) {
+    const description = normalizeText(input.description);
+    if (!description) throw new Error("INVALID_POLL_CONTENT");
+    data.description = description;
+  }
+  if (input.endsAt !== undefined) {
+    if (input.endsAt && Number.isNaN(input.endsAt.getTime())) {
+      throw new Error("INVALID_POLL_ENDS_AT");
+    }
+    data.endsAt = input.endsAt;
+  }
+  if (input.status !== undefined) {
+    data.status = input.status;
+  }
+
+  return prisma.$transaction(async (tx) => {
+    const updated = await tx.poll.update({
+      where: { id: pollId },
+      data,
+      include: {
+        options: {
+          orderBy: {
+            sortOrder: "asc",
+          },
+        },
+      },
+    });
+
+    if (current.authorId) {
+      await createNotificationRecord(tx, {
+        userId: current.authorId,
+        type: "poll",
+        title: `投票「${updated.title}」已由管理员更新`,
+        body: updated.status === "closed" ? "该投票已被管理员结束。" : "投票信息已更新。",
+        href: "/neighbors",
+      });
+    }
+
+    return {
+      ...mapPoll(updated, null, null),
+      authorId: updated.authorId,
+      optionCount: updated.options.length,
+    };
+  });
+}
+
+export async function deletePollForAdmin(pollId: string) {
+  const poll = await prisma.poll.findUnique({
+    where: { id: pollId },
+    select: {
+      id: true,
+      title: true,
+      authorId: true,
+    },
+  });
+
+  if (!poll) {
+    return false;
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.poll.delete({
+      where: { id: pollId },
+    });
+
+    if (poll.authorId) {
+      await createNotificationRecord(tx, {
+        userId: poll.authorId,
+        type: "poll",
+        title: `投票「${poll.title}」已被管理员删除`,
+        body: "该投票已从社区中移除。",
+        href: "/neighbors",
+      });
+    }
+  });
+
+  return true;
 }
 
 export async function listServiceTicketsForAdmin() {
   return listServiceTicketsForViewer(null, 50);
+}
+
+export async function updateServiceTicketForViewer(
+  ticketId: string,
+  viewer: { id: string; username: string; roomNumber?: string; role?: string },
+  draft: ServiceTicketDraft,
+) {
+  const current = await prisma.serviceTicket.findUnique({
+    where: { id: ticketId },
+    select: {
+      id: true,
+      authorId: true,
+      status: true,
+    },
+  });
+
+  if (!current) {
+    return { status: "not_found" as const };
+  }
+
+  if (current.authorId !== viewer.id && viewer.role !== "admin") {
+    return { status: "forbidden" as const };
+  }
+
+  const title = normalizeText(draft.title);
+  const description = normalizeText(draft.description);
+  if (!title || !description) {
+    throw new Error("INVALID_TICKET_CONTENT");
+  }
+  if (!(draft.category in serviceTicketCategoryMeta)) {
+    throw new Error("INVALID_TICKET_CATEGORY");
+  }
+
+  await prisma.serviceTicket.update({
+    where: { id: ticketId },
+    data: {
+      title,
+      description,
+      category: draft.category,
+      roomNumber: viewer.roomNumber ?? null,
+    },
+  });
+
+  return { status: "ok" as const };
+}
+
+export async function deleteServiceTicketForViewer(
+  ticketId: string,
+  viewer: { id: string; role?: string },
+) {
+  const current = await prisma.serviceTicket.findUnique({
+    where: { id: ticketId },
+    select: {
+      id: true,
+      authorId: true,
+    },
+  });
+
+  if (!current) {
+    return { status: "not_found" as const };
+  }
+
+  if (current.authorId !== viewer.id && viewer.role !== "admin") {
+    return { status: "forbidden" as const };
+  }
+
+  await prisma.serviceTicket.delete({
+    where: { id: ticketId },
+  });
+
+  return { status: "ok" as const };
+}
+
+export function canViewerSeeBuildingScopedResource(
+  viewerRoomNumber: string | null | undefined,
+  authorRoomNumber: string | null | undefined,
+) {
+  const viewerBuilding = getBuildingFromRoomNumber(viewerRoomNumber);
+  const authorBuilding = getBuildingFromRoomNumber(authorRoomNumber);
+
+  return Boolean(viewerBuilding && authorBuilding && viewerBuilding === authorBuilding);
 }
 
 export async function updateServiceTicketStatusForAdmin(

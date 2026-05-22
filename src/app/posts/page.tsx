@@ -15,8 +15,10 @@ export default async function PostsPage({ searchParams }: PostsPageProps) {
 
   const category = parseSingle(params.category);
   const query = parseSingle(params.q) ?? "";
+  const mode = parseSingle(params.mode);
 
   const initialCategory: PostCategory | "all" = parsePostCategoryFilter(category);
+  const initialMode = mode === "mine" || mode === "favorites" ? mode : "all";
 
-  return <PostsClient initialCategory={initialCategory} initialQuery={query} />;
+  return <PostsClient initialCategory={initialCategory} initialMode={initialMode} initialQuery={query} />;
 }

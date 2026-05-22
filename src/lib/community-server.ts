@@ -1,8 +1,17 @@
-import type { CommunityComment, CommunityPost, PostCategory, PostDraft, PostStatus, VisibilityScope } from "./types";
+import type {
+  AdminPostUpdateInput,
+  CommunityComment,
+  CommunityPost,
+  PostCategory,
+  PostDraft,
+  PostStatus,
+  VisibilityScope,
+} from "./types";
 import { prisma } from "./db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createNotificationRecord } from "./resident-server";
 import { resolvePublicImageUrl } from "./s3-storage";
+import { getBuildingFromRoomNumber } from "./access-control";
 
 type PostRecord = Prisma.PostGetPayload<{
   include: {
@@ -10,6 +19,7 @@ type PostRecord = Prisma.PostGetPayload<{
     favorites: { select: { userId: true } };
     images: { orderBy: { sortOrder: "asc" } };
     reports: { select: { userId: true } };
+    author: { select: { roomNumber: true } };
   };
 }>;
 
@@ -28,14 +38,50 @@ export function buildTags(value: string[] | string) {
   return JSON.stringify(Array.isArray(value) ? value : parseTags(value));
 }
 
-export function canViewPost(post: { status: PostStatus; visibility: VisibilityScope; authorId: string | null }, viewerId: string | null) {
-  if (post.status === "published" && post.visibility !== "private") {
+type ViewerAccessContext =
+  | {
+      id: string;
+      roomNumber?: string | null;
+      role?: string;
+    }
+  | null;
+
+function isSameBuilding(viewerRoomNumber: string | null | undefined, authorRoomNumber: string | null | undefined) {
+  const viewerBuilding = getBuildingFromRoomNumber(viewerRoomNumber);
+  const authorBuilding = getBuildingFromRoomNumber(authorRoomNumber);
+  return Boolean(viewerBuilding && authorBuilding && viewerBuilding === authorBuilding);
+}
+
+export function canViewPost(
+  post: {
+    status: PostStatus;
+    visibility: VisibilityScope;
+    authorId: string | null;
+    author?: { roomNumber: string | null } | null;
+  },
+  viewer: ViewerAccessContext,
+) {
+  if (viewer?.role === "admin") {
     return true;
   }
-  if (!viewerId) {
-    return false;
+
+  const isOwner = Boolean(viewer?.id && post.authorId === viewer.id);
+  if (post.status !== "published") {
+    return isOwner;
   }
-  return post.authorId === viewerId;
+
+  if (post.visibility === "community") {
+    return true;
+  }
+
+  if (post.visibility === "building") {
+    if (isOwner) {
+      return true;
+    }
+    return isSameBuilding(viewer?.roomNumber ?? null, post.author?.roomNumber ?? null);
+  }
+
+  return isOwner;
 }
 
 function canManagePost(
@@ -91,31 +137,50 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
 }
 
 export async function listPostsForViewer(viewerId: string | null) {
+  const viewer =
+    viewerId
+      ? await prisma.user.findUnique({
+          where: { id: viewerId },
+          select: { id: true, roomNumber: true, role: true },
+        })
+      : null;
+
   const posts = await prisma.post.findMany({
-    where: viewerId
+    where: viewer?.role === "admin"
+      ? undefined
+      : viewerId
       ? {
           OR: [
-            { status: "published", visibility: { not: "private" } },
+            { status: "published" },
             { authorId: viewerId },
           ],
         }
       : {
           status: "published",
-          visibility: { not: "private" },
         },
     include: {
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
       images: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
+      author: { select: { roomNumber: true } },
     },
     orderBy: [{ pinned: "desc" }, { featured: "desc" }, { createdAt: "desc" }],
   });
 
-  return posts.map((post) => mapPost(post, viewerId));
+  return posts.filter((post) => canViewPost(post, viewer)).map((post) => mapPost(post, viewerId));
 }
 
-export async function getPostForViewer(postId: string, viewerId: string | null) {
+export async function getPostForViewer(
+  postId: string,
+  viewer:
+    | {
+        id: string;
+        roomNumber?: string | null;
+        role?: string;
+      }
+    | null,
+) {
   const post = await prisma.post.findUnique({
     where: { id: postId },
     include: {
@@ -123,14 +188,15 @@ export async function getPostForViewer(postId: string, viewerId: string | null) 
       favorites: { select: { userId: true } },
       images: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
+      author: { select: { roomNumber: true } },
     },
   });
 
-  if (!post || !canViewPost(post, viewerId)) {
+  if (!post || !canViewPost(post, viewer)) {
     return null;
   }
 
-  return mapPost(post, viewerId);
+  return mapPost(post, viewer?.id ?? null);
 }
 
 export async function createPostForViewer(
@@ -254,7 +320,7 @@ export async function deletePostForViewer(
 
 export async function addCommentForViewer(
   postId: string,
-  viewer: { id: string; username: string },
+  viewer: { id: string; username: string; roomNumber?: string | null; role?: string },
   content: string,
 ) {
   const post = await prisma.post.findUnique({
@@ -266,9 +332,14 @@ export async function addCommentForViewer(
       status: true,
       visibility: true,
       authorName: true,
+      author: {
+        select: {
+          roomNumber: true,
+        },
+      },
     },
   });
-  if (!post || !canViewPost(post, viewer.id)) {
+  if (!post || !canViewPost(post, viewer)) {
     return null;
   }
 
@@ -306,7 +377,10 @@ export async function addCommentForViewer(
   return mapComment(created);
 }
 
-export async function toggleFavoriteForViewer(postId: string, viewerId: string) {
+export async function toggleFavoriteForViewer(
+  postId: string,
+  viewer: { id: string; roomNumber?: string | null; role?: string },
+) {
   const post = await prisma.post.findUnique({
     where: {
       id: postId,
@@ -315,10 +389,20 @@ export async function toggleFavoriteForViewer(postId: string, viewerId: string) 
       id: true,
       title: true,
       authorId: true,
+      status: true,
+      visibility: true,
+      author: {
+        select: {
+          roomNumber: true,
+        },
+      },
     },
   });
 
   if (!post) {
+    throw new Error("POST_NOT_FOUND");
+  }
+  if (!canViewPost(post, viewer)) {
     throw new Error("POST_NOT_FOUND");
   }
 
@@ -326,7 +410,7 @@ export async function toggleFavoriteForViewer(postId: string, viewerId: string) 
     where: {
       postId_userId: {
         postId,
-        userId: viewerId,
+        userId: viewer.id,
       },
     },
   });
@@ -346,7 +430,7 @@ export async function toggleFavoriteForViewer(postId: string, viewerId: string) 
     await tx.favorite.create({
       data: {
         postId,
-        userId: viewerId,
+        userId: viewer.id,
       },
     });
     await tx.post.update({
@@ -354,7 +438,7 @@ export async function toggleFavoriteForViewer(postId: string, viewerId: string) 
       data: { favoriteCount: { increment: 1 } },
     });
 
-    if (post.authorId && post.authorId !== viewerId) {
+    if (post.authorId && post.authorId !== viewer.id) {
       await createNotificationRecord(tx, {
         userId: post.authorId,
         type: "favorite",
@@ -368,9 +452,22 @@ export async function toggleFavoriteForViewer(postId: string, viewerId: string) 
   return { favorited: true };
 }
 
-export async function reportPostForViewer(postId: string, viewerId: string, reason?: string) {
-  const post = await prisma.post.findUnique({ where: { id: postId } });
-  if (!post || !canViewPost(post, viewerId)) {
+export async function reportPostForViewer(
+  postId: string,
+  viewer: { id: string; roomNumber?: string | null; role?: string },
+  reason?: string,
+) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    include: {
+      author: {
+        select: {
+          roomNumber: true,
+        },
+      },
+    },
+  });
+  if (!post || !canViewPost(post, viewer)) {
     return null;
   }
 
@@ -378,12 +475,12 @@ export async function reportPostForViewer(postId: string, viewerId: string, reas
     where: {
       postId_userId: {
         postId,
-        userId: viewerId,
+        userId: viewer.id,
       },
     },
     create: {
       postId,
-      userId: viewerId,
+      userId: viewer.id,
       reason: reason ?? "用户举报",
     },
     update: {
@@ -401,6 +498,7 @@ export async function listPostsForAdmin() {
       favorites: { select: { userId: true } },
       images: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
+      author: { select: { roomNumber: true } },
     },
     orderBy: [{ pinned: "desc" }, { featured: "desc" }, { createdAt: "desc" }],
   });
@@ -408,18 +506,100 @@ export async function listPostsForAdmin() {
   return posts.map((post) => mapPost(post, null));
 }
 
+export async function updatePostForAdmin(postId: string, input: AdminPostUpdateInput) {
+  const current = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      title: true,
+      authorId: true,
+      status: true,
+      pinned: true,
+      featured: true,
+    },
+  });
+
+  if (!current) {
+    throw new Error("POST_NOT_FOUND");
+  }
+
+  const data: Prisma.PostUpdateInput = {};
+  if (input.status !== undefined) data.status = input.status;
+  if (input.pinned !== undefined) data.pinned = input.pinned;
+  if (input.featured !== undefined) data.featured = input.featured;
+
+  const updated = await prisma.$transaction(async (tx) => {
+    const next = await tx.post.update({
+      where: { id: postId },
+      data,
+      include: {
+        comments: { orderBy: { createdAt: "asc" } },
+        favorites: { select: { userId: true } },
+        images: { orderBy: { sortOrder: "asc" } },
+        reports: { select: { userId: true } },
+        author: { select: { roomNumber: true } },
+      },
+    });
+
+    if (current.authorId) {
+      const details: string[] = [];
+      if (input.status !== undefined && input.status !== current.status) {
+        details.push(
+          input.status === "published"
+            ? "内容已发布"
+            : input.status === "pending"
+              ? "内容已转为待审核"
+              : "内容已被驳回",
+        );
+      }
+      if (input.pinned !== undefined && input.pinned !== current.pinned) {
+        details.push(input.pinned ? "内容已置顶" : "内容已取消置顶");
+      }
+      if (input.featured !== undefined && input.featured !== current.featured) {
+        details.push(input.featured ? "内容已加入精选" : "内容已取消精选");
+      }
+
+      if (details.length > 0) {
+        await createNotificationRecord(tx, {
+          userId: current.authorId,
+          type: "system",
+          title: `你的帖子「${next.title}」已由管理员处理`,
+          body: details.join("；"),
+          href: `/posts/${next.id}`,
+        });
+      }
+    }
+
+    return next;
+  });
+
+  return mapPost(updated, null);
+}
+
 export async function deletePostForAdmin(postId: string) {
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { id: true },
+    select: { id: true, title: true, authorId: true },
   });
 
   if (!post) {
     return false;
   }
 
-  await prisma.post.delete({
-    where: { id: postId },
+  await prisma.$transaction(async (tx) => {
+    await tx.post.delete({
+      where: { id: postId },
+    });
+
+    if (post.authorId) {
+      await createNotificationRecord(tx, {
+        userId: post.authorId,
+        type: "system",
+        title: `你的帖子「${post.title}」已被管理员删除`,
+        body: "该内容已从社区中移除。",
+        href: "/neighbors",
+      });
+    }
   });
 
   return true;

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { mapPost } from "../src/lib/community-server";
+import { canViewPost, mapPost } from "../src/lib/community-server";
 
 function createPostRecord() {
   const now = new Date("2026-04-29T00:00:00.000Z");
@@ -60,5 +60,43 @@ describe("mapPost", () => {
     const post = mapPost(createPostRecord(), null);
 
     expect(post.images[0]?.url).toBe("http://10.0.0.66:9000/cqmj/posts/user-1/2026/04/demo.webp");
+  });
+});
+
+describe("canViewPost", () => {
+  it("allows building-visible posts only to the same building", () => {
+    const buildingPost = {
+      status: "published" as const,
+      visibility: "building" as const,
+      authorId: "user-2",
+      author: { roomNumber: "1-1201" },
+    };
+
+    expect(canViewPost(buildingPost, { id: "user-1", roomNumber: "1-905", role: "user" })).toBe(true);
+    expect(canViewPost(buildingPost, { id: "user-3", roomNumber: "2-905", role: "user" })).toBe(false);
+    expect(canViewPost(buildingPost, null)).toBe(false);
+  });
+
+  it("allows private or non-published posts only to the owner or admin", () => {
+    const privatePost = {
+      status: "published" as const,
+      visibility: "private" as const,
+      authorId: "user-2",
+      author: { roomNumber: "1-1201" },
+    };
+    const pendingPost = {
+      status: "pending" as const,
+      visibility: "community" as const,
+      authorId: "user-2",
+      author: { roomNumber: "1-1201" },
+    };
+
+    expect(canViewPost(privatePost, { id: "user-2", roomNumber: "1-1201", role: "user" })).toBe(true);
+    expect(canViewPost(privatePost, { id: "user-1", roomNumber: "1-905", role: "user" })).toBe(false);
+    expect(canViewPost(privatePost, { id: "admin-1", role: "admin" })).toBe(true);
+
+    expect(canViewPost(pendingPost, { id: "user-2", roomNumber: "1-1201", role: "user" })).toBe(true);
+    expect(canViewPost(pendingPost, { id: "user-1", roomNumber: "1-905", role: "user" })).toBe(false);
+    expect(canViewPost(pendingPost, { id: "admin-1", role: "admin" })).toBe(true);
   });
 });

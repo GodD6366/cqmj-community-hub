@@ -15,7 +15,7 @@ export async function POST(request: Request, { params }: RouteParams) {
   const { id } = await params;
   const body = await request.json().catch(() => null);
   const reason = typeof body?.reason === "string" ? body.reason.trim() : undefined;
-  const ok = await reportPostForViewer(id, currentUser.id, reason);
+  const ok = await reportPostForViewer(id, currentUser, reason);
   if (!ok) {
     return NextResponse.json({ error: "帖子不存在或当前不可见" }, { status: 404 });
   }

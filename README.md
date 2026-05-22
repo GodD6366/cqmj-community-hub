@@ -2,31 +2,41 @@
 
 面向真实小区住户的社区协作平台原型仓库。
 
-项目愿景、白皮书和非技术说明已移到 [why.md](./why.md)。
-本文件聚焦仓库结构、当前实现和本地开发 / Coolify 部署方式。
+项目愿景、白皮书和非技术说明见 [why.md](./why.md)。
+本文件聚焦仓库结构、当前实现、本地开发与部署方式。
 
-## 当前仓库已实现的能力
+## 当前已实现的能力
 
 - 邀请码 + 房号注册绑定
-- 用户名密码登录
-- 发布需求、闲置、交流三类帖子
+- 用户名密码登录 / 登出
+- 自动初始化管理员账号
+- 发布需求、闲置、交流、约玩 4 类帖子
 - 发布帖子时支持最多 9 张图片上传
-- 帖子列表与详情浏览
+- 浏览器压缩图片为 `WebP` 后直传 S3 兼容对象存储
+- 帖子列表、搜索、分类筛选、详情浏览
 - 评论、收藏、举报
-- 社区规则页、关于页
-- 邀请码管理后台
-- 空库首次启动时自动写入示例帖子
+- 楼栋可见 / 全小区可见 / 私密可见
+- 社区投票的创建、参与、后台管理
+- 服务工单的提交、状态流转、后台管理
+- 消息中心与未读/已读处理
+- 用户、邀请码、帖子、投票、工单后台
+- MCP HTTP 端点与个人只读 API key
+- 社区规则页、项目说明页、个人中心
 
 ## 页面入口
 
-- `/`：首页，优先渲染仓库根目录 `why.md`
-- `/posts`：帖子广场
-- `/publish`：发帖页面
-- `/mcp/connect`：登录后的 MCP 接入页
+- `/`：社区首页
+- `/posts`：帖子广场（支持 `?q=`、`?category=`、`?mode=mine|favorites`）
+- `/neighbors`：邻里页
+- `/publish`：发布中心
+- `/services`：服务工单页
+- `/messages`：消息中心
+- `/me`：个人中心
 - `/login`：登录 / 注册绑定
 - `/rules`：社区规则
-- `/about`：项目介绍
-- `/admin`：邀请码管理后台
+- `/about`：项目介绍（优先渲染仓库根目录 `why.md`）
+- `/admin`：管理员后台
+- `/mcp/connect`：登录后的 MCP 接入页
 - `/mcp`：MCP HTTP 端点
 
 ## 技术栈
@@ -41,15 +51,15 @@
 ## 数据与运行说明
 
 - Prisma schema 位于 [prisma/schema.prisma](./prisma/schema.prisma)
-- 首页文案优先读取 [why.md](./why.md)，缺失时回退到 `README.md`
-- Prisma 唯一 datasource 为 `postgresql`，通过 `DATABASE_URL` 连接数据库
-- 本地开发默认直接使用 Node.js + pnpm
+- 项目使用 App Router
+- `DATABASE_URL` 为唯一数据库连接入口
+- 管理员账号会在首次数据库访问前自动初始化
+- `/about` 页面优先读取 [why.md](./why.md)，缺失时回退到 `README.md`
 - 生产部署默认使用 Coolify 的 Nixpacks 构建
-- 默认管理员账号与初始邀请码通过环境变量注入
 
 ## 本地开发
 
-推荐使用 Node.js 22 和 pnpm 10 直接在宿主机开发，数据库可使用本地 PostgreSQL 或单独托管的 PostgreSQL 实例。
+推荐使用 Node.js 22 和 pnpm 10 在宿主机直接开发，数据库可使用本地 PostgreSQL 或托管 PostgreSQL。
 
 先准备环境文件：
 
@@ -83,27 +93,9 @@ pnpm dev
 pnpm db:generate
 pnpm db:push
 pnpm test
+pnpm lint
+pnpm build
 ```
-
-## Coolify 部署
-
-仓库根目录提供了 [nixpacks.toml](./nixpacks.toml)，Coolify 选择 **Nixpacks** 部署方式即可自动读取：
-
-- Node 版本固定为 `22`
-- 构建流程使用项目自带的 `pnpm install` / `pnpm build`
-- 启动命令为 `pnpm start:prod`
-- 应用启动前会自动执行 `prisma migrate deploy`
-
-在 Coolify 中建议额外创建一个 PostgreSQL 服务，并把应用的 `DATABASE_URL` 指向该数据库。
-
-部署前至少配置以下环境变量：
-
-- `DATABASE_URL`
-- `COMMUNITY_ADMIN_USERNAME`
-- `COMMUNITY_ADMIN_PASSWORD`
-- `COMMUNITY_INVITE_CODES`
-
-如果 Coolify 没有自动识别包管理器，可手动确认使用 `pnpm`。
 
 ## 环境变量
 
@@ -114,6 +106,7 @@ pnpm test
 - `COMMUNITY_ADMIN_PASSWORD`
 - `COMMUNITY_INVITE_CODES`
 - `MCP_SIGNING_SECRET`
+- `NEXT_PUBLIC_APP_ORIGIN`
 - `S3_ENDPOINT`
 - `S3_REGION`
 - `S3_BUCKET`
@@ -122,13 +115,7 @@ pnpm test
 - `S3_PUBLIC_BASE_URL`
 - `S3_UPLOAD_PREFIX`
 
-默认管理员会在首次数据库访问前自动初始化：
-
-- 用户名默认 `admin`
-- 密码默认 `cqmjadmin`
-- 管理员统一通过 `/login` 登录，然后访问 `/admin`
-
-本地运行可以参考 [.env.example](./.env.example)：
+本地运行参考 [.env.example](./.env.example)：
 
 ```env
 DATABASE_URL="postgresql://postgres:postgres@localhost:5432/community_hub?schema=public"
@@ -146,28 +133,81 @@ S3_PUBLIC_BASE_URL="https://cdn.example.com"
 S3_UPLOAD_PREFIX="posts"
 ```
 
+## 内容与可见性规则
+
+### 帖子
+
+- 支持 `request` / `secondhand` / `discussion` / `play`
+- 帖子状态支持 `published` / `pending` / `rejected`
+- 管理员可在后台修改状态、置顶、精选或删除帖子
+- 普通用户可编辑或删除自己的帖子
+
+### 可见范围
+
+- `community`：全小区可见
+- `building`：仅同楼栋住户可见
+- `private`：仅作者本人和管理员可见
+
 ## 图片上传
 
-- 发布页支持最多 `9` 张图片
-- 浏览器会先压缩为 `WebP`
+- 最多上传 `9` 张图片
+- 浏览器端压缩为 `WebP`
 - 单图压缩后不超过 `2MB`
 - 最长边压缩到 `2048px`
-- 上传方式为服务端签发后直传 S3 兼容对象存储
+- 由服务端签发预上传地址，再直传 S3 兼容对象存储
 - 帖子列表显示首图缩略图，详情页展示全部图片
+
+## 投票与工单
+
+### 投票
+
+- 登录用户可创建投票
+- 住户每个投票仅可参与一次
+- 支持截止时间与自动关闭
+- 管理员可结束、重新开放或删除投票
+
+### 工单
+
+- 支持报修、投诉建议、保洁环境、公共设施、其他服务
+- 登录用户可提交工单
+- 管理员可切换 `open / processing / resolved`
+- 状态变化会推送到住户消息中心
+
+## 消息中心
+
+当前会汇总以下通知：
+
+- 评论提醒
+- 收藏提醒
+- 投票动态
+- 工单动态
+- 系统通知
+
+支持查看未读数量，并一键标记全部已读。
+
+## 管理后台
+
+`/admin` 提供 5 个管理 tab：
+
+- 用户管理：编辑普通用户、禁用/启用、删除
+- 邀请码管理：创建、启用/停用、删除
+- 帖子管理：改状态、置顶、精选、删除
+- 投票管理：查看、结束、重新开放、删除
+- 工单管理：切换状态
 
 ## MCP 接入
 
 - MCP HTTP 端点固定为 `/mcp`
-- 登录用户可在 `/mcp/connect` 查看自己的个人 API key，并一键复制接入文案
-- 认证方式为 `Authorization: Bearer <API_KEY>`
-- 当前只开放只读工具：
+- 登录用户可在 `/mcp/connect` 查看个人 API key，并一键复制接入文案
+- 认证方式：`Authorization: Bearer <API_KEY>`
+- 当前开放只读工具：
   - `community.current_user`
   - `community.list_posts`
   - `community.get_post`
 
-接入页会直接生成一段中文说明，适合粘贴到支持 MCP 的平台或模型客户端。也可以按标准 MCP HTTP 方式自行接入：
+标准接入流程：
 
-1. 调用 `POST /mcp`
+1. `POST /mcp`
 2. 先发送 `initialize`
 3. 再调用 `tools/list` 和 `tools/call`
 
@@ -178,11 +218,29 @@ Authorization: Bearer <your-api-key>
 Content-Type: application/json
 ```
 
-## 部署说明
+## Coolify 部署
 
-- 项目已提交 Prisma migrations
-- Nixpacks 构建阶段执行 `next build`
-- 应用启动阶段执行 `prisma migrate deploy`，随后启动 Next.js 服务
-- 应用默认监听 `0.0.0.0`，端口使用平台注入的 `PORT`
-- 应用启动后如果发现帖子表为空，会自动写入一批演示数据
-- 如果需要反向代理，可继续在 Coolify 前面挂 Nginx 或 Caddy
+仓库根目录提供了 [nixpacks.toml](./nixpacks.toml)，Coolify 选择 **Nixpacks** 部署方式即可自动读取：
+
+- Node 版本固定为 `22`
+- 构建流程使用项目自带的 `pnpm install` / `pnpm build`
+- 启动命令为 `pnpm start:prod`
+- 应用启动前会自动执行 `prisma migrate deploy`
+
+建议在 Coolify 中单独创建 PostgreSQL 服务，并把应用的 `DATABASE_URL` 指向该数据库。
+
+部署前至少配置：
+
+- `DATABASE_URL`
+- `COMMUNITY_ADMIN_USERNAME`
+- `COMMUNITY_ADMIN_PASSWORD`
+- `COMMUNITY_INVITE_CODES`
+- `MCP_SIGNING_SECRET`
+- 一组完整的 S3 相关环境变量
+
+## 当前明确不做的能力
+
+- 举报后台处置流
+- 邻居群 / 群组功能
+
+这两项已不作为当前产品范围的一部分。

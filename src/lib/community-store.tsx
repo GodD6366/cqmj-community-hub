@@ -28,6 +28,7 @@ interface CommunityStore {
   currentUser: CommunityUser | null;
   hydrated: boolean;
   refresh: () => Promise<void>;
+  markNotificationsRead: (ids?: string[]) => Promise<number>;
   addPost: (draft: PostDraft) => Promise<string>;
   updatePost: (postId: string, draft: PostDraft) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
@@ -279,6 +280,21 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     await refresh();
   }, [refresh]);
 
+  const markNotificationsRead = useCallback(
+    async (ids?: string[]) => {
+      const response = await fetch("/api/notifications", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ ids }),
+      });
+      const data = await readJson<{ ok: boolean; count: number }>(response);
+      await refresh();
+      return data.count ?? 0;
+    },
+    [refresh],
+  );
+
   const value = useMemo<CommunityStore>(
     () => ({
       posts,
@@ -289,6 +305,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       currentUser,
       hydrated,
       refresh,
+      markNotificationsRead,
       addPost,
       updatePost,
       deletePost,
@@ -312,6 +329,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       hydrated,
       login,
       logout,
+      markNotificationsRead,
       notifications,
       polls,
       posts,
