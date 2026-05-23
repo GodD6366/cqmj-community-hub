@@ -140,7 +140,7 @@ export function NeighborsClient({
           <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
             <button
               type="button"
-              className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+              className={`shrink-0 rounded-full px-3 py-1.5 text-[0.82rem] font-semibold transition ${
                 category === "all"
                   ? "bg-[#10253a] text-white shadow-[0_12px_24px_rgba(16,37,58,0.18)]"
                   : "bg-white text-[var(--muted)] ring-1 ring-[rgba(95,116,176,0.08)]"
@@ -153,7 +153,7 @@ export function NeighborsClient({
               <button
                 key={value}
                 type="button"
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`shrink-0 rounded-full px-3 py-1.5 text-[0.82rem] font-semibold transition ${
                   category === value
                     ? "bg-[#10253a] text-white shadow-[0_12px_24px_rgba(16,37,58,0.18)]"
                     : "bg-white text-[var(--muted)] ring-1 ring-[rgba(95,116,176,0.08)]"
@@ -206,7 +206,7 @@ export function NeighborsClient({
             ) : null}
 
             {editingPoll ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="rounded-[1.1rem] bg-[rgba(45,142,148,0.08)] px-3.5 py-3 text-sm text-[#1d6f73]">
                   正在编辑：{editingPoll.title}
                 </div>
@@ -346,31 +346,31 @@ export function NeighborsClient({
 
       <div className="hidden md:block">
         <section className="px-1 md:px-0">
-          <div className="app-card relative overflow-hidden px-4 py-5 md:px-6 md:py-6">
+          <div className="app-card relative overflow-hidden px-4 py-4 md:px-5 md:py-4">
             <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[radial-gradient(circle_at_top_left,rgba(126,109,248,0.18),transparent_62%),radial-gradient(circle_at_top_right,rgba(99,187,255,0.18),transparent_50%)]" />
-            <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div className="relative flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="max-w-2xl">
                 <div className="section-kicker">邻里</div>
-                <h1 className="mt-3 text-[1.8rem] font-semibold tracking-[-0.06em] text-slate-950 md:text-[2.35rem]">邻里动态</h1>
+                <h1 className="mt-2 text-[1.55rem] font-semibold tracking-[-0.06em] text-slate-950 md:text-[2rem]">邻里动态</h1>
               </div>
 
-              <div className="grid grid-cols-3 gap-2.5 lg:w-[22rem]">
+              <div className="grid grid-cols-3 gap-2 lg:w-[18rem]">
                 {heroStats.map((item) => (
                   <div
                     key={item.label}
-                    className="rounded-[1.25rem] border border-white/70 bg-white/78 px-3 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
+                    className="rounded-[1rem] border border-white/70 bg-white/78 px-2.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]"
                   >
                     <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">{item.label}</div>
-                    <div className="mt-2 text-[1.08rem] font-semibold tracking-[-0.04em] text-slate-950 md:text-[1.16rem]">{item.value}</div>
+                    <div className="mt-1 text-[0.98rem] font-semibold tracking-[-0.04em] text-slate-950 md:text-[1.05rem]">{item.value}</div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="relative mt-5 flex justify-end">
+            <div className="relative mt-3 flex justify-end">
               <Link
                 href="/publish"
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-[1.15rem] bg-[linear-gradient(135deg,var(--primary),var(--accent))] px-5 text-sm font-semibold text-white shadow-[0_18px_30px_rgba(79,99,255,0.22)] transition hover:-translate-y-[1px] md:h-12"
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-[1rem] bg-[linear-gradient(135deg,var(--primary),var(--accent))] px-4 text-sm font-semibold text-white shadow-[0_14px_24px_rgba(79,99,255,0.18)] transition hover:-translate-y-[1px] md:h-10"
               >
                 <span className="text-base">＋</span>
                 <span>发布动态</span>
@@ -394,14 +394,14 @@ export function NeighborsClient({
           </Alert>
         ) : null}
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.95fr)] xl:items-start">
-          <section className="app-card px-4 py-4 md:px-5 md:py-5">
-            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+        <div className="mt-3 grid gap-3 xl:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.82fr)] xl:items-start">
+          <section className="app-card px-4 py-3 md:px-4 md:py-4">
+            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
               <SectionHeader title="筛选" />
               <div className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">{resultSummary}</div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-3">
               <Input
                 aria-label="搜索邻里动态"
                 fullWidth
@@ -411,10 +411,10 @@ export function NeighborsClient({
               />
             </div>
 
-            <div className="mt-4 flex gap-2 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
+            <div className="mt-3 flex gap-1.5 overflow-x-auto pb-1 md:flex-wrap md:overflow-visible">
               <button
                 type="button"
-                className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`shrink-0 rounded-full px-3 py-1.5 text-[0.82rem] font-semibold transition ${
                   category === "all"
                     ? "bg-[var(--primary)] text-white shadow-[0_12px_24px_rgba(79,99,255,0.2)]"
                     : "bg-white text-[var(--muted)]"
@@ -427,7 +427,7 @@ export function NeighborsClient({
                 <button
                   key={value}
                   type="button"
-                  className={`shrink-0 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  className={`shrink-0 rounded-full px-3 py-1.5 text-[0.82rem] font-semibold transition ${
                     category === value
                       ? "bg-[var(--primary)] text-white shadow-[0_12px_24px_rgba(79,99,255,0.2)]"
                       : "bg-white text-[var(--muted)]"
@@ -439,23 +439,23 @@ export function NeighborsClient({
               ))}
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
-              {topActions.map((item, index) => (
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {topActions.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`group relative overflow-hidden rounded-[1.3rem] border border-[rgba(96,118,182,0.1)] bg-[linear-gradient(180deg,rgba(245,248,255,0.92),rgba(255,255,255,0.98))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:-translate-y-[1px] ${index === 0 ? "col-span-2 sm:col-span-1" : ""}`}
+                  className="group relative overflow-hidden rounded-[1rem] border border-[rgba(96,118,182,0.1)] bg-[linear-gradient(180deg,rgba(245,248,255,0.92),rgba(255,255,255,0.98))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] transition hover:-translate-y-[1px]"
                 >
-                  <div className={`flex h-full ${index === 0 ? "items-center gap-3 sm:flex-col sm:items-start" : "flex-col gap-3"}`}>
-                    <span className="app-icon-bubble h-11 w-11 shrink-0 rounded-[1rem]" style={{ background: item.gradient }}>
+                  <div className="flex h-full items-center gap-2.5">
+                    <span className="app-icon-bubble h-9 w-9 shrink-0 rounded-[0.85rem]" style={{ background: item.gradient }}>
                       <span className="text-sm font-bold">{item.icon}</span>
                     </span>
 
                     <div className="min-w-0">
                       <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                        {index === 0 ? "推荐入口" : "入口"}
+                        入口
                       </div>
-                      <div className="mt-1 text-sm font-semibold text-slate-900">{item.label}</div>
+                      <div className="mt-0.5 text-sm font-semibold text-slate-900">{item.label}</div>
                     </div>
                   </div>
                 </Link>
@@ -464,9 +464,9 @@ export function NeighborsClient({
           </section>
 
           <aside className="space-y-4 xl:sticky xl:top-28">
-            <section className="app-card px-4 py-4 md:px-5 md:py-5">
+            <section className="app-card px-4 py-3 md:px-4 md:py-4">
               <SectionHeader title="投票" href="/neighbors" actionLabel="更多" />
-              <div className="mt-4 space-y-3">
+              <div className="mt-3 space-y-2.5">
                 {activePolls.length > 0 ? (
                   activePolls.map((poll) => (
                     <PollCard
@@ -500,7 +500,7 @@ export function NeighborsClient({
 
           </aside>
 
-          <section className="space-y-3">
+          <section className="space-y-2.5">
             <div className="flex items-center justify-between gap-3 px-1 md:px-0">
               <SectionHeader title="动态" />
               <div className="text-xs font-semibold text-[var(--muted)]">{deferredQuery ? "按搜索结果展示" : "按发布时间更新"}</div>

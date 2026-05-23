@@ -173,14 +173,14 @@ export function PollCard({
   allowVote?: boolean;
 }) {
   return (
-    <article className="app-card p-4 md:p-5">
+    <article className="app-card p-3.5 md:p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className={`app-chip ${poll.status === "active" ? "app-chip-muted" : ""}`}>
             {pollStatusMeta[poll.status].label}
           </div>
           <h3 className="mt-3 text-base font-semibold text-slate-950">{poll.title}</h3>
-          <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{poll.description}</p>
+          <p className="mt-1.5 text-[0.82rem] leading-5 text-[var(--muted)] line-clamp-2">{poll.description}</p>
         </div>
         <div className="text-right text-xs text-[var(--muted)]">
           <div>{poll.totalVotes} 人参与</div>
@@ -188,7 +188,7 @@ export function PollCard({
         </div>
       </div>
 
-      <div className="mt-4 grid gap-2">
+      <div className="mt-3 grid gap-1.5">
         {poll.options.map((option) => {
           const isSelected = poll.selectedOptionId === option.id;
           const percentage = poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
@@ -197,7 +197,7 @@ export function PollCard({
             <button
               key={option.id}
               type="button"
-              className={`relative overflow-hidden rounded-[1rem] border px-3 py-3 text-left transition ${
+              className={`relative overflow-hidden rounded-[0.9rem] border px-3 py-2.5 text-left transition ${
                 isSelected
                   ? "border-[rgba(79,99,255,0.24)] bg-[rgba(79,99,255,0.1)]"
                   : "border-[rgba(88,109,175,0.12)] bg-white"
@@ -210,7 +210,7 @@ export function PollCard({
                 style={{ width: `${Math.max(percentage, isSelected ? 20 : 0)}%` }}
               />
               <span className="relative flex items-center justify-between gap-3">
-                <span className="text-sm font-semibold text-slate-900">{option.label}</span>
+                <span className="text-[0.82rem] font-semibold text-slate-900">{option.label}</span>
                 <span className="text-xs text-[var(--muted)]">
                   {option.voteCount} 票 · {percentage}%
                 </span>

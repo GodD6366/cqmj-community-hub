@@ -19,15 +19,14 @@ export function PostCard({ post, compact = false }: PostCardProps) {
 
   if (compact) {
     return (
-      <Link href={`/posts/${post.id}`} className="app-card block p-4 transition hover:-translate-y-[1px]">
+      <Link href={`/posts/${post.id}`} className="app-card app-card-dense block p-3 transition hover:-translate-y-[1px]">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
             <ResidentAvatar name={post.authorName} size="sm" />
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-slate-900">{post.authorName}</div>
-              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.72rem] text-[var(--muted)]">
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[0.7rem] text-[var(--muted)]">
                 <span>{timeAgo(post.createdAt)}</span>
-                <span>{formatDateTime(post.createdAt)}</span>
               </div>
             </div>
           </div>
@@ -37,15 +36,15 @@ export function PostCard({ post, compact = false }: PostCardProps) {
           </Chip>
         </div>
 
-        <div className={mobilePreviewImage ? "mt-3 flex items-start gap-3" : "mt-3"}>
+        <div className={mobilePreviewImage ? "mt-2 flex items-start gap-2.5" : "mt-2"}>
           <div className="min-w-0 flex-1">
-            <div className="text-base font-semibold tracking-tight text-slate-950">{post.title}</div>
-            <p className="mt-2 line-clamp-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+            <div className="text-[0.95rem] font-semibold tracking-tight text-slate-950 line-clamp-1">{post.title}</div>
+            <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-[0.82rem] leading-5 text-slate-600">
               {post.content}
             </p>
           </div>
           {mobilePreviewImage ? (
-            <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[1rem] bg-[var(--surface-muted)]">
+            <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-[0.85rem] bg-[var(--surface-muted)]">
               {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
               <img alt={post.title} className="h-full w-full object-cover" src={mobilePreviewImage.url} />
             </div>
@@ -53,16 +52,16 @@ export function PostCard({ post, compact = false }: PostCardProps) {
         </div>
 
         {mobileVisibleTags.length > 0 ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="mt-2 flex flex-wrap gap-1.5">
             {mobileVisibleTags.map((tag) => (
-              <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[0.72rem] font-semibold text-[var(--primary)]">
+              <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--primary)]">
                 #{tag}
               </span>
             ))}
           </div>
         ) : null}
 
-        <div className="mt-4 flex items-center justify-between gap-3 text-[0.8rem] text-[var(--muted)]">
+        <div className="mt-2.5 flex items-center justify-between gap-3 text-[0.72rem] text-[var(--muted)]">
           <div className="flex items-center gap-3">
             <span>评论 {post.commentCount}</span>
             <span>收藏 {post.favoriteCount}</span>
@@ -75,15 +74,14 @@ export function PostCard({ post, compact = false }: PostCardProps) {
 
   return (
     <>
-      <Link href={`/posts/${post.id}`} className="app-card block p-4 transition hover:-translate-y-[1px] md:!hidden">
+      <Link href={`/posts/${post.id}`} className="app-card app-card-dense block p-3 transition hover:-translate-y-[1px] md:!hidden">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-3">
+          <div className="flex min-w-0 items-center gap-2.5">
             <ResidentAvatar name={post.authorName} size="sm" />
             <div className="min-w-0">
               <div className="truncate text-sm font-semibold text-slate-900">{post.authorName}</div>
-              <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.72rem] text-[var(--muted)]">
+              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[0.7rem] text-[var(--muted)]">
                 <span>{timeAgo(post.createdAt)}</span>
-                <span>{formatDateTime(post.createdAt)}</span>
               </div>
             </div>
           </div>
@@ -105,15 +103,15 @@ export function PostCard({ post, compact = false }: PostCardProps) {
           </div>
         </div>
 
-        <div className={compact && mobilePreviewImage ? "mt-3 flex items-start gap-3" : "mt-3"}>
+        <div className={compact && mobilePreviewImage ? "mt-2 flex items-start gap-2.5" : "mt-2"}>
           <div className="min-w-0 flex-1">
-            <div className={`font-semibold tracking-tight text-slate-950 ${compact ? "text-base" : "text-[1.12rem]"}`}>{post.title}</div>
-            <p className={`mt-2 whitespace-pre-wrap text-slate-600 ${compact ? "line-clamp-2 text-sm leading-6" : "line-clamp-3 text-[0.95rem] leading-7"}`}>
+            <div className={`font-semibold tracking-tight text-slate-950 line-clamp-1 ${compact ? "text-[0.95rem]" : "text-base"}`}>{post.title}</div>
+            <p className={`mt-1 whitespace-pre-wrap text-slate-600 ${compact ? "line-clamp-2 text-[0.82rem] leading-5" : "line-clamp-2 text-sm leading-6"}`}>
               {post.content}
             </p>
           </div>
           {mobilePreviewImage ? (
-            <div className="h-24 w-24 shrink-0 overflow-hidden rounded-[1rem] bg-[var(--surface-muted)]">
+            <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-[0.85rem] bg-[var(--surface-muted)]">
               {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
               <img alt={post.title} className="h-full w-full object-cover" src={mobilePreviewImage.url} />
             </div>
@@ -121,11 +119,11 @@ export function PostCard({ post, compact = false }: PostCardProps) {
         </div>
 
         {mobileVisibleImages.length > 0 ? (
-          <div className={`mt-3 grid gap-2 ${mobileVisibleImages.length === 1 ? "grid-cols-1" : "grid-cols-3"}`}>
+          <div className={`mt-2 grid gap-1.5 ${mobileVisibleImages.length === 1 ? "grid-cols-1" : "grid-cols-3"}`}>
             {mobileVisibleImages.map((image) => (
               <div
                 key={image.id}
-                className={`overflow-hidden rounded-[1.15rem] bg-[var(--surface-muted)] ${mobileVisibleImages.length === 1 ? "aspect-[16/10]" : "aspect-square"}`}
+                className={`overflow-hidden rounded-[0.95rem] bg-[var(--surface-muted)] ${mobileVisibleImages.length === 1 ? "aspect-[16/9]" : "aspect-square"}`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
                 <img alt={post.title} className="h-full w-full object-cover" src={image.url} />
@@ -134,15 +132,15 @@ export function PostCard({ post, compact = false }: PostCardProps) {
           </div>
         ) : null}
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-2 flex flex-wrap gap-1.5">
           {mobileVisibleTags.map((tag) => (
-            <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[0.72rem] font-semibold text-[var(--primary)]">
+            <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--primary)]">
               #{tag}
             </span>
           ))}
         </div>
 
-        <div className="mt-4 flex items-center justify-between gap-3 text-[0.8rem] text-[var(--muted)]">
+        <div className="mt-2.5 flex items-center justify-between gap-3 text-[0.72rem] text-[var(--muted)]">
           <div className="flex items-center gap-3">
             <span>评论 {post.commentCount}</span>
             <span>收藏 {post.favoriteCount}</span>
