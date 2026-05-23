@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import type { ReactNode } from "react";
 import type { PollSummary, ServiceTicketSummary } from "@/lib/types";
 import { pollStatusMeta, serviceTicketCategoryMeta, serviceTicketStatusMeta } from "@/lib/types";
 import { formatDateTime, timeAgo } from "@/lib/utils";
@@ -38,6 +39,43 @@ export function ResidentAvatar({
   );
 }
 
+export function ResidentMobileHero({
+  children,
+  background,
+  className,
+  delay = "40ms",
+}: {
+  children: ReactNode;
+  background: string;
+  className?: string;
+  delay?: string;
+}) {
+  return (
+    <section
+      className={cn("mobile-resident-hero mobile-resident-enter text-white", className)}
+      style={{ animationDelay: delay, background }}
+    >
+      {children}
+    </section>
+  );
+}
+
+export function ResidentMobilePanel({
+  children,
+  className,
+  delay = "120ms",
+}: {
+  children: ReactNode;
+  className?: string;
+  delay?: string;
+}) {
+  return (
+    <section className={cn("mobile-resident-panel mobile-resident-enter", className)} style={{ animationDelay: delay }}>
+      {children}
+    </section>
+  );
+}
+
 export function SectionHeader({
   title,
   caption,
@@ -72,7 +110,7 @@ export function QuickActionTile({
   gradient,
 }: {
   label: string;
-  description: string;
+  description?: string;
   icon: string;
   href: string;
   gradient: string;
@@ -85,10 +123,41 @@ export function QuickActionTile({
         </span>
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold text-slate-900">{label}</div>
-          <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{description}</div>
+          {description ? <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{description}</div> : null}
         </div>
       </div>
     </Link>
+  );
+}
+
+export function ResidentMetricGrid({
+  items,
+  columns = 2,
+  tone = "inverse",
+  className,
+}: {
+  items: ReadonlyArray<{ label: string; value: ReactNode }>;
+  columns?: 2 | 3 | 4;
+  tone?: "default" | "inverse";
+  className?: string;
+}) {
+  const columnClass = columns === 4 ? "grid-cols-4" : columns === 3 ? "grid-cols-3" : "grid-cols-2";
+  const cardClass =
+    tone === "inverse"
+      ? "bg-white/10 ring-1 ring-white/10 backdrop-blur-sm"
+      : "bg-white/84 ring-1 ring-[rgba(95,116,176,0.08)]";
+  const labelClass = tone === "inverse" ? "text-white/58" : "text-[var(--muted)]";
+  const valueClass = tone === "inverse" ? "text-white" : "text-slate-950";
+
+  return (
+    <div className={cn(`grid gap-2.5 ${columnClass}`, className)}>
+      {items.map((item) => (
+        <div key={item.label} className={cn("mobile-resident-metric", cardClass)}>
+          <div className={cn("mobile-resident-metric-label", labelClass)}>{item.label}</div>
+          <div className={cn("mobile-resident-metric-value", valueClass)}>{item.value}</div>
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -194,14 +263,14 @@ export function EmptyState({
   actionLabel,
 }: {
   title: string;
-  description: string;
+  description?: string;
   actionHref?: string;
   actionLabel?: string;
 }) {
   return (
     <div className="paper-panel rounded-[1.4rem] px-4 py-5 text-center md:px-5 md:py-6">
       <div className="text-sm font-semibold text-slate-900">{title}</div>
-      <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{description}</p>
+      {description ? <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{description}</p> : null}
       {actionHref && actionLabel ? (
         <Link className="mt-4 inline-flex rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white" href={actionHref}>
           {actionLabel}
@@ -209,4 +278,8 @@ export function EmptyState({
       ) : null}
     </div>
   );
+}
+
+function cn(...values: Array<string | false | null | undefined>) {
+  return values.filter(Boolean).join(" ");
 }

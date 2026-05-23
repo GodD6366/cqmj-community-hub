@@ -10,6 +10,7 @@ import {
 import { getPublicImageBaseUrl, getUploadPrefix } from "@/lib/s3-storage";
 import { validateImageStorageFields, validatePostImages } from "@/lib/post-images";
 import { isPostCategory } from "@/lib/types";
+import type { CommunityUser, NotificationItem, PollSummary, ServiceTicketSummary } from "@/lib/types";
 
 function parseDraft(body: unknown) {
   if (!body || typeof body !== "object") return null;
@@ -24,25 +25,49 @@ function parseDraft(body: unknown) {
   return { title, content, category, tags, visibility, anonymous, images };
 }
 
-export async function GET() {
-  const currentUser = await getCurrentUserFromCookie();
-  const viewerId = currentUser?.id ?? null;
-  const [posts, polls, serviceTickets, notifications, unreadNotificationCount] = await Promise.all([
-    listPostsForViewer(viewerId),
-    listPollsForViewer(viewerId),
-    listServiceTicketsForViewer(viewerId),
-    currentUser ? listNotificationsForViewer(currentUser.id) : Promise.resolve([]),
-    currentUser ? countUnreadNotificationsForViewer(currentUser.id) : Promise.resolve(0),
-  ]);
-
-  return NextResponse.json({
-    posts,
-    polls,
-    serviceTickets,
-    notifications,
-    unreadNotificationCount,
+function buildResidentFallbackPayload(currentUser: CommunityUser | null = null) {
+  return {
+    posts: [],
+    polls: [] as PollSummary[],
+    serviceTickets: [] as ServiceTicketSummary[],
+    notifications: [] as NotificationItem[],
+    unreadNotificationCount: 0,
     currentUser,
-  });
+  };
+}
+
+export async function GET() {
+  let currentUser: CommunityUser | null = null;
+
+  try {
+    currentUser = await getCurrentUserFromCookie();
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(buildResidentFallbackPayload());
+  }
+
+  try {
+    const viewerId = currentUser?.id ?? null;
+    const [posts, polls, serviceTickets, notifications, unreadNotificationCount] = await Promise.all([
+      listPostsForViewer(viewerId),
+      listPollsForViewer(viewerId),
+      listServiceTicketsForViewer(viewerId),
+      currentUser ? listNotificationsForViewer(currentUser.id) : Promise.resolve([]),
+      currentUser ? countUnreadNotificationsForViewer(currentUser.id) : Promise.resolve(0),
+    ]);
+
+    return NextResponse.json({
+      posts,
+      polls,
+      serviceTickets,
+      notifications,
+      unreadNotificationCount,
+      currentUser,
+    });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json(buildResidentFallbackPayload(currentUser));
+  }
 }
 
 export async function POST(request: Request) {

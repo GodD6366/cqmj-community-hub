@@ -4,6 +4,7 @@ import { startTransition, useMemo, useState } from "react";
 import { Alert, Button, Card, Chip, Input, TextArea } from "@heroui/react";
 import type { CommunityUser } from "@/lib/types";
 import { buildMcpConnectionPromptForUser } from "@/lib/mcp-connect";
+import { ResidentMetricGrid, ResidentMobileHero, ResidentMobilePanel } from "./resident-shared";
 import { ButtonLink, PageShell } from "./ui";
 
 interface McpConnectClientProps {
@@ -63,18 +64,136 @@ export function McpConnectClient({
 
   return (
     <PageShell className="max-w-5xl space-y-4 py-6">
-      <section className="grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_22rem]">
+      <div className="mobile-resident-only mobile-resident-stack">
+        <ResidentMobileHero
+          background="radial-gradient(circle at 16% 18%, rgba(237,170,92,0.28), transparent 24%), radial-gradient(circle at 84% 12%, rgba(96,188,255,0.22), transparent 22%), linear-gradient(160deg, #151f34 0%, #233d63 46%, #31598e 100%)"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="mobile-resident-kicker text-white/72">MCP 接入</div>
+            <span className="rounded-full bg-white/10 px-3 py-1 text-[0.72rem] font-semibold text-white/82 ring-1 ring-white/10">
+              只读
+            </span>
+          </div>
+          <h1 className="mobile-resident-title mt-5 max-w-[8ch]">MCP 接入</h1>
+
+          <ResidentMetricGrid
+            className="mt-5"
+            items={[
+              { label: "账号", value: currentUser.username },
+              { label: "模式", value: "只读" },
+            ]}
+            tone="inverse"
+          />
+          {welcome ? (
+            <Alert className="mt-5" status="success">
+              <Alert.Content>
+                <Alert.Description>个人密钥已生成。</Alert.Description>
+              </Alert.Content>
+            </Alert>
+          ) : null}
+        </ResidentMobileHero>
+
+        <ResidentMobilePanel delay="120ms">
+          {error ? (
+            <Alert status="danger">
+              <Alert.Content>
+                <Alert.Description>{error}</Alert.Description>
+              </Alert.Content>
+            </Alert>
+          ) : null}
+
+          {message ? (
+            <Alert className={error ? "mt-3" : undefined} status="success">
+              <Alert.Content>
+                <Alert.Description>{message}</Alert.Description>
+              </Alert.Content>
+            </Alert>
+          ) : null}
+
+          <div className={`space-y-3 ${error || message ? "mt-3" : ""}`}>
+            <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
+              <span>MCP 端点</span>
+              <Input aria-label="MCP 端点" fullWidth readOnly value={endpoint} variant="secondary" />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
+              <span>API key</span>
+              <Input aria-label="API key" fullWidth readOnly value={token} variant="secondary" />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
+              <span>接入文本</span>
+              <TextArea
+                aria-label="接入文本"
+                fullWidth
+                readOnly
+                rows={8}
+                value={prompt}
+                variant="secondary"
+              />
+            </label>
+          </div>
+
+          <div className="mt-4 grid gap-2.5">
+            <Button
+              isPending={isCopying}
+              onPress={() => {
+                setError("");
+                setMessage("");
+                setIsCopying(true);
+                startTransition(() => {
+                  void copyText(prompt)
+                    .then(() => setMessage("接入文案已复制。"))
+                    .catch(() => setError("复制失败，请手动复制文本。"))
+                    .finally(() => setIsCopying(false));
+                });
+              }}
+            >
+              复制接入文本
+            </Button>
+            <Button
+              isPending={isRotating}
+              onPress={() => {
+                setError("");
+                setMessage("");
+                setIsRotating(true);
+                startTransition(() => {
+                  void fetch("/api/mcp/token", {
+                    method: "POST",
+                    credentials: "include",
+                  })
+                    .then(async (response) => {
+                      const data = (await response.json().catch(() => null)) as { token?: string; error?: string } | null;
+                      if (!response.ok || !data?.token) {
+                        throw new Error(data?.error || "重置 API key 失败");
+                      }
+                      setToken(data.token);
+                      setMessage("API key 已重置。");
+                    })
+                    .catch((requestError) => {
+                      setError(requestError instanceof Error ? requestError.message : "重置 API key 失败");
+                    })
+                    .finally(() => setIsRotating(false));
+                });
+              }}
+              variant="secondary"
+            >
+              重置 API key
+            </Button>
+            <ButtonLink href="/posts" variant="secondary">
+              返回邻里
+            </ButtonLink>
+          </div>
+        </ResidentMobilePanel>
+      </div>
+
+      <section className="hidden md:grid gap-4 xl:grid-cols-[minmax(0,1.15fr)_22rem]">
         <div className="hero-aurora rounded-[1.2rem] p-5 text-white sm:p-6">
-          <div className="section-kicker text-white/72">Model Access</div>
+          <div className="section-kicker text-white/72">MCP 接入</div>
           <h1 className="editorial-title mt-5 text-[2.7rem] leading-[0.94] font-semibold text-white sm:text-[4.2rem]">
-            把邻里圈接入你的大模型工作台
+            接入邻里圈 MCP
           </h1>
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-200 sm:text-base">
-            这是你的个人只读 MCP 凭证。复制下面这段接入说明，直接发给支持 MCP 的平台或模型客户端即可。
-          </p>
           <div className="mt-6 flex flex-wrap gap-2">
             <Chip color="success" size="sm" variant="soft">
-              {currentUser.username} · 个人 MCP Key
+              {currentUser.username} · 个人密钥
             </Chip>
             <Chip color="warning" size="sm" variant="soft">
               Bearer Token
@@ -84,18 +203,13 @@ export function McpConnectClient({
 
         <Card className="glass-card p-5 sm:p-6">
           <Card.Header className="p-0">
-            <div>
-              <div className="section-kicker">Quick Notes</div>
-              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-                使用边界
-              </h2>
-            </div>
+            <div className="section-kicker">接入信息</div>
           </Card.Header>
           <Card.Content className="grid gap-3 p-0 pt-5">
             {[
-              "这是个人凭证，不要共享给其他住户或公开贴图。",
-              "当前 MCP 只开放只读工具，不支持发帖、评论或后台操作。",
-              "点击“重置 API key”后，旧 key 会立即失效。",
+              "个人凭证",
+              "只读",
+              "可重置",
             ].map((item) => (
               <div key={item} className="route-card px-3 py-3 text-sm leading-6 text-slate-700">
                 {item}
@@ -111,7 +225,7 @@ export function McpConnectClient({
       {welcome ? (
         <Alert status="success">
           <Alert.Content>
-            <Alert.Description>已为你生成个人 MCP key。复制下面这段话给支持 MCP 的平台即可完成接入。</Alert.Description>
+            <Alert.Description>已生成个人密钥。</Alert.Description>
           </Alert.Content>
         </Alert>
       ) : null}
@@ -135,7 +249,7 @@ export function McpConnectClient({
       <Card className="glass-card p-5 sm:p-6">
         <Card.Header className="p-0">
           <div>
-            <div className="section-kicker">Connection Payload</div>
+            <div className="section-kicker">接入信息</div>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
               接入信息
             </h2>
@@ -195,7 +309,7 @@ export function McpConnectClient({
                         throw new Error(data?.error || "重置 API key 失败");
                       }
                       setToken(data.token);
-                      setMessage("API key 已重置，旧 key 立即失效。");
+                      setMessage("API key 已重置。");
                     })
                     .catch((requestError) => {
                       setError(requestError instanceof Error ? requestError.message : "重置 API key 失败");

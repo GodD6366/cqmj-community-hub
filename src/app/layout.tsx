@@ -5,7 +5,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "邻里圈",
-  description: "用社区公告板的方式组织求助、闲置、讨论和治理信息的小区站点。",
+  description: "面向小区住户的社区协作平台。",
 };
 
 export default function RootLayout({

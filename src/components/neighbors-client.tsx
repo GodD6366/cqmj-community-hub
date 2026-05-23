@@ -1,20 +1,21 @@
 "use client";
 
 import Link from "next/link";
-import { Alert, Input } from "@heroui/react";
+import { Alert, Button, Input } from "@heroui/react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { useCommunityPosts } from "./community-provider";
-import { EmptyState, PollCard, SectionHeader } from "./resident-shared";
+import { EmptyState, PollCard, ResidentMetricGrid, ResidentMobileHero, ResidentMobilePanel, SectionHeader } from "./resident-shared";
 import { PostCard } from "./post-card";
+import { PollEditor } from "./poll-editor";
 import { filterPublicPosts } from "@/lib/community-store";
 import type { PostCategory } from "@/lib/types";
 import { categoryMeta } from "@/lib/types";
 import { filterPosts, sortPosts, uniquePosts } from "@/lib/utils";
 
 const topActions = [
-  { label: "邻里互助", description: "就近回应需求", icon: "♥", href: "/publish?kind=request", gradient: "linear-gradient(135deg,#df8f4c,#f2bc76)" },
-  { label: "活动日历", description: "周末活动集合", icon: "✓", href: "/publish?kind=play", gradient: "linear-gradient(135deg,#2d8e94,#65bfc2)" },
-  { label: "志愿服务", description: "加入社区共建", icon: "人", href: "/publish?kind=discussion", gradient: "linear-gradient(135deg,#315d8f,#5f8fd7)" },
+  { label: "发需求", icon: "需", href: "/publish?kind=request", gradient: "linear-gradient(135deg,#df8f4c,#f2bc76)" },
+  { label: "发约玩", icon: "约", href: "/publish?kind=play", gradient: "linear-gradient(135deg,#2d8e94,#65bfc2)" },
+  { label: "发帖子", icon: "帖", href: "/publish?kind=discussion", gradient: "linear-gradient(135deg,#315d8f,#5f8fd7)" },
 ] as const;
 
 export function NeighborsClient({
@@ -26,12 +27,14 @@ export function NeighborsClient({
   initialQuery?: string;
   initialMode?: "all" | "mine" | "favorites";
 }) {
-  const { currentUser, posts, polls, hydrated, votePoll } = useCommunityPosts();
+  const { currentUser, posts, polls, hydrated, votePoll, updatePoll, deletePoll } = useCommunityPosts();
   const [category, setCategory] = useState<PostCategory | "all">(initialCategory);
   const [query, setQuery] = useState(initialQuery);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [pendingPollId, setPendingPollId] = useState<string | null>(null);
+  const [editingPollId, setEditingPollId] = useState<string | null>(null);
+  const [actingPollId, setActingPollId] = useState<string | null>(null);
   const deferredQuery = useDeferredValue(query);
   const visiblePosts = useMemo(() => {
     if (initialMode === "mine" && currentUser) {
@@ -53,6 +56,11 @@ export function NeighborsClient({
 
   const activePolls = polls.slice(0, 3);
   const featuredPoll = activePolls[0] ?? null;
+  const myPolls = useMemo(() => polls.filter((poll) => poll.isMine), [polls]);
+  const editingPoll = useMemo(
+    () => myPolls.find((poll) => poll.id === editingPollId) ?? null,
+    [editingPollId, myPolls],
+  );
   const activeCategoryMeta = category === "all" ? null : categoryMeta[category];
   const heroStats = [
     { label: initialMode === "mine" ? "我的内容" : initialMode === "favorites" ? "我的收藏" : "公开动态", value: String(visiblePosts.length).padStart(2, "0") },
@@ -61,31 +69,23 @@ export function NeighborsClient({
   ] as const;
   const resultSummary =
     deferredQuery
-      ? `搜索结果 ${filteredPosts.length} 条`
+      ? `结果 ${filteredPosts.length} 条`
       : initialMode === "mine"
-        ? `共 ${visiblePosts.length} 条我的内容`
+        ? `我的 ${visiblePosts.length} 条`
         : initialMode === "favorites"
-          ? `共 ${visiblePosts.length} 条我的收藏`
-          : `共 ${visiblePosts.length} 条公开动态`;
+          ? `收藏 ${visiblePosts.length} 条`
+          : `公开 ${visiblePosts.length} 条`;
 
   return (
     <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
       <div className="mobile-resident-only mobile-resident-stack">
-        <section
-          className="mobile-resident-hero mobile-resident-enter text-white"
-          style={{
-            animationDelay: "40ms",
-            background:
-              "radial-gradient(circle at 14% 18%, rgba(241,174,93,0.32), transparent 24%), radial-gradient(circle at 84% 14%, rgba(96,191,197,0.26), transparent 22%), linear-gradient(160deg, #102134 0%, #12314a 48%, #1d465f 100%)",
-          }}
+        <ResidentMobileHero
+          background="radial-gradient(circle at 14% 18%, rgba(241,174,93,0.32), transparent 24%), radial-gradient(circle at 84% 14%, rgba(96,191,197,0.26), transparent 22%), linear-gradient(160deg, #102134 0%, #12314a 48%, #1d465f 100%)"
         >
-          <div className="mobile-resident-kicker text-white/70">Neighborhood Desk</div>
+          <div className="mobile-resident-kicker text-white/70">邻里动态</div>
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="min-w-0">
-              <h1 className="mobile-resident-title max-w-[8.2ch]">邻里情报站</h1>
-              <p className="mobile-resident-copy mt-3 max-w-[28ch] text-white/76">
-                把求助、闲置、约玩和热议压缩成适合手机快速扫读的一张社区行动板。
-              </p>
+              <h1 className="mobile-resident-title max-w-[8.2ch]">邻里动态</h1>
             </div>
 
             <Link
@@ -96,20 +96,12 @@ export function NeighborsClient({
             </Link>
           </div>
 
-          <div className="mt-5 grid grid-cols-3 gap-2.5">
-            {heroStats.map((item) => (
-              <div key={item.label} className="mobile-resident-metric bg-white/10 ring-1 ring-white/10 backdrop-blur-sm">
-                <div className="mobile-resident-metric-label text-white/58">{item.label}</div>
-                <div className="mobile-resident-metric-value text-white">{item.value}</div>
-              </div>
-            ))}
-          </div>
+          <ResidentMetricGrid className="mt-5" columns={3} items={heroStats} tone="inverse" />
 
-          <div className="mt-4 rounded-[1.2rem] bg-white/8 px-3.5 py-3 ring-1 ring-white/10 backdrop-blur-sm">
-            <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-white/56">现在适合</div>
-            <div className="mt-1 text-sm font-semibold text-white">先搜索缩小范围，再从互助、活动或志愿入口直接发起内容。</div>
+          <div className="mt-4 rounded-[1.2rem] bg-white/8 px-3.5 py-3 text-sm font-semibold text-white ring-1 ring-white/10 backdrop-blur-sm">
+            {activeCategoryMeta?.badge ?? "全部"}
           </div>
-        </section>
+        </ResidentMobileHero>
 
         {message ? (
           <Alert status="success">
@@ -126,14 +118,11 @@ export function NeighborsClient({
           </Alert>
         ) : null}
 
-        <section className="mobile-resident-panel mobile-resident-enter" style={{ animationDelay: "120ms" }}>
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="mobile-resident-kicker text-[var(--primary)]">Discovery Lane</div>
-              <h2 className="mobile-resident-panel-title">搜索与频道</h2>
-              <p className="mobile-resident-panel-copy">先筛选主题，再决定是查看帖子还是直接发起一个动作。</p>
-            </div>
-            <div className="shrink-0 rounded-full bg-[rgba(24,40,71,0.06)] px-3 py-1 text-[0.7rem] font-semibold text-[var(--muted)]">
+        <ResidentMobilePanel delay="120ms">
+          <div className="min-w-0">
+            <div className="mobile-resident-kicker text-[var(--primary)]">搜索</div>
+            <h2 className="mobile-resident-panel-title">筛选动态</h2>
+            <div className="mt-2 inline-flex max-w-full rounded-full bg-[rgba(24,40,71,0.06)] px-3 py-1 text-[0.7rem] font-semibold leading-5 text-[var(--muted)]">
               {resultSummary}
             </div>
           </div>
@@ -176,43 +165,23 @@ export function NeighborsClient({
             ))}
           </div>
 
-          <div className="mt-3 rounded-[1.12rem] bg-[rgba(16,37,58,0.045)] px-3.5 py-3 text-xs leading-5 text-[var(--muted)]">
-            {activeCategoryMeta
-              ? `${activeCategoryMeta.badge}频道：${activeCategoryMeta.description}`
-              : "从需求、闲置、帖子和约玩几个方向切入，手机里先收窄范围会更高效。"}
-          </div>
-
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
-            {topActions.map((item, index) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className={`relative overflow-hidden rounded-[1.3rem] border border-[rgba(95,116,176,0.08)] bg-white/78 p-3 shadow-[0_14px_28px_rgba(58,75,124,0.06)] ${index === 0 ? "col-span-2" : ""}`}
-              >
-                <div className={`flex h-full ${index === 0 ? "items-center gap-3" : "flex-col gap-3"}`}>
-                  <span className="app-icon-bubble h-11 w-11 shrink-0 rounded-[1rem]" style={{ background: item.gradient }}>
-                    <span className="text-sm font-bold">{item.icon}</span>
-                  </span>
-
-                  <div className="min-w-0">
-                    <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                      {index === 0 ? "优先动作" : "快速入口"}
-                    </div>
-                    <div className="mt-1 text-sm font-semibold text-slate-900">{item.label}</div>
-                    <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{item.description}</div>
-                  </div>
-                </div>
+          <div className="mt-4 grid grid-cols-3 gap-2">
+            {topActions.map((item) => (
+              <Link key={item.label} href={item.href} className="app-icon-tile rounded-[1rem] px-0.5 py-1">
+                <span className="app-icon-bubble" style={{ background: item.gradient }}>
+                  <span className="text-sm font-bold">{item.icon}</span>
+                </span>
+                <span className="text-[0.66rem] font-semibold leading-4 text-slate-800">{item.label}</span>
               </Link>
             ))}
           </div>
-        </section>
+        </ResidentMobilePanel>
 
-        <section className="mobile-resident-panel mobile-resident-enter" style={{ animationDelay: "200ms" }}>
+        <ResidentMobilePanel delay="200ms">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="mobile-resident-kicker text-[#2d8e94]">Consensus Radar</div>
-              <h2 className="mobile-resident-panel-title">今天在讨论什么</h2>
-              <p className="mobile-resident-panel-copy">把邻里的共识和投票集中放在前面，方便你先看大家正在关心的事。</p>
+              <div className="mobile-resident-kicker text-[#2d8e94]">投票</div>
+              <h2 className="mobile-resident-panel-title">热门投票</h2>
             </div>
             <Link
               href="/publish?kind=poll"
@@ -222,42 +191,133 @@ export function NeighborsClient({
             </Link>
           </div>
 
-          <div className="mt-4">
-            {featuredPoll ? (
-              <PollCard
-                poll={featuredPoll}
-                pending={pendingPollId === featuredPoll.id}
-                onVote={async (optionId) => {
-                  setPendingPollId(featuredPoll.id);
-                  setError("");
-                  setMessage("");
-                  try {
-                    await votePoll(featuredPoll.id, optionId);
-                    setMessage(`已参与投票：${featuredPoll.title}`);
-                  } catch (submitError) {
-                    setError(submitError instanceof Error ? submitError.message : "参与投票失败");
-                  } finally {
-                    setPendingPollId(null);
-                  }
-                }}
-              />
+          <div className="mt-4 space-y-3">
+            {myPolls.length > 0 && !editingPoll ? (
+              <div className="rounded-[1.1rem] bg-[rgba(45,142,148,0.08)] px-3.5 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-semibold text-[#1d6f73]">我的投票 {myPolls.length}</div>
+                  {myPolls[0] ? (
+                    <Button size="sm" variant="secondary" onPress={() => setEditingPollId(myPolls[0].id)}>
+                      编辑最新一条
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
+            ) : null}
+
+            {editingPoll ? (
+              <div className="space-y-3">
+                <div className="rounded-[1.1rem] bg-[rgba(45,142,148,0.08)] px-3.5 py-3 text-sm text-[#1d6f73]">
+                  正在编辑：{editingPoll.title}
+                </div>
+                <PollEditor
+                  editorTitle="编辑投票"
+                  initialDescription={editingPoll.description}
+                  initialEndsAt={editingPoll.endsAt ? editingPoll.endsAt.slice(0, 16) : ""}
+                  initialOptions={editingPoll.options.map((option) => option.label)}
+                  initialTitle={editingPoll.title}
+                  onCancel={() => setEditingPollId(null)}
+                  onSubmit={async (draft) => {
+                    setError("");
+                    setMessage("");
+                    await updatePoll(editingPoll.id, draft);
+                    setEditingPollId(null);
+                    setMessage("投票已更新。");
+                  }}
+                  submitLabel="保存修改"
+                  submittingLabel="保存中..."
+                />
+              </div>
+            ) : featuredPoll ? (
+              <div className="space-y-3">
+                <PollCard
+                  poll={featuredPoll}
+                  pending={pendingPollId === featuredPoll.id}
+                  onVote={async (optionId) => {
+                    setPendingPollId(featuredPoll.id);
+                    setError("");
+                    setMessage("");
+                    try {
+                      await votePoll(featuredPoll.id, optionId);
+                      setMessage(`已参与投票：${featuredPoll.title}`);
+                    } catch (submitError) {
+                      setError(submitError instanceof Error ? submitError.message : "参与投票失败");
+                    } finally {
+                      setPendingPollId(null);
+                    }
+                  }}
+                />
+
+                {featuredPoll.isMine ? (
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button size="sm" variant="secondary" onPress={() => setEditingPollId(featuredPoll.id)}>
+                      编辑
+                    </Button>
+                    <Button
+                      isPending={actingPollId === featuredPoll.id}
+                      size="sm"
+                      variant="secondary"
+                      onPress={async () => {
+                        setActingPollId(featuredPoll.id);
+                        setError("");
+                        setMessage("");
+                        try {
+                          await updatePoll(featuredPoll.id, {
+                            title: featuredPoll.title,
+                            description: featuredPoll.description,
+                            options: featuredPoll.options.map((option) => option.label),
+                            endsAt: featuredPoll.endsAt,
+                            status: "closed",
+                          });
+                          setMessage("投票已结束。");
+                        } catch (submitError) {
+                          setError(submitError instanceof Error ? submitError.message : "结束投票失败");
+                        } finally {
+                          setActingPollId(null);
+                        }
+                      }}
+                    >
+                      结束
+                    </Button>
+                    <Button
+                      isPending={actingPollId === `delete-${featuredPoll.id}`}
+                      size="sm"
+                      variant="danger"
+                      onPress={async () => {
+                        if (!window.confirm("确定删除这个投票？")) return;
+                        setActingPollId(`delete-${featuredPoll.id}`);
+                        setError("");
+                        setMessage("");
+                        try {
+                          await deletePoll(featuredPoll.id);
+                          setMessage("投票已删除。");
+                        } catch (submitError) {
+                          setError(submitError instanceof Error ? submitError.message : "删除投票失败");
+                        } finally {
+                          setActingPollId(null);
+                        }
+                      }}
+                    >
+                      删除
+                    </Button>
+                  </div>
+                ) : null}
+              </div>
             ) : (
               <EmptyState
                 title="还没有投票"
-                description="先去发布一个面向邻里的投票，收集大家的意见。"
                 actionHref="/publish?kind=poll"
                 actionLabel="发起投票"
               />
             )}
           </div>
-        </section>
+        </ResidentMobilePanel>
 
-        <section className="mobile-resident-panel mobile-resident-enter" style={{ animationDelay: "280ms" }}>
+        <ResidentMobilePanel delay="280ms">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="mobile-resident-kicker text-[#315d8f]">Live Feed</div>
+              <div className="mobile-resident-kicker text-[#315d8f]">帖子流</div>
               <h2 className="mobile-resident-panel-title">最新帖子流</h2>
-              <p className="mobile-resident-panel-copy">{deferredQuery ? "按搜索结果展示" : "按发布时间更新，方便快速扫读。"}</p>
             </div>
             <div className="shrink-0 rounded-full bg-[rgba(49,93,143,0.08)] px-3 py-1 text-[0.72rem] font-semibold text-[#315d8f]">
               {filteredPosts.length} 条
@@ -266,19 +326,22 @@ export function NeighborsClient({
 
           <div className="mt-4 space-y-3">
             {!hydrated ? (
-              <div className="app-card h-48 animate-pulse" />
+              <EmptyState
+                title="动态加载中"
+                actionHref="/publish"
+                actionLabel="去发布"
+              />
             ) : filteredPosts.length > 0 ? (
               filteredPosts.map((post) => <PostCard key={post.id} post={post} compact />)
             ) : (
               <EmptyState
                 title="没有匹配的邻里动态"
-                description="换个关键词或切回全部频道看看，也可以直接发布一条新的社区内容。"
                 actionHref="/publish"
                 actionLabel="去发布"
               />
             )}
           </div>
-        </section>
+        </ResidentMobilePanel>
       </div>
 
       <div className="hidden md:block">
@@ -288,10 +351,7 @@ export function NeighborsClient({
             <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
               <div className="max-w-2xl">
                 <div className="section-kicker">邻里</div>
-                <h1 className="mt-3 text-[1.8rem] font-semibold tracking-[-0.06em] text-slate-950 md:text-[2.35rem]">热议、互助与社区动态</h1>
-                <p className="mt-3 max-w-xl text-sm leading-6 text-[var(--muted)] md:text-[0.98rem]">
-                  把社区里的讨论、求助、闲置与约玩整理成更清晰的主次结构，让移动端首屏就能快速找到入口。
-                </p>
+                <h1 className="mt-3 text-[1.8rem] font-semibold tracking-[-0.06em] text-slate-950 md:text-[2.35rem]">邻里动态</h1>
               </div>
 
               <div className="grid grid-cols-3 gap-2.5 lg:w-[22rem]">
@@ -307,14 +367,7 @@ export function NeighborsClient({
               </div>
             </div>
 
-            <div className="relative mt-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
-              <div className="rounded-[1.25rem] border border-white/70 bg-white/74 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.7)]">
-                <div className="text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-[var(--primary)]">邻里动线</div>
-                <div className="mt-1 text-sm leading-6 text-slate-700">
-                  先搜索，再切频道；需要求助、发活动或征集意见时，可以从下方快捷入口直接发起。
-                </div>
-              </div>
-
+            <div className="relative mt-5 flex justify-end">
               <Link
                 href="/publish"
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-[1.15rem] bg-[linear-gradient(135deg,var(--primary),var(--accent))] px-5 text-sm font-semibold text-white shadow-[0_18px_30px_rgba(79,99,255,0.22)] transition hover:-translate-y-[1px] md:h-12"
@@ -344,7 +397,7 @@ export function NeighborsClient({
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.95fr)] xl:items-start">
           <section className="app-card px-4 py-4 md:px-5 md:py-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <SectionHeader title="浏览社区" caption="搜索与频道" />
+              <SectionHeader title="筛选动态" caption="搜索" />
               <div className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">{resultSummary}</div>
             </div>
 
@@ -386,12 +439,6 @@ export function NeighborsClient({
               ))}
             </div>
 
-            <div className="mt-3 rounded-[1.1rem] bg-[var(--surface-muted)] px-3.5 py-3 text-xs leading-5 text-[var(--muted)]">
-              {activeCategoryMeta
-                ? `${activeCategoryMeta.badge}频道：${activeCategoryMeta.description}`
-                : "从需求、闲置、帖子和约玩几个频道快速切换，先缩小范围再看最新帖子会更高效。"}
-            </div>
-
             <div className="mt-4 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
               {topActions.map((item, index) => (
                 <Link
@@ -406,10 +453,9 @@ export function NeighborsClient({
 
                     <div className="min-w-0">
                       <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-[var(--muted)]">
-                        {index === 0 ? "快速响应" : "直达入口"}
+                        {index === 0 ? "推荐入口" : "入口"}
                       </div>
                       <div className="mt-1 text-sm font-semibold text-slate-900">{item.label}</div>
-                      <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{item.description}</div>
                     </div>
                   </div>
                 </Link>
@@ -419,7 +465,7 @@ export function NeighborsClient({
 
           <aside className="space-y-4 xl:sticky xl:top-28">
             <section className="app-card px-4 py-4 md:px-5 md:py-5">
-              <SectionHeader title="正在热议" caption="投票与共识" href="/neighbors" actionLabel="更多" />
+              <SectionHeader title="热门投票" caption="投票" href="/neighbors" actionLabel="更多" />
               <div className="mt-4 space-y-3">
                 {activePolls.length > 0 ? (
                   activePolls.map((poll) => (
@@ -445,7 +491,6 @@ export function NeighborsClient({
                 ) : (
                   <EmptyState
                     title="还没有投票"
-                    description="先去发布一个面向邻里的投票，收集大家的意见。"
                     actionHref="/publish?kind=poll"
                     actionLabel="发起投票"
                   />
@@ -453,26 +498,19 @@ export function NeighborsClient({
               </div>
             </section>
 
-            <section className="app-card px-4 py-4 md:px-5 md:py-5">
-              <SectionHeader title="社区提示" caption="发帖建议" />
-              <div className="mt-4 grid gap-3">
-                <div className="rounded-[1.15rem] bg-[var(--surface-muted)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                  标题尽量写清地点、诉求和时间，桌面端会按主次栏展示，更容易被邻居快速扫读。
-                </div>
-                <div className="rounded-[1.15rem] bg-[var(--surface-muted)] px-4 py-4 text-sm leading-6 text-[var(--muted)]">
-                  如果是发起活动或征求意见，优先使用投票或带标签的帖子，便于后续集中跟进。
-                </div>
-              </div>
-            </section>
           </aside>
 
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3 px-1 md:px-0">
-              <SectionHeader title="最新帖子流" caption="按时间排序" />
+              <SectionHeader title="最新帖子流" caption="帖子" />
               <div className="text-xs font-semibold text-[var(--muted)]">{deferredQuery ? "按搜索结果展示" : "按发布时间更新"}</div>
             </div>
             {!hydrated ? (
-              <div className="app-card h-48 animate-pulse" />
+              <EmptyState
+                title="动态加载中"
+                actionHref="/publish"
+                actionLabel="去发布"
+              />
             ) : filteredPosts.length > 0 ? (
               <div className="space-y-3">
                 {filteredPosts.map((post) => (
@@ -482,7 +520,6 @@ export function NeighborsClient({
             ) : (
               <EmptyState
                 title="没有匹配的邻里动态"
-                description="换个关键词或切回全部频道看看，也可以直接发布一条新的社区内容。"
                 actionHref="/publish"
                 actionLabel="去发布"
               />

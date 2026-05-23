@@ -57,4 +57,16 @@ describe("/admin page", () => {
 
     expect(redirectMock).toHaveBeenCalledWith("/login?next=/admin");
   });
+
+  it("renders a friendly fallback when admin data cannot be loaded", async () => {
+    getCurrentUserFromCookieMock.mockRejectedValue(new Error("DB_DOWN"));
+
+    const { default: AdminPage } = await import("../src/app/admin/page");
+    const view = await AdminPage({
+      searchParams: Promise.resolve({}),
+    });
+
+    expect(typeof view.type).toBe("function");
+    expect((view.type as { name?: string }).name).toBe("AdminPageUnavailableFallback");
+  });
 });

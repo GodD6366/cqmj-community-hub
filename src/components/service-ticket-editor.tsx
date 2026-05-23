@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Alert, Button, Card, Input, TextArea } from "@heroui/react";
 import type { ServiceTicketCategory, ServiceTicketDraft } from "@/lib/types";
 import { serviceTicketCategoryMeta } from "@/lib/types";
@@ -13,23 +13,49 @@ const categories = Object.entries(serviceTicketCategoryMeta) as Array<
 export function ServiceTicketEditor({
   onSubmit,
   initialCategory = "repair",
+  initialTitle = "",
+  initialDescription = "",
+  editorTitle = "提交工单",
+  editorDescription,
+  submitLabel = "提交工单",
+  submittingLabel = "提交中...",
+  onCancel,
 }: {
   onSubmit: (draft: ServiceTicketDraft) => void | Promise<void>;
   initialCategory?: ServiceTicketCategory;
+  initialTitle?: string;
+  initialDescription?: string;
+  editorTitle?: string;
+  editorDescription?: string;
+  submitLabel?: string;
+  submittingLabel?: string;
+  onCancel?: () => void;
 }) {
   const [category, setCategory] = useState<ServiceTicketCategory>(initialCategory);
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
+  const [title, setTitle] = useState(initialTitle);
+  const [description, setDescription] = useState(initialDescription);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    setCategory(initialCategory);
+  }, [initialCategory]);
+
+  useEffect(() => {
+    setTitle(initialTitle);
+  }, [initialTitle]);
+
+  useEffect(() => {
+    setDescription(initialDescription);
+  }, [initialDescription]);
+
   return (
     <SectionCard className="overflow-hidden">
-      <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-4">
+      <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3 sm:px-5 sm:py-4">
         <div>
-          <p className="section-kicker">报修报事</p>
-          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">提交一条服务工单</h1>
-          <p className="mt-2 text-sm leading-6 text-slate-600">工单提交后会进入服务流，并在消息页同步进度更新。</p>
+          <p className="section-kicker">服务工单</p>
+          <h1 className="mt-3 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">{editorTitle}</h1>
+          {editorDescription ? <p className="mt-2 text-sm leading-6 text-slate-600">{editorDescription}</p> : null}
         </div>
       </Card.Header>
 
@@ -55,7 +81,7 @@ export function ServiceTicketEditor({
           fullWidth
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          placeholder="例如：6 栋二单元门禁识别异常"
+          placeholder="例如：2 单元门禁失灵"
         />
 
         <TextArea
@@ -64,7 +90,7 @@ export function ServiceTicketEditor({
           value={description}
           onChange={(event) => setDescription(event.target.value)}
           rows={6}
-          placeholder="写清楚位置、故障表现、发生时间，方便物业更快处理。"
+          placeholder="位置、问题、时间"
         />
 
         {error ? (
@@ -77,15 +103,18 @@ export function ServiceTicketEditor({
 
         <div className="flex justify-end">
           <Button
+            className="w-full sm:w-auto"
             isPending={submitting}
             onPress={async () => {
               setError("");
               setSubmitting(true);
               try {
                 await onSubmit({ title, description, category });
-                setTitle("");
-                setDescription("");
-                setCategory(initialCategory);
+                if (!onCancel) {
+                  setTitle("");
+                  setDescription("");
+                  setCategory(initialCategory);
+                }
               } catch (submitError) {
                 setError(submitError instanceof Error ? submitError.message : "提交工单失败");
               } finally {
@@ -93,8 +122,13 @@ export function ServiceTicketEditor({
               }
             }}
           >
-            {submitting ? "提交中..." : "提交工单"}
+            {submitting ? submittingLabel : submitLabel}
           </Button>
+          {onCancel ? (
+            <Button className="w-full sm:w-auto" onPress={onCancel} type="button" variant="secondary">
+              取消编辑
+            </Button>
+          ) : null}
         </div>
       </Card.Content>
     </SectionCard>

@@ -185,8 +185,8 @@ export function PostEditor({
   initialCategory = "request",
   visibleCategories = ["request", "secondhand", "discussion", "play"],
   categoryLocked = false,
-  editorTitle = "发一条对邻里有帮助的帖子",
-  editorDescription = "现在支持多图上传，适合闲置展示、活动说明和现场反馈。",
+  editorTitle = "发布内容",
+  editorDescription,
   submitLabel = "立即发布",
   submittingLabel = "发布中...",
   clearLabel = "清空草稿",
@@ -532,13 +532,11 @@ export function PostEditor({
       }}
     >
       <SectionCard className="overflow-hidden">
-        <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-4 sm:px-5">
+        <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3 sm:px-5 sm:py-4">
           <div>
-            <p className="section-kicker">发布内容</p>
+            <p className="section-kicker">发布</p>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{editorTitle}</h1>
-            <p className="mt-2 text-sm leading-6 text-slate-600">
-              {editorDescription}
-            </p>
+            {editorDescription ? <p className="mt-2 text-sm leading-6 text-slate-600">{editorDescription}</p> : null}
           </div>
         </Card.Header>
 
@@ -588,7 +586,7 @@ export function PostEditor({
             </div>
           </div>
 
-          <div className="gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
+          <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
             <div className="space-y-5">
               <label className="space-y-2 text-sm font-semibold text-slate-800">
                 <span className="flex items-center justify-between gap-3">
@@ -600,7 +598,7 @@ export function PostEditor({
                   fullWidth
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="例如：闲置：九成新餐椅一套，可自提"
+                  placeholder="例如：九成新餐椅，自提"
                 />
               </label>
 
@@ -615,7 +613,7 @@ export function PostEditor({
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
                   rows={12}
-                  placeholder="补充说明、价格范围、时间要求、交易方式等"
+                  placeholder="补充价格、地点、时间、方式"
                 />
               </label>
 
@@ -624,7 +622,7 @@ export function PostEditor({
                   <div>
                     <p className="text-sm font-semibold text-slate-800">4. 图片</p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
-                      最多 {MAX_POST_IMAGES} 张，自动压缩为 WebP，最长边 {MAX_POST_IMAGE_DIMENSION}px，单图不超过 2MB。
+                      最多 {MAX_POST_IMAGES} 张 · 自动压缩 · 单图 ≤ 2MB
                     </p>
                   </div>
                   <Button
@@ -633,7 +631,7 @@ export function PostEditor({
                     type="button"
                     variant="secondary"
                   >
-                    选择图片
+                    上传图片
                   </Button>
                 </div>
                 <input
@@ -709,7 +707,7 @@ export function PostEditor({
                   </div>
                 ) : (
                   <div className="rounded-[1rem] border border-dashed border-[var(--separator)] px-4 py-5 text-sm leading-6 text-slate-500">
-                    还没有上传图片。卖闲置时建议至少放 1 张清晰实拍图，交流或约玩也可以补现场照片。
+                    还没上传图片。
                   </div>
                 )}
               </div>
@@ -722,7 +720,7 @@ export function PostEditor({
                     fullWidth
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
-                    placeholder="使用逗号分隔，例如：家政, 周末, 推荐"
+                    placeholder="逗号分隔，如：家政, 周末"
                   />
                 </label>
 
@@ -734,10 +732,10 @@ export function PostEditor({
                     type="button"
                     variant={anonymous ? "primary" : "secondary"}
                   >
-                    {anonymous ? "匿名发布已开启" : "使用实名发布"}
+                    {anonymous ? "匿名发布" : "实名发布"}
                   </Button>
                   <p className="text-xs leading-5 text-slate-500">
-                    {anonymous ? "帖子和评论都会显示为匿名居民。" : "默认展示你的社区账号名称。"}
+                    {anonymous ? "显示为匿名居民。" : "显示账号名。"}
                   </p>
                 </div>
               </div>
@@ -761,15 +759,6 @@ export function PostEditor({
                   ))}
                 </div>
                 <p className="mt-3 text-xs leading-5 text-slate-500">{visibilityMeta[visibility].description}</p>
-              </div>
-
-              <div className="info-strip rounded-[1rem] p-4 text-sm text-slate-600">
-                <div className="font-semibold text-slate-900">发帖建议</div>
-                <ul className="bullet-list mt-3 leading-6">
-                  <li>标题先写清楚核心需求，方便邻居一眼判断能否帮忙。</li>
-                  <li>交易或求助帖尽量写明时间、地点、预算和联系方式偏好。</li>
-                  <li>多图时把最关键的一张放在第一位，它会作为列表缩略图。</li>
-                </ul>
               </div>
             </div>
           </div>
@@ -802,12 +791,11 @@ export function PostEditor({
         </Card.Content>
       </SectionCard>
 
-      <aside className="order-last forum-sidebar xl:sticky xl:top-24">
+      <aside className="order-last hidden forum-sidebar xl:sticky xl:top-24 xl:block">
         <SectionCard className="overflow-hidden">
           <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3">
             <div>
-              <p className="section-kicker">实时预览</p>
-              <p className="mt-2 text-sm leading-6 text-slate-600">这里会显示最终展示效果，首图会进入列表缩略图。</p>
+              <p className="section-kicker">预览</p>
             </div>
           </Card.Header>
           <Card.Content className="space-y-4 p-4">
@@ -828,9 +816,9 @@ export function PostEditor({
                 {anonymous ? <Chip size="sm" variant="soft">匿名</Chip> : null}
                 {uploadedImages.length > 0 ? <Chip size="sm" variant="soft">{uploadedImages.length} 张图</Chip> : null}
               </div>
-              <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-900">{title.trim() || "你的标题会显示在这里"}</h2>
+              <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-900">{title.trim() || "标题会显示在这里"}</h2>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-600">
-                {content.trim() || "你的正文预览会显示在这里，便于在手机上发帖时检查排版。"}
+                {content.trim() || "正文会显示在这里。"}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {parsedTags.length > 0 ? (
@@ -840,7 +828,7 @@ export function PostEditor({
                     </Chip>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-400">尚未填写标签</span>
+                  <span className="text-xs text-slate-400">暂无标签</span>
                 )}
               </div>
             </div>
@@ -849,8 +837,8 @@ export function PostEditor({
               当前状态：
               <span className="ml-2 font-semibold text-slate-700">
                 {title.trim() && content.trim() && parsedTags.length > 0 && uploadingCount === 0 && failedCount === 0
-                  ? "可以发布"
-                  : "还需补全内容，或等待图片上传完成"}
+                  ? "可发布"
+                  : "继续补全"}
               </span>
             </div>
           </Card.Content>

@@ -13,7 +13,7 @@ const navItems: Array<{ href: string; label: string; requiresAuth?: boolean }> =
   { href: "/publish", label: "发布中心" },
   { href: "/mcp/connect", label: "AI助手", requiresAuth: true },
   { href: "/rules", label: "社区规则" },
-  { href: "/about", label: "项目说明" },
+  { href: "/about", label: "项目介绍" },
 ];
 
 export function SiteNav() {

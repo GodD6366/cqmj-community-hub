@@ -5,30 +5,32 @@ import { useEffect, useMemo, useState } from "react";
 import { Alert, Button, Card, Chip, Input } from "@heroui/react";
 import { useCommunityPosts } from "./community-provider";
 import { ButtonLink, PageShell } from "./ui";
+import { ResidentMobileHero, ResidentMobilePanel } from "./resident-shared";
+import { SystemLogo } from "./system-logo";
 
 type InviteCheckResult =
   | { ok: true; normalizedCode: string; remainingUses: number | null; expiresAt: string | null; note: string | null }
   | { ok: false; normalizedCode: string | null; reason: "empty" | "invalid" | "inactive" | "expired" | "exhausted" };
 
 function getInviteHint(result: InviteCheckResult | null) {
-  if (!result) return "输入邀请码后会自动校验可用性。";
+  if (!result) return "";
   if (result.ok) {
     const usage = result.remainingUses === null ? "不限次数" : `剩余 ${result.remainingUses} 次`;
-    const expiry = result.expiresAt ? `，到期时间 ${new Date(result.expiresAt).toLocaleString("zh-CN")}` : "";
-    return `邀请码可用：${usage}${expiry}`;
+    const expiry = result.expiresAt ? ` · 至 ${new Date(result.expiresAt).toLocaleString("zh-CN")}` : "";
+    return `${usage}${expiry}`;
   }
 
   switch (result.reason) {
     case "empty":
       return "请输入邀请码。";
     case "invalid":
-      return "邀请码不存在或格式不正确。";
+      return "邀请码无效。";
     case "inactive":
-      return "邀请码已停用，请联系管理员。";
+      return "邀请码已停用。";
     case "expired":
-      return "邀请码已过期，请联系管理员。";
+      return "邀请码已过期。";
     case "exhausted":
-      return "邀请码可用次数已耗尽。";
+      return "邀请码次数已用完。";
   }
 }
 
@@ -56,6 +58,7 @@ export function LoginClient() {
   const [submitting, setSubmitting] = useState(false);
   const [checkingInvite, setCheckingInvite] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<InviteCheckResult | null>(null);
+  const desktopSteps = mode === "login" ? ["输入账号", "验证身份", "进入社区"] : ["邀请码", "绑定房号", "完成注册"];
 
   useEffect(() => {
     if (mode !== "register") return;
@@ -124,50 +127,240 @@ export function LoginClient() {
   if (currentUser) {
     return (
       <PageShell className="max-w-3xl py-6">
-          <Card className="glass-card p-6 sm:p-8">
-          <Card.Header className="p-0">
-            <div>
-              <p className="section-kicker">当前已登录</p>
-              <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{currentUser.username}</h1>
-              <p className="mt-2 text-sm leading-7 text-slate-600">
-                {currentUser.role === "admin"
-                  ? "角色：管理员"
-                  : `房号：${currentUser.roomNumber || "未绑定"}`}
-              </p>
+        <div className="mobile-resident-only mobile-resident-stack">
+          <ResidentMobileHero
+            background="radial-gradient(circle at 16% 18%, rgba(237,170,92,0.3), transparent 24%), radial-gradient(circle at 84% 12%, rgba(94,190,255,0.22), transparent 22%), linear-gradient(160deg, #1c1c2f 0%, #31355f 46%, #515691 100%)"
+            className="px-4 py-4"
+          >
+            <div className="mobile-resident-kicker text-white/72">居民入口</div>
+            <h1 className="mobile-resident-title mt-3 max-w-[6ch] text-[1.7rem]">已登录</h1>
+            <p className="mobile-resident-copy mt-3 max-w-[28ch] text-white/76">
+              {currentUser.role === "admin" ? "管理员账号" : currentUser.roomNumber || "未绑定房号"}
+            </p>
+
+            <div className="mt-5 grid grid-cols-2 gap-2.5">
+              {[
+                { label: "用户名", value: currentUser.username },
+                { label: "角色", value: currentUser.role === "admin" ? "管理员" : "住户" },
+              ].map((item) => (
+                <div key={item.label} className="mobile-resident-metric bg-white/10 ring-1 ring-white/10 backdrop-blur-sm">
+                  <div className="mobile-resident-metric-label text-white/58">{item.label}</div>
+                  <div className="mobile-resident-metric-value text-white text-[1rem]">{item.value}</div>
+                </div>
+              ))}
             </div>
-          </Card.Header>
-          <Card.Content className="flex flex-col gap-3 p-0 pt-6 sm:flex-row">
-            <ButtonLink href={nextPath}>继续前往</ButtonLink>
-            <ButtonLink href="/" variant="secondary">
-              返回首页
-            </ButtonLink>
-          </Card.Content>
-        </Card>
+          </ResidentMobileHero>
+
+          <ResidentMobilePanel delay="120ms">
+            <div className="mobile-resident-kicker text-[#315d8f]">入口</div>
+            <h2 className="mobile-resident-panel-title">继续访问</h2>
+
+            <div className="mt-4 grid gap-2.5">
+              <ButtonLink href={nextPath}>进入页面</ButtonLink>
+              <ButtonLink href="/" variant="secondary">
+                返回首页
+              </ButtonLink>
+            </div>
+          </ResidentMobilePanel>
+        </div>
+
+        <div className="hidden md:block">
+          <Card className="glass-card p-6 sm:p-8">
+            <Card.Header className="p-0">
+              <div>
+                <p className="section-kicker">已登录</p>
+                <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">{currentUser.username}</h1>
+                <p className="mt-2 text-sm leading-7 text-slate-600">
+                  {currentUser.role === "admin"
+                    ? "角色：管理员"
+                    : `房号：${currentUser.roomNumber || "未绑定"}`}
+                </p>
+              </div>
+            </Card.Header>
+            <Card.Content className="flex flex-col gap-3 p-0 pt-6 sm:flex-row">
+              <ButtonLink href={nextPath}>进入页面</ButtonLink>
+              <ButtonLink href="/" variant="secondary">
+                返回首页
+              </ButtonLink>
+            </Card.Content>
+          </Card>
+        </div>
       </PageShell>
     );
   }
 
   return (
-    <PageShell className="max-w-6xl">
-      <div className="grid gap-4 lg:grid-cols-[0.94fr_1.06fr] lg:gap-5">
+    <PageShell className="max-w-6xl pt-0">
+      <div className="mobile-resident-only mobile-resident-stack">
+        <ResidentMobileHero
+          className="px-4 pb-0 pt-2.5"
+          background="radial-gradient(circle at 16% 18%, rgba(237,170,92,0.3), transparent 24%), radial-gradient(circle at 84% 12%, rgba(96,188,255,0.22), transparent 22%), linear-gradient(160deg, #12192f 0%, #233556 46%, #41558a 100%)"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div className="mobile-resident-kicker text-white/72">居民入口</div>
+            <span className="rounded-full bg-white/10 px-2.5 py-1 text-[0.68rem] font-semibold text-white/80 ring-1 ring-white/10">
+              {mode === "login" ? "登录" : "注册"}
+            </span>
+          </div>
+          <h1 className="mobile-resident-title mt-2 max-w-none text-[1.26rem] whitespace-nowrap">{mode === "login" ? "账号登录" : "邀请码注册"}</h1>
+        </ResidentMobileHero>
+
+        <ResidentMobilePanel className="-mt-5 px-4 pb-3 pt-3" delay="120ms">
+          <div className="flex flex-row gap-1.5 rounded-[1rem] bg-[var(--surface-muted)] p-1.25">
+            <Button
+              className={mode === "login" ? "min-h-9 flex-1 bg-white text-slate-950 shadow-none" : "min-h-9 flex-1 border-transparent bg-transparent text-slate-600 shadow-none"}
+              onPress={() => setMode("login")}
+              variant="secondary"
+            >
+              登录
+            </Button>
+            <Button
+              className={mode === "register" ? "min-h-9 flex-1 bg-white text-slate-950 shadow-none" : "min-h-9 flex-1 border-transparent bg-transparent text-slate-600 shadow-none"}
+              onPress={() => setMode("register")}
+              variant="secondary"
+            >
+              注册
+            </Button>
+          </div>
+
+          <div className="mt-3 space-y-2">
+            <label className="block space-y-1.5 text-[0.82rem] font-semibold text-slate-800">
+              <span>用户名</span>
+              <Input
+                aria-label="用户名"
+                fullWidth
+                value={username}
+                onChange={(event) => setUsername(event.target.value)}
+                placeholder="例如：godd"
+                autoCapitalize="none"
+                autoCorrect="off"
+              />
+            </label>
+
+            <label className="block space-y-1.5 text-[0.82rem] font-semibold text-slate-800">
+              <span>密码</span>
+              <Input
+                aria-label="密码"
+                fullWidth
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="至少 6 位"
+              />
+            </label>
+
+            {mode === "register" ? (
+              <>
+                <label className="block space-y-1.5 text-[0.82rem] font-semibold text-slate-800">
+                  <span>确认密码</span>
+                  <Input
+                    aria-label="确认密码"
+                    fullWidth
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(event) => setConfirmPassword(event.target.value)}
+                    placeholder="再次输入密码"
+                  />
+                </label>
+
+                <label className="block space-y-1.5 text-[0.82rem] font-semibold text-slate-800">
+                  <span>邀请码</span>
+                  <Input
+                    aria-label="邀请码"
+                    className={inviteStatus?.ok ? "border-emerald-300/80 bg-emerald-50/70" : undefined}
+                    fullWidth
+                    value={inviteCode}
+                    onChange={(event) => setInviteCode(event.target.value)}
+                    placeholder="邀请码"
+                    autoCapitalize="characters"
+                    autoCorrect="off"
+                  />
+                  {checkingInvite || inviteStatus ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {inviteStatus?.ok ? <Chip color="success" size="sm" variant="soft">可用</Chip> : null}
+                      {inviteStatus && !inviteStatus.ok ? <Chip color="danger" size="sm" variant="soft">不可用</Chip> : null}
+                      <p className={`text-[0.72rem] leading-5 ${inviteStatus?.ok ? "text-[var(--success)]" : inviteStatus && !inviteStatus.ok ? "text-[var(--danger)]" : "text-slate-500"}`}>
+                        {checkingInvite ? "校验中..." : getInviteHint(inviteStatus)}
+                      </p>
+                    </div>
+                  ) : null}
+                </label>
+
+                <label className="block space-y-1.5 text-[0.82rem] font-semibold text-slate-800">
+                  <span>房号</span>
+                  <Input
+                    aria-label="房号"
+                    fullWidth
+                    value={roomNumber}
+                    onChange={(event) => setRoomNumber(event.target.value)}
+                    placeholder="1-905"
+                    autoCapitalize="none"
+                  />
+                </label>
+              </>
+            ) : null}
+          </div>
+
+          {message ? (
+            <Alert className="mt-3" status="success">
+              <Alert.Content>
+                <Alert.Description>{message}</Alert.Description>
+              </Alert.Content>
+            </Alert>
+          ) : null}
+          {error ? (
+            <Alert className="mt-3" status="danger">
+              <Alert.Content>
+                <Alert.Description>{error}</Alert.Description>
+              </Alert.Content>
+            </Alert>
+          ) : null}
+
+          <div className="mt-3 grid gap-2">
+            <Button
+              isPending={submitting}
+              onPress={submit}
+              isDisabled={mode === "register" && inviteStatus !== null && !inviteStatus.ok}
+            >
+              {submitting ? "处理中..." : mode === "login" ? "进入社区" : "完成绑定"}
+            </Button>
+            <ButtonLink href="/" variant="secondary">
+              返回首页
+            </ButtonLink>
+          </div>
+        </ResidentMobilePanel>
+      </div>
+
+      <div className="hidden md:grid gap-4 lg:grid-cols-[0.94fr_1.06fr] lg:gap-5">
         <section className="hero-aurora rounded-[1.2rem] p-5 text-white sm:p-6">
-          <div className="section-kicker text-white/72">Resident Access Sequence</div>
+          <div className="flex items-center gap-3">
+            <SystemLogo className="gap-0" markClassName="h-12 w-12" showLabel={false} />
+            <div className="section-kicker text-white/72">居民入口</div>
+          </div>
           <h1 className="editorial-title mt-5 text-[2.5rem] leading-[0.94] font-semibold text-white sm:text-[4rem]">
-            邀请码 + 房号，完成社区身份绑定
+            登录 / 注册
           </h1>
-          <p className="mt-4 max-w-xl text-sm leading-7 text-slate-200 sm:text-base">
-            第一次注册用邀请码和房号完成身份校验。房号可绑定同住成员，校验完成后后续直接使用用户名 + 密码登录。
-          </p>
-          <div className="mt-6 grid gap-3 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3">
+          <div className="mt-5 flex flex-wrap gap-2">
             {[
-              ["1", "输入邀请码", "先确认邀请码可用，再继续注册。"],
-              ["2", "绑定房号", "支持同一房号下的多位住户分别建号。"],
-              ["3", "长期登录", "完成后即可直接登录、评论和发帖。"],
-            ].map(([step, title, desc]) => (
-              <div key={step} className="stat-block rounded-[0.9rem] p-4">
-                <div className="text-xs font-semibold tracking-[0.16em] text-sky-100 uppercase">Step {step}</div>
-                <div className="mt-3 text-base font-semibold text-white">{title}</div>
-                <p className="mt-2 text-sm leading-6 text-slate-200">{desc}</p>
+              mode === "login" ? "账号登录" : "邀请码注册",
+              mode === "login" ? "快速进入" : "房号绑定",
+            ].map((item) => (
+              <Chip key={item} size="sm" variant="soft">
+                {item}
+              </Chip>
+            ))}
+          </div>
+
+          <div className="mt-6 grid gap-3 sm:grid-cols-3">
+            {desktopSteps.map((item, index) => (
+              <div
+                key={item}
+                className="rounded-[1rem] bg-white/10 px-3.5 py-3 ring-1 ring-white/10 backdrop-blur-sm"
+              >
+                <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-white/58">
+                  0{index + 1}
+                </div>
+                <div className="mt-2 text-sm font-semibold text-white">{item}</div>
               </div>
             ))}
           </div>
@@ -192,13 +385,10 @@ export function LoginClient() {
           </div>
 
           <div className="mt-6">
-            <p className="section-kicker">{mode === "login" ? "欢迎回来" : "首次加入社区"}</p>
+            <p className="section-kicker">{mode === "login" ? "登录" : "注册"}</p>
             <h2 className="mt-4 text-3xl font-semibold tracking-tight text-slate-950 sm:text-[2.6rem]">
-              {mode === "login" ? "用户名 + 密码登录" : "邀请码 + 房号完成注册"}
+              {mode === "login" ? "账号登录" : "邀请码注册"}
             </h2>
-            <p className="mt-2 text-sm leading-7 text-slate-600">
-              {mode === "login" ? "使用你已经绑定好的用户名和密码登录。" : "注册时会实时校验邀请码是否可用，并校验房号格式；同一房号可绑定多个用户。"}
-            </p>
           </div>
 
           <div className="mt-6 space-y-4">
@@ -249,17 +439,19 @@ export function LoginClient() {
                     fullWidth
                     value={inviteCode}
                     onChange={(event) => setInviteCode(event.target.value)}
-                    placeholder="输入管理员发放的邀请码"
+                    placeholder="邀请码"
                     autoCapitalize="characters"
                     autoCorrect="off"
                   />
-                  <div className="flex flex-wrap items-center gap-2">
-                    {inviteStatus?.ok ? <Chip color="success" size="sm" variant="soft">邀请码可用</Chip> : null}
-                    {inviteStatus && !inviteStatus.ok ? <Chip color="danger" size="sm" variant="soft">邀请码不可用</Chip> : null}
-                    <p className={`text-xs leading-5 ${inviteStatus?.ok ? "text-[var(--success)]" : inviteStatus && !inviteStatus.ok ? "text-[var(--danger)]" : "text-slate-500"}`}>
-                      {checkingInvite ? "邀请码校验中..." : getInviteHint(inviteStatus)}
-                    </p>
-                  </div>
+                  {checkingInvite || inviteStatus ? (
+                    <div className="flex flex-wrap items-center gap-2">
+                      {inviteStatus?.ok ? <Chip color="success" size="sm" variant="soft">可用</Chip> : null}
+                      {inviteStatus && !inviteStatus.ok ? <Chip color="danger" size="sm" variant="soft">不可用</Chip> : null}
+                      <p className={`text-xs leading-5 ${inviteStatus?.ok ? "text-[var(--success)]" : inviteStatus && !inviteStatus.ok ? "text-[var(--danger)]" : "text-slate-500"}`}>
+                        {checkingInvite ? "校验中..." : getInviteHint(inviteStatus)}
+                      </p>
+                    </div>
+                  ) : null}
                 </label>
 
                 <label className="block space-y-2 text-sm font-semibold text-slate-800">
@@ -272,7 +464,6 @@ export function LoginClient() {
                     placeholder="例如：1-905"
                     autoCapitalize="none"
                   />
-                  <p className="text-xs leading-5 text-slate-500">格式建议：楼栋-房号，例如 1-905、8-1201。</p>
                 </label>
               </>
             ) : null}
@@ -302,7 +493,7 @@ export function LoginClient() {
               {submitting ? "处理中..." : mode === "login" ? "进入社区" : "完成绑定"}
             </Button>
             <ButtonLink href="/" variant="secondary">
-              先逛逛首页
+              返回首页
             </ButtonLink>
           </div>
         </section>

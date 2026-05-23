@@ -6,6 +6,7 @@ import type {
   CommunityUser,
   NotificationItem,
   PollDraft,
+  PollUpdateDraft,
   PollSummary,
   PostDraft,
   ServiceTicketDraft,
@@ -33,8 +34,12 @@ interface CommunityStore {
   updatePost: (postId: string, draft: PostDraft) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
   addPoll: (draft: PollDraft) => Promise<string>;
+  updatePoll: (pollId: string, draft: PollUpdateDraft) => Promise<void>;
+  deletePoll: (pollId: string) => Promise<void>;
   votePoll: (pollId: string, optionId: string) => Promise<void>;
   addServiceTicket: (draft: ServiceTicketDraft) => Promise<string>;
+  updateServiceTicket: (ticketId: string, draft: ServiceTicketDraft) => Promise<void>;
+  deleteServiceTicket: (ticketId: string) => Promise<void>;
   addComment: (
     postId: string,
     comment: { content: string },
@@ -182,6 +187,32 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const updatePoll = useCallback(
+    async (pollId: string, draft: PollUpdateDraft) => {
+      const response = await fetch(`/api/polls/${pollId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(draft),
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deletePoll = useCallback(
+    async (pollId: string) => {
+      const response = await fetch(`/api/polls/${pollId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
+    },
+    [refresh],
+  );
+
   const addServiceTicket = useCallback(
     async (draft: ServiceTicketDraft) => {
       const response = await fetch("/api/service-tickets", {
@@ -193,6 +224,32 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       const data = await readJson<{ id: string }>(response);
       await refresh();
       return data.id;
+    },
+    [refresh],
+  );
+
+  const updateServiceTicket = useCallback(
+    async (ticketId: string, draft: ServiceTicketDraft) => {
+      const response = await fetch(`/api/service-tickets/${ticketId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(draft),
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const deleteServiceTicket = useCallback(
+    async (ticketId: string) => {
+      const response = await fetch(`/api/service-tickets/${ticketId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
     },
     [refresh],
   );
@@ -310,8 +367,12 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       updatePost,
       deletePost,
       addPoll,
+      updatePoll,
+      deletePoll,
       votePoll,
       addServiceTicket,
+      updateServiceTicket,
+      deleteServiceTicket,
       addComment,
       toggleFavorite,
       reportPost,
@@ -324,6 +385,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       addPoll,
       addPost,
       addServiceTicket,
+      deletePoll,
+      deleteServiceTicket,
       currentUser,
       deletePost,
       hydrated,
@@ -339,6 +402,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       serviceTickets,
       toggleFavorite,
       unreadNotificationCount,
+      updatePoll,
+      updateServiceTicket,
       updatePost,
       votePoll,
     ],

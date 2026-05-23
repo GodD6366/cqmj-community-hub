@@ -14,7 +14,7 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
 
   return (
     <form
-      className="glass-card space-y-4 rounded-[1.2rem] p-4"
+      className="glass-card space-y-3.5 rounded-[1.2rem] p-4"
       onSubmit={async (event) => {
         event.preventDefault();
         const value = content.trim();
@@ -38,7 +38,6 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
         <label className="block text-sm font-semibold text-slate-800" htmlFor="comment-content">
           发表评论
         </label>
-        <p className="text-xs leading-5 text-slate-500">补充进展、确认交易细节，或给邻居更明确的回复。</p>
       </div>
       <TextArea
         id="comment-content"
@@ -46,7 +45,7 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
         value={content}
         onChange={(event) => setContent(event.target.value)}
         rows={3}
-        placeholder="写下你的补充说明、问题反馈或交易确认"
+        placeholder="写回复"
       />
       {error ? (
         <Alert status="danger">
@@ -56,9 +55,8 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
         </Alert>
       ) : null}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="text-xs leading-5 text-slate-500">建议写明时间、地点或联系方式偏好，方便对方继续跟进。</div>
         <Button className="sm:w-auto" fullWidth isPending={submitting} type="submit">
-          {submitting ? "发送中..." : "发送评论"}
+          {submitting ? "发送中..." : "发送"}
         </Button>
       </div>
     </form>

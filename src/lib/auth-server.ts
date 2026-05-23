@@ -70,7 +70,6 @@ export function getSessionCookieOptions(expiresAt: Date) {
 
 export async function getCurrentUserFromCookie() {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
-  await ensureAdminUserInitialized();
   if (!token) return null;
 
   const session = await prisma.session.findUnique({

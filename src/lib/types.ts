@@ -96,6 +96,10 @@ export interface PollDraft {
   endsAt?: string | null;
 }
 
+export interface PollUpdateDraft extends PollDraft {
+  status?: PollStatus;
+}
+
 export interface ServiceTicketSummary {
   id: string;
   title: string;

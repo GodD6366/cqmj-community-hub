@@ -3,6 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const getCurrentUserFromCookieMock = vi.hoisted(() => vi.fn());
 const listPostsForViewerMock = vi.hoisted(() => vi.fn());
 const createPostForViewerMock = vi.hoisted(() => vi.fn());
+const listPollsForViewerMock = vi.hoisted(() => vi.fn());
+const listServiceTicketsForViewerMock = vi.hoisted(() => vi.fn());
+const listNotificationsForViewerMock = vi.hoisted(() => vi.fn());
+const countUnreadNotificationsForViewerMock = vi.hoisted(() => vi.fn());
 const getPublicImageBaseUrlMock = vi.hoisted(() => vi.fn());
 const getUploadPrefixMock = vi.hoisted(() => vi.fn());
 
@@ -15,6 +19,13 @@ vi.mock("../src/lib/community-server", () => ({
   createPostForViewer: createPostForViewerMock,
 }));
 
+vi.mock("../src/lib/resident-server", () => ({
+  listPollsForViewer: listPollsForViewerMock,
+  listServiceTicketsForViewer: listServiceTicketsForViewerMock,
+  listNotificationsForViewer: listNotificationsForViewerMock,
+  countUnreadNotificationsForViewer: countUnreadNotificationsForViewerMock,
+}));
+
 vi.mock("../src/lib/s3-storage", () => ({
   getPublicImageBaseUrl: getPublicImageBaseUrlMock,
   getUploadPrefix: getUploadPrefixMock,
@@ -25,6 +36,63 @@ describe("/api/posts route", () => {
     vi.clearAllMocks();
     getPublicImageBaseUrlMock.mockReturnValue("https://cdn.example.com");
     getUploadPrefixMock.mockReturnValue("posts");
+  });
+
+  it("returns resident app data for GET", async () => {
+    const { GET } = await import("../src/app/api/posts/route");
+    getCurrentUserFromCookieMock.mockResolvedValueOnce({ id: "user-1", username: "alice", role: "user" });
+    listPostsForViewerMock.mockResolvedValueOnce([{ id: "post-1", title: "社区公告" }]);
+    listPollsForViewerMock.mockResolvedValueOnce([{ id: "poll-1", title: "周末活动" }]);
+    listServiceTicketsForViewerMock.mockResolvedValueOnce([{ id: "ticket-1", title: "电梯报修" }]);
+    listNotificationsForViewerMock.mockResolvedValueOnce([{ id: "notice-1", title: "新提醒" }]);
+    countUnreadNotificationsForViewerMock.mockResolvedValueOnce(2);
+
+    const response = await GET();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      posts: [{ id: "post-1", title: "社区公告" }],
+      polls: [{ id: "poll-1", title: "周末活动" }],
+      serviceTickets: [{ id: "ticket-1", title: "电梯报修" }],
+      notifications: [{ id: "notice-1", title: "新提醒" }],
+      unreadNotificationCount: 2,
+      currentUser: { id: "user-1", username: "alice", role: "user" },
+    });
+  });
+
+  it("returns a safe empty payload when resident data loading fails", async () => {
+    const { GET } = await import("../src/app/api/posts/route");
+    getCurrentUserFromCookieMock.mockResolvedValueOnce({ id: "user-1", username: "alice", role: "user" });
+    listPostsForViewerMock.mockRejectedValueOnce(new Error("DB_DOWN"));
+
+    const response = await GET();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      posts: [],
+      polls: [],
+      serviceTickets: [],
+      notifications: [],
+      unreadNotificationCount: 0,
+      currentUser: { id: "user-1", username: "alice", role: "user" },
+    });
+  });
+
+  it("returns a guest-safe empty payload when auth loading fails", async () => {
+    const { GET } = await import("../src/app/api/posts/route");
+    getCurrentUserFromCookieMock.mockRejectedValueOnce(new Error("DB_DOWN"));
+
+    const response = await GET();
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      posts: [],
+      polls: [],
+      serviceTickets: [],
+      notifications: [],
+      unreadNotificationCount: 0,
+      currentUser: null,
+    });
   });
 
   it("rejects unauthenticated post creation", async () => {

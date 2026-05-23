@@ -1,9 +1,9 @@
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 
-const FALLBACK_MARKDOWN = `# 项目说明
+const FALLBACK_MARKDOWN = `# 项目介绍
 
-当前仓库暂未提供 \`why.md\` 或 \`README.md\` 内容，请稍后补充项目说明文档。`;
+暂无项目文档。`;
 
 const PROJECT_DOC_CANDIDATES = ["why.md", "README.md"] as const;
 

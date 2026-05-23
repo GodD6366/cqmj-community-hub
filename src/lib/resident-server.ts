@@ -6,6 +6,7 @@ import type {
   NotificationType,
   PollDraft,
   PollSummary,
+  PollUpdateDraft,
   ServiceTicketDraft,
   ServiceTicketStatus,
   ServiceTicketSummary,
@@ -353,6 +354,118 @@ export async function votePollForViewer(
       });
     }
   });
+}
+
+export async function updatePollForViewer(
+  pollId: string,
+  viewer: { id: string; username: string; role?: string },
+  draft: PollUpdateDraft,
+) {
+  const current = await prisma.poll.findUnique({
+    where: { id: pollId },
+    select: {
+      id: true,
+      title: true,
+      authorId: true,
+      status: true,
+    },
+  });
+
+  if (!current) {
+    return { status: "not_found" as const };
+  }
+
+  if (current.authorId !== viewer.id && viewer.role !== "admin") {
+    return { status: "forbidden" as const };
+  }
+
+  const title = normalizeText(draft.title);
+  const description = normalizeText(draft.description);
+  const options = normalizePollOptions(draft.options);
+  if (!title || !description) {
+    throw new Error("INVALID_POLL_CONTENT");
+  }
+  if (options.length < 2) {
+    throw new Error("INVALID_POLL_OPTIONS");
+  }
+
+  const endsAt = draft.endsAt ? new Date(draft.endsAt) : null;
+  if (endsAt && Number.isNaN(endsAt.getTime())) {
+    throw new Error("INVALID_POLL_ENDS_AT");
+  }
+
+  const nextStatus = draft.status ?? current.status;
+  if (nextStatus !== "active" && nextStatus !== "closed") {
+    throw new Error("INVALID_POLL_STATUS");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.pollOption.deleteMany({
+      where: { pollId },
+    });
+
+    const updated = await tx.poll.update({
+      where: { id: pollId },
+      data: {
+        title,
+        description,
+        endsAt,
+        status: nextStatus,
+        totalVotes: 0,
+        options: {
+          create: options.map((option, index) => ({
+            label: option,
+            sortOrder: index,
+          })),
+        },
+        votes: {
+          deleteMany: {},
+        },
+      },
+      select: {
+        id: true,
+        title: true,
+      },
+    });
+
+    await createNotificationRecord(tx, {
+      userId: viewer.id,
+      type: "poll",
+      title: `你的投票「${updated.title}」已更新`,
+      body: nextStatus === "closed" ? "已结束" : "内容已保存",
+      href: "/neighbors",
+    });
+  });
+
+  return { status: "ok" as const };
+}
+
+export async function deletePollForViewer(
+  pollId: string,
+  viewer: { id: string; username: string; role?: string },
+) {
+  const poll = await prisma.poll.findUnique({
+    where: { id: pollId },
+    select: {
+      id: true,
+      title: true,
+      authorId: true,
+    },
+  });
+
+  if (!poll) {
+    return { status: "not_found" as const };
+  }
+
+  if (poll.authorId !== viewer.id && viewer.role !== "admin") {
+    return { status: "forbidden" as const };
+  }
+
+  await prisma.poll.delete({
+    where: { id: pollId },
+  });
+
+  return { status: "ok" as const };
 }
 
 export async function listServiceTicketsForViewer(viewerId: string | null, limit = 12) {
