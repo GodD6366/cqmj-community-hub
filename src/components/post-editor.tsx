@@ -53,8 +53,74 @@ const visibilityOptions = Object.entries(visibilityMeta) as [VisibilityScope, (t
 const STORAGE_KEY = "community-hub-post-draft";
 const TITLE_MAX = 60;
 const CONTENT_MAX = 1200;
-const DEFAULT_TAGS = "求助, 邻里互助";
 const WEBP_EXT = ".webp";
+const categoryEditorCopy: Record<
+  PostCategory,
+  {
+    titlePlaceholder: string;
+    contentPlaceholder: string;
+    tagsPlaceholder: string;
+    defaultTags: string;
+    imageHint: string;
+    emptyImageHint: string;
+    previewTitlePlaceholder: string;
+    previewContentPlaceholder: string;
+    emptyTagsHint: string;
+  }
+> = {
+  request: {
+    titlePlaceholder: "例如：求推荐靠谱的空调清洗师傅",
+    contentPlaceholder: "写清需求、预算、时间、地点，以及希望怎么联系你",
+    tagsPlaceholder: "如：维修, 家政, 跑腿",
+    defaultTags: "求助, 邻里互助",
+    imageHint: "可上传现场照片、报错截图或参考图，方便邻居快速判断",
+    emptyImageHint: "建议上传现场照片、报错截图或需求参考图。",
+    previewTitlePlaceholder: "需求标题会显示在这里",
+    previewContentPlaceholder: "把需求背景、预算、时间写清楚，会更容易得到回复。",
+    emptyTagsHint: "推荐补充需求关键词",
+  },
+  secondhand: {
+    titlePlaceholder: "例如：九成新餐椅，自提",
+    contentPlaceholder: "补充成色、价格、交易方式、自提地点和方便时间",
+    tagsPlaceholder: "如：闲置, 转让, 自提",
+    defaultTags: "闲置, 转让",
+    imageHint: "建议上传实拍图，展示成色、细节和配件情况",
+    emptyImageHint: "建议上传实拍图，闲置更容易成交。",
+    previewTitlePlaceholder: "闲置标题会显示在这里",
+    previewContentPlaceholder: "把成色、价格和交易方式写完整，买家更容易决定。",
+    emptyTagsHint: "推荐补充物品关键词",
+  },
+  discussion: {
+    titlePlaceholder: "例如：关于地库充电桩使用的建议",
+    contentPlaceholder: "说明背景、现状和你的想法，也可以补充希望大家讨论的点",
+    tagsPlaceholder: "如：社区讨论, 建议, 公告",
+    defaultTags: "社区讨论, 邻里交流",
+    imageHint: "可上传公告截图、现场照片或示意图，方便大家理解",
+    emptyImageHint: "可上传配图、公告截图或示意图。",
+    previewTitlePlaceholder: "帖子标题会显示在这里",
+    previewContentPlaceholder: "写下背景、观点和你希望大家讨论的重点。",
+    emptyTagsHint: "推荐补充讨论关键词",
+  },
+  play: {
+    titlePlaceholder: "例如：周六晚羽毛球 3 缺 1",
+    contentPlaceholder: "写清时间、地点、人数、费用，以及怎么报名或集合",
+    tagsPlaceholder: "如：约玩, 运动, 亲子",
+    defaultTags: "约玩, 邻里活动",
+    imageHint: "可上传活动海报、场地照片或路线图，方便大家报名",
+    emptyImageHint: "可上传活动海报、场地照片或路线图。",
+    previewTitlePlaceholder: "约玩标题会显示在这里",
+    previewContentPlaceholder: "把时间、地点、人数和报名方式写清楚，更容易成团。",
+    emptyTagsHint: "推荐补充活动关键词",
+  },
+};
+
+function getDefaultTags(category: PostCategory) {
+  return categoryEditorCopy[category].defaultTags;
+}
+
+function isDefaultTagsValue(value: string, category: PostCategory) {
+  return value.trim() === getDefaultTags(category);
+}
 
 function isBlobUrl(value: string) {
   return value.startsWith("blob:");
@@ -223,7 +289,9 @@ export function PostEditor({
   const [category, setCategory] = useState<PostCategory>(initialDraft?.category ?? initialCategory);
   const [title, setTitle] = useState(initialDraft?.title ?? "");
   const [content, setContent] = useState(initialDraft?.content ?? "");
-  const [tags, setTags] = useState(initialDraft?.tags.join(", ") ?? DEFAULT_TAGS);
+  const [tags, setTags] = useState(
+    initialDraft?.tags.join(", ") ?? getDefaultTags(initialDraft?.category ?? initialCategory),
+  );
   const [visibility, setVisibility] = useState<VisibilityScope>(initialDraft?.visibility ?? "community");
   const [anonymous, setAnonymous] = useState(initialDraft?.anonymous ?? false);
   const [images, setImages] = useState<EditorImageItem[]>(() =>
@@ -244,6 +312,7 @@ export function PostEditor({
   const [hydratedDraft, setHydratedDraft] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const imagesRef = useRef<EditorImageItem[]>([]);
+  const previousCategoryRef = useRef(category);
 
   const parsedTags = useMemo(() => splitTags(tags), [tags]);
   const titleLength = title.trim().length;
@@ -251,10 +320,29 @@ export function PostEditor({
   const uploadedImages = useMemo(() => toDraftImages(images), [images]);
   const uploadingCount = images.filter((item) => item.status === "uploading").length;
   const failedCount = images.filter((item) => item.status === "error").length;
+  const currentCategoryCopy = categoryEditorCopy[category];
+  const resolvedEditorTitle = visibleCategories.length > 1 && !categoryLocked ? categoryMeta[category].label : editorTitle;
+  const resolvedEditorDescription = editorDescription ?? categoryMeta[category].description;
 
   useEffect(() => {
     imagesRef.current = images;
   }, [images]);
+
+  useEffect(() => {
+    const previousCategory = previousCategoryRef.current;
+    if (previousCategory === category) {
+      return;
+    }
+
+    setTags((current) => {
+      if (!current.trim() || isDefaultTagsValue(current, previousCategory)) {
+        return getDefaultTags(category);
+      }
+      return current;
+    });
+
+    previousCategoryRef.current = category;
+  }, [category]);
 
   useEffect(() => {
     return () => {
@@ -327,7 +415,7 @@ export function PostEditor({
     setCategory(initialDraft?.category ?? initialCategory);
     setTitle(initialDraft?.title ?? "");
     setContent(initialDraft?.content ?? "");
-    setTags(initialDraft?.tags.join(", ") ?? DEFAULT_TAGS);
+    setTags(initialDraft?.tags.join(", ") ?? getDefaultTags(initialDraft?.category ?? initialCategory));
     setVisibility(initialDraft?.visibility ?? "community");
     setAnonymous(initialDraft?.anonymous ?? false);
     setImages(
@@ -558,8 +646,8 @@ export function PostEditor({
         <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3 sm:px-5 sm:py-4">
           <div>
             <p className="section-kicker">发布</p>
-            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{editorTitle}</h1>
-            {editorDescription ? <p className="mt-2 text-sm leading-6 text-slate-600">{editorDescription}</p> : null}
+            <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{resolvedEditorTitle}</h1>
+            {resolvedEditorDescription ? <p className="mt-2 text-sm leading-6 text-slate-600">{resolvedEditorDescription}</p> : null}
           </div>
         </Card.Header>
 
@@ -621,7 +709,7 @@ export function PostEditor({
                   fullWidth
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
-                  placeholder="例如：九成新餐椅，自提"
+                  placeholder={currentCategoryCopy.titlePlaceholder}
                 />
               </label>
 
@@ -636,7 +724,7 @@ export function PostEditor({
                   value={content}
                   onChange={(event) => setContent(event.target.value)}
                   rows={12}
-                  placeholder="补充价格、地点、时间、方式"
+                  placeholder={currentCategoryCopy.contentPlaceholder}
                 />
               </label>
 
@@ -646,6 +734,9 @@ export function PostEditor({
                     <p className="text-sm font-semibold text-slate-800">4. 图片</p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
                       最多 {MAX_POST_IMAGES} 张 · 自动压缩 · 单图 ≤ 2MB
+                    </p>
+                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                      {currentCategoryCopy.imageHint}
                     </p>
                   </div>
                   <Button
@@ -734,7 +825,7 @@ export function PostEditor({
                   </div>
                 ) : (
                   <div className="rounded-[1rem] border border-dashed border-[var(--separator)] px-4 py-5 text-sm leading-6 text-slate-500">
-                    还没上传图片。
+                    {currentCategoryCopy.emptyImageHint}
                   </div>
                 )}
               </div>
@@ -747,7 +838,7 @@ export function PostEditor({
                     fullWidth
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
-                    placeholder="逗号分隔，如：家政, 周末"
+                    placeholder={currentCategoryCopy.tagsPlaceholder}
                   />
                 </label>
 
@@ -843,9 +934,11 @@ export function PostEditor({
                 {anonymous ? <Chip size="sm" variant="soft">匿名</Chip> : null}
                 {uploadedImages.length > 0 ? <Chip size="sm" variant="soft">{uploadedImages.length} 张图</Chip> : null}
               </div>
-              <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-900">{title.trim() || "标题会显示在这里"}</h2>
+              <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-900">
+                {title.trim() || currentCategoryCopy.previewTitlePlaceholder}
+              </h2>
               <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-600">
-                {content.trim() || "正文会显示在这里。"}
+                {content.trim() || currentCategoryCopy.previewContentPlaceholder}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
                 {parsedTags.length > 0 ? (
@@ -855,7 +948,7 @@ export function PostEditor({
                     </Chip>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-400">暂无标签</span>
+                  <span className="text-xs text-slate-400">{currentCategoryCopy.emptyTagsHint}</span>
                 )}
               </div>
             </div>

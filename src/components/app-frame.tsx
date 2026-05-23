@@ -36,12 +36,22 @@ function getActiveKey(pathname: string) {
   return null;
 }
 
+function shouldShowComposer(pathname: string) {
+  if (pathname.startsWith("/publish")) return false;
+  if (pathname.startsWith("/messages")) return false;
+  if (pathname.startsWith("/me")) return false;
+  if (pathname.startsWith("/about")) return false;
+  if (pathname.startsWith("/rules")) return false;
+  if (pathname.startsWith("/mcp/connect")) return false;
+  return true;
+}
+
 export function AppFrame({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { currentUser, unreadNotificationCount } = useCommunityPosts();
   const residentExperience = isResidentExperience(pathname);
   const activeKey = getActiveKey(pathname);
-  const showComposer = residentExperience && !pathname.startsWith("/publish");
+  const showComposer = residentExperience && shouldShowComposer(pathname);
   const hideMessageBadge = pathname.startsWith("/messages");
 
   if (!residentExperience) {
