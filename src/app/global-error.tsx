@@ -34,7 +34,7 @@ export default function GlobalError({
 
             <section className="mobile-resident-panel mobile-resident-enter" style={{ animationDelay: "120ms" }}>
               <div className="mobile-resident-kicker text-[#315d8f]">重试</div>
-              <h2 className="mobile-resident-panel-title">恢复页面</h2>
+              <h2 className="mobile-resident-panel-title">重试</h2>
               <div className="mt-4 grid gap-2.5">
                 <button
                   className="inline-flex h-11 items-center justify-center rounded-full bg-[var(--primary)] px-4 text-sm font-semibold text-white"
@@ -60,7 +60,7 @@ export default function GlobalError({
             </section>
 
             <section className="glass-card rounded-[1.5rem] p-6">
-              <div className="text-lg font-semibold text-slate-950">恢复页面</div>
+              <div className="text-lg font-semibold text-slate-950">重试</div>
               <div className="mt-4 flex flex-wrap gap-3">
                 <button
                   className="inline-flex h-11 items-center justify-center rounded-full bg-[var(--primary)] px-5 text-sm font-semibold text-white"

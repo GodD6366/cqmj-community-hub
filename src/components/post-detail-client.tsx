@@ -21,6 +21,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   const router = useRouter();
   const { posts, addComment, toggleFavorite, reportPost, updatePost, deletePost, currentUser } = useCommunityPosts();
   const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -63,11 +64,12 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
     setBusy(true);
     setMessage("");
+    setError("");
     try {
       await deletePost(postIdValue);
       router.push("/neighbors");
     } catch (submitError) {
-      setMessage(submitError instanceof Error ? submitError.message : "删除失败");
+      setError(submitError instanceof Error ? submitError.message : "删除失败");
     } finally {
       setBusy(false);
     }
@@ -75,17 +77,18 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
   async function handleFavorite() {
     if (!currentUser) {
-      setMessage("先登录再收藏。");
+      setError("先登录再收藏。");
       return;
     }
 
     setBusy(true);
     setMessage("");
+    setError("");
     try {
       const favorited = await toggleFavorite(postIdValue);
       setMessage(favorited ? "已收藏。" : "已取消收藏。");
     } catch (submitError) {
-      setMessage(submitError instanceof Error ? submitError.message : "收藏失败");
+      setError(submitError instanceof Error ? submitError.message : "收藏失败");
     } finally {
       setBusy(false);
     }
@@ -93,17 +96,18 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
   async function handleReport() {
     if (!currentUser) {
-      setMessage("先登录再举报。");
+      setError("先登录再举报。");
       return;
     }
 
     setBusy(true);
     setMessage("");
+    setError("");
     try {
       await reportPost(postIdValue);
       setMessage("已提交举报。");
     } catch (submitError) {
-      setMessage(submitError instanceof Error ? submitError.message : "举报失败");
+      setError(submitError instanceof Error ? submitError.message : "举报失败");
     } finally {
       setBusy(false);
     }
@@ -146,6 +150,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           onSubmit={async (draft) => {
             await updatePost(postIdValue, draft);
             setEditing(false);
+            setError("");
             setMessage("帖子已更新。");
           }}
         />
@@ -203,6 +208,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                 variant="secondary"
                 onPress={() => {
                   setMessage("");
+                  setError("");
                   setEditing(true);
                 }}
               >
@@ -312,6 +318,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                   variant="secondary"
                   onPress={() => {
                     setMessage("");
+                    setError("");
                     setEditing(true);
                   }}
                 >
@@ -391,10 +398,19 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
         </Alert>
       ) : null}
 
+      {error ? (
+        <Alert status="danger">
+          <Alert.Content>
+            <Alert.Description>{error}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+
       {currentUser ? (
         <CommentForm
           onSubmit={async (content) => {
             await addComment(postIdValue, { content });
+            setError("");
             setMessage("评论已发布。");
           }}
         />

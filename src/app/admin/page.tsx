@@ -35,7 +35,7 @@ export function AdminPageUnavailableFallback() {
 
         <section className="mobile-resident-panel mobile-resident-enter" style={{ animationDelay: "120ms" }}>
           <div className="mobile-resident-kicker text-[#315d8f]">入口</div>
-          <h2 className="mobile-resident-panel-title">返回常用入口</h2>
+          <h2 className="mobile-resident-panel-title">返回</h2>
 
           <div className="mt-4 grid gap-2.5">
             <ButtonLink href="/">回到首页</ButtonLink>

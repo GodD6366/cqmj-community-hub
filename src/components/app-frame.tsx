@@ -14,7 +14,15 @@ const navigationItems = [
 ] as const;
 
 function isResidentExperience(pathname: string) {
-  return !pathname.startsWith("/admin") && !pathname.startsWith("/login") && !pathname.startsWith("/mcp");
+  if (pathname.startsWith("/admin") || pathname.startsWith("/login")) {
+    return false;
+  }
+
+  if (pathname === "/mcp") {
+    return false;
+  }
+
+  return true;
 }
 
 function getActiveKey(pathname: string) {
@@ -22,6 +30,7 @@ function getActiveKey(pathname: string) {
   if (pathname.startsWith("/neighbors") || pathname === "/posts") return "neighbors";
   if (pathname.startsWith("/services")) return "services";
   if (pathname.startsWith("/messages")) return "messages";
+  if (pathname.startsWith("/mcp/connect")) return "me";
   if (pathname.startsWith("/me") || pathname.startsWith("/about") || pathname.startsWith("/rules")) return "me";
   if (pathname.startsWith("/posts/") || pathname.startsWith("/publish")) return "neighbors";
   return null;

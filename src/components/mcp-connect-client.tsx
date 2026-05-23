@@ -120,9 +120,9 @@ export function McpConnectClient({
               <Input aria-label="API key" fullWidth readOnly value={token} variant="secondary" />
             </label>
             <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
-              <span>接入文本</span>
+              <span>接入文案</span>
               <TextArea
-                aria-label="接入文本"
+                aria-label="接入文案"
                 fullWidth
                 readOnly
                 rows={8}
@@ -147,7 +147,7 @@ export function McpConnectClient({
                 });
               }}
             >
-              复制接入文本
+              复制接入文案
             </Button>
             <Button
               isPending={isRotating}
@@ -222,108 +222,110 @@ export function McpConnectClient({
         </Card>
       </section>
 
-      {welcome ? (
-        <Alert status="success">
-          <Alert.Content>
-            <Alert.Description>已生成个人密钥。</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
+      <div className="hidden space-y-4 md:block">
+        {welcome ? (
+          <Alert status="success">
+            <Alert.Content>
+              <Alert.Description>已生成个人密钥。</Alert.Description>
+            </Alert.Content>
+          </Alert>
+        ) : null}
 
-      {error ? (
-        <Alert status="danger">
-          <Alert.Content>
-            <Alert.Description>{error}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
+        {error ? (
+          <Alert status="danger">
+            <Alert.Content>
+              <Alert.Description>{error}</Alert.Description>
+            </Alert.Content>
+          </Alert>
+        ) : null}
 
-      {message ? (
-        <Alert status="success">
-          <Alert.Content>
-            <Alert.Description>{message}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
+        {message ? (
+          <Alert status="success">
+            <Alert.Content>
+              <Alert.Description>{message}</Alert.Description>
+            </Alert.Content>
+          </Alert>
+        ) : null}
 
-      <Card className="glass-card p-5 sm:p-6">
-        <Card.Header className="p-0">
-          <div>
-            <div className="section-kicker">配置</div>
-            <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
-              接入信息
-            </h2>
-          </div>
-        </Card.Header>
-        <Card.Content className="grid gap-5 p-0 pt-6">
-          <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
-            <span>MCP 端点</span>
-            <Input aria-label="MCP 端点" fullWidth readOnly value={endpoint} variant="secondary" />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
-            <span>API key</span>
-            <Input aria-label="API key" fullWidth readOnly value={token} variant="secondary" />
-          </label>
-          <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
-            <span>接入文案</span>
-            <TextArea
-              aria-label="接入文案"
-              fullWidth
-              readOnly
-              rows={10}
-              value={prompt}
-              variant="secondary"
-            />
-          </label>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              isPending={isCopying}
-              onPress={() => {
-                setError("");
-                setMessage("");
-                setIsCopying(true);
-                startTransition(() => {
-                  void copyText(prompt)
-                    .then(() => setMessage("接入文案已复制。"))
-                    .catch(() => setError("复制失败，请手动复制文本。"))
-                    .finally(() => setIsCopying(false));
-                });
-              }}
-            >
-              复制接入文案
-            </Button>
-            <Button
-              isPending={isRotating}
-              onPress={() => {
-                setError("");
-                setMessage("");
-                setIsRotating(true);
-                startTransition(() => {
-                  void fetch("/api/mcp/token", {
-                    method: "POST",
-                    credentials: "include",
-                  })
-                    .then(async (response) => {
-                      const data = (await response.json().catch(() => null)) as { token?: string; error?: string } | null;
-                      if (!response.ok || !data?.token) {
-                        throw new Error(data?.error || "重置 API key 失败");
-                      }
-                      setToken(data.token);
-                      setMessage("API key 已重置。");
+        <Card className="glass-card p-5 sm:p-6">
+          <Card.Header className="p-0">
+            <div>
+              <div className="section-kicker">配置</div>
+              <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
+                接入信息
+              </h2>
+            </div>
+          </Card.Header>
+          <Card.Content className="grid gap-5 p-0 pt-6">
+            <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
+              <span>MCP 端点</span>
+              <Input aria-label="MCP 端点" fullWidth readOnly value={endpoint} variant="secondary" />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
+              <span>API key</span>
+              <Input aria-label="API key" fullWidth readOnly value={token} variant="secondary" />
+            </label>
+            <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
+              <span>接入文案</span>
+              <TextArea
+                aria-label="接入文案"
+                fullWidth
+                readOnly
+                rows={10}
+                value={prompt}
+                variant="secondary"
+              />
+            </label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                isPending={isCopying}
+                onPress={() => {
+                  setError("");
+                  setMessage("");
+                  setIsCopying(true);
+                  startTransition(() => {
+                    void copyText(prompt)
+                      .then(() => setMessage("接入文案已复制。"))
+                      .catch(() => setError("复制失败，请手动复制文本。"))
+                      .finally(() => setIsCopying(false));
+                  });
+                }}
+              >
+                复制接入文案
+              </Button>
+              <Button
+                isPending={isRotating}
+                onPress={() => {
+                  setError("");
+                  setMessage("");
+                  setIsRotating(true);
+                  startTransition(() => {
+                    void fetch("/api/mcp/token", {
+                      method: "POST",
+                      credentials: "include",
                     })
-                    .catch((requestError) => {
-                      setError(requestError instanceof Error ? requestError.message : "重置 API key 失败");
-                    })
-                    .finally(() => setIsRotating(false));
-                });
-              }}
-              variant="secondary"
-            >
-              重置 API key
-            </Button>
-          </div>
-        </Card.Content>
-      </Card>
+                      .then(async (response) => {
+                        const data = (await response.json().catch(() => null)) as { token?: string; error?: string } | null;
+                        if (!response.ok || !data?.token) {
+                          throw new Error(data?.error || "重置 API key 失败");
+                        }
+                        setToken(data.token);
+                        setMessage("API key 已重置。");
+                      })
+                      .catch((requestError) => {
+                        setError(requestError instanceof Error ? requestError.message : "重置 API key 失败");
+                      })
+                      .finally(() => setIsRotating(false));
+                  });
+                }}
+                variant="secondary"
+              >
+                重置 API key
+              </Button>
+            </div>
+          </Card.Content>
+        </Card>
+      </div>
     </PageShell>
   );
 }

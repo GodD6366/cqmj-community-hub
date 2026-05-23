@@ -121,7 +121,7 @@ export function NeighborsClient({
         <ResidentMobilePanel delay="120ms">
           <div className="min-w-0">
             <div className="mobile-resident-kicker text-[var(--primary)]">搜索</div>
-            <h2 className="mobile-resident-panel-title">筛选动态</h2>
+            <h2 className="mobile-resident-panel-title">筛选</h2>
             <div className="mt-2 inline-flex max-w-full rounded-full bg-[rgba(24,40,71,0.06)] px-3 py-1 text-[0.7rem] font-semibold leading-5 text-[var(--muted)]">
               {resultSummary}
             </div>
@@ -181,7 +181,7 @@ export function NeighborsClient({
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
               <div className="mobile-resident-kicker text-[#2d8e94]">投票</div>
-              <h2 className="mobile-resident-panel-title">热门投票</h2>
+              <h2 className="mobile-resident-panel-title">投票</h2>
             </div>
             <Link
               href="/publish?kind=poll"
@@ -316,8 +316,8 @@ export function NeighborsClient({
         <ResidentMobilePanel delay="280ms">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="mobile-resident-kicker text-[#315d8f]">帖子流</div>
-              <h2 className="mobile-resident-panel-title">最新帖子流</h2>
+              <div className="mobile-resident-kicker text-[#315d8f]">动态</div>
+              <h2 className="mobile-resident-panel-title">动态</h2>
             </div>
             <div className="shrink-0 rounded-full bg-[rgba(49,93,143,0.08)] px-3 py-1 text-[0.72rem] font-semibold text-[#315d8f]">
               {filteredPosts.length} 条
@@ -397,7 +397,7 @@ export function NeighborsClient({
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.55fr)_minmax(320px,0.95fr)] xl:items-start">
           <section className="app-card px-4 py-4 md:px-5 md:py-5">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
-              <SectionHeader title="筛选动态" caption="搜索" />
+              <SectionHeader title="筛选" />
               <div className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-xs font-semibold text-[var(--muted)]">{resultSummary}</div>
             </div>
 
@@ -465,7 +465,7 @@ export function NeighborsClient({
 
           <aside className="space-y-4 xl:sticky xl:top-28">
             <section className="app-card px-4 py-4 md:px-5 md:py-5">
-              <SectionHeader title="热门投票" caption="投票" href="/neighbors" actionLabel="更多" />
+              <SectionHeader title="投票" href="/neighbors" actionLabel="更多" />
               <div className="mt-4 space-y-3">
                 {activePolls.length > 0 ? (
                   activePolls.map((poll) => (
@@ -502,7 +502,7 @@ export function NeighborsClient({
 
           <section className="space-y-3">
             <div className="flex items-center justify-between gap-3 px-1 md:px-0">
-              <SectionHeader title="最新帖子流" caption="帖子" />
+              <SectionHeader title="动态" />
               <div className="text-xs font-semibold text-[var(--muted)]">{deferredQuery ? "按搜索结果展示" : "按发布时间更新"}</div>
             </div>
             {!hydrated ? (

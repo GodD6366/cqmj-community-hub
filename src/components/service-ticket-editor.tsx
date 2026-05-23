@@ -101,7 +101,7 @@ export function ServiceTicketEditor({
           </Alert>
         ) : null}
 
-        <div className="flex justify-end">
+        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
           <Button
             className="w-full sm:w-auto"
             isPending={submitting}

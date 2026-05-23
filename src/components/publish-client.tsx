@@ -183,7 +183,7 @@ export function PublishClient({
         >
           <div className="mobile-resident-kicker text-white/72">发布中心</div>
           <h1 className="mobile-resident-title mt-5 max-w-[8ch]">
-            {activeEntry ? activeEntry.title : "选择发布类型"}
+            {activeEntry ? activeEntry.title : "发布内容"}
           </h1>
 
           {activeEntry ? (
@@ -213,8 +213,8 @@ export function PublishClient({
                 </Link>
               </div>
             ) : null}
-            <div className="mobile-resident-kicker text-[#315d8f]">类型选择</div>
-            <h2 className="mobile-resident-panel-title">选择发布类型</h2>
+            <div className="mobile-resident-kicker text-[#315d8f]">类型</div>
+            <h2 className="mobile-resident-panel-title">选择类型</h2>
 
             <div className="mt-4 grid gap-2.5">
               {publishEntries.map((entry) => (

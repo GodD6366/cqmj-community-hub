@@ -153,7 +153,7 @@ export function LoginClient() {
 
           <ResidentMobilePanel delay="120ms">
             <div className="mobile-resident-kicker text-[#315d8f]">入口</div>
-            <h2 className="mobile-resident-panel-title">继续访问</h2>
+            <h2 className="mobile-resident-panel-title">进入</h2>
 
             <div className="mt-4 grid gap-2.5">
               <ButtonLink href={nextPath}>进入页面</ButtonLink>

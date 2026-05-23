@@ -18,7 +18,7 @@ export default function NotFound() {
 
         <section className="mobile-resident-panel mobile-resident-enter" style={{ animationDelay: "120ms" }}>
           <div className="mobile-resident-kicker text-[#315d8f]">返回</div>
-          <h2 className="mobile-resident-panel-title">回到常用入口</h2>
+          <h2 className="mobile-resident-panel-title">返回</h2>
           <div className="mt-4 grid gap-2.5">
             <Link className="inline-flex h-11 items-center justify-center rounded-full bg-[var(--primary)] px-4 text-sm font-semibold text-white" href="/">
               回到首页
@@ -37,7 +37,7 @@ export default function NotFound() {
         </section>
 
         <section className="glass-card rounded-[1.5rem] p-6">
-          <div className="text-lg font-semibold text-slate-950">回到常用入口</div>
+          <div className="text-lg font-semibold text-slate-950">返回</div>
           <div className="mt-4 flex flex-wrap gap-3">
             <Link className="inline-flex h-11 items-center justify-center rounded-full bg-[var(--primary)] px-5 text-sm font-semibold text-white" href="/">
               回到首页

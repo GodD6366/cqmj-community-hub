@@ -509,7 +509,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
         </ResidentMobileHero>
 
         <ResidentMobilePanel delay="120ms">
-          <div className="mobile-resident-kicker text-[#8a5d39]">当前会话</div>
+          <div className="mobile-resident-kicker text-[#8a5d39]">账号</div>
           <h2 className="mobile-resident-panel-title">管理员账号</h2>
 
           <div className="mt-4 grid gap-2.5">
@@ -536,12 +536,14 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
 
         <ResidentMobilePanel delay="200ms">
           <div className="mobile-resident-kicker text-[#315d8f]">分组</div>
-          <h2 className="mobile-resident-panel-title">切换分组</h2>
+          <h2 className="mobile-resident-panel-title">分组</h2>
 
           <div className="mt-4">
             <AdminTabSwitcher activeTab={activeTab} compact onSelect={switchTab} />
           </div>
         </ResidentMobilePanel>
+
+        <FeedbackAlerts className="mobile-resident-enter" error={error} message={message} />
 
         {activeTab === "users" ? (
           <MobileAdminSection delay="280ms" kicker="用户" title="用户管理">
@@ -1036,7 +1038,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
       <SectionCard className="mt-4 hidden p-6 sm:mt-6 sm:p-8 md:block">
         <Card.Header className="flex flex-col gap-3 p-0">
           <div>
-            <Card.Title className="text-xl font-semibold text-slate-900">切换分组</Card.Title>
+            <Card.Title className="text-xl font-semibold text-slate-900">分组</Card.Title>
           </div>
         </Card.Header>
         <Card.Content className="p-0 pt-5">
