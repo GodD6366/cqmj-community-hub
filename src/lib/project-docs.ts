@@ -9,7 +9,7 @@ const PROJECT_DOC_CANDIDATES = ["why.md", "README.md"] as const;
 
 export async function loadProjectDescriptionMarkdown() {
   for (const fileName of PROJECT_DOC_CANDIDATES) {
-    const filePath = path.join(process.cwd(), fileName);
+    const filePath = path.join(/* turbopackIgnore: true */ process.cwd(), fileName);
 
     try {
       const markdown = await readFile(filePath, "utf8");

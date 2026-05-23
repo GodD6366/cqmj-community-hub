@@ -5,6 +5,8 @@ import { ButtonLink, PageShell } from "@/components/ui";
 import { getCurrentUserFromCookie, isAdminUser } from "@/lib/auth-server";
 import { parseAdminTab, type AdminTab } from "@/lib/admin-tabs";
 
+export const dynamic = "force-dynamic";
+
 interface AdminPageProps {
   searchParams: Promise<{ tab?: string | string[] }>;
 }

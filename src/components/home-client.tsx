@@ -69,8 +69,8 @@ export function HomeClient() {
         </ResidentMobileHero>
 
         <ResidentMobilePanel delay="120ms">
-          <div className="mobile-resident-kicker text-[var(--primary)]">快捷入口</div>
-          <h2 className="mobile-resident-panel-title">常用操作</h2>
+          <div className="mobile-resident-kicker text-[var(--primary)]">入口</div>
+          <h2 className="mobile-resident-panel-title">快捷入口</h2>
 
           <div className="mt-4 grid grid-cols-4 gap-2">
             {quickActions.map((item) => (
@@ -87,8 +87,8 @@ export function HomeClient() {
         <ResidentMobilePanel delay="200ms">
           <div className="flex items-start justify-between gap-3">
             <div className="min-w-0">
-              <div className="mobile-resident-kicker text-[#2d8e94]">公告</div>
-              <h2 className="mobile-resident-panel-title">社区公告</h2>
+              <div className="mobile-resident-kicker text-[#2d8e94]">社区</div>
+              <h2 className="mobile-resident-panel-title">公告</h2>
             </div>
             <Link href="/neighbors" className="shrink-0 rounded-full bg-[rgba(45,142,148,0.09)] px-3 py-1 text-[0.72rem] font-semibold text-[#1d6f73]">
               更多
@@ -164,7 +164,7 @@ export function HomeClient() {
       <div className="hidden md:block">
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.88fr)] xl:items-start">
           <section className={`app-card px-4 py-4 md:px-4 md:py-4 ${announcementPost ? "" : "xl:col-span-2"}`}>
-            <SectionHeader title="快捷入口" caption="常用操作" />
+            <SectionHeader title="快捷入口" />
             <div className="mt-4 grid grid-cols-5 gap-1.5 sm:gap-2.5">
               {quickActions.map((item) => (
                 <Link
@@ -183,7 +183,7 @@ export function HomeClient() {
 
           {!hydrated ? (
             <section className="app-card px-4 py-4 md:px-5 md:py-5">
-              <SectionHeader title="社区公告" caption="重要通知" />
+              <SectionHeader title="公告" />
               <div className="mt-4">
                 <EmptyState
                   title="公告加载中"
@@ -194,7 +194,7 @@ export function HomeClient() {
             </section>
           ) : announcementPost ? (
             <section className="app-card px-4 py-4 md:px-5 md:py-5">
-              <SectionHeader title="社区公告" caption="重要通知" href="/neighbors" actionLabel="更多" />
+              <SectionHeader title="公告" href="/neighbors" actionLabel="更多" />
               <div className="mt-4 rounded-[1.2rem] bg-[var(--surface-muted)] px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="min-w-0 text-sm font-semibold text-slate-900">

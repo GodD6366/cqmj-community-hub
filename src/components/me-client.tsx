@@ -174,8 +174,8 @@ export function MeClient() {
         </ResidentMobileHero>
 
         <ResidentMobilePanel delay="120ms">
-          <div className="mobile-resident-kicker text-[#8a5d39]">快捷入口</div>
-          <h2 className="mobile-resident-panel-title">常用直达</h2>
+          <div className="mobile-resident-kicker text-[#8a5d39]">我的</div>
+          <h2 className="mobile-resident-panel-title">快捷入口</h2>
 
           <div className="mt-4 grid grid-cols-2 gap-2.5">
             {shortcutItems.map((item) => (
@@ -203,7 +203,7 @@ export function MeClient() {
 
         <ResidentMobilePanel delay="200ms">
           <div className="mobile-resident-kicker text-[#2f7d8a]">状态</div>
-          <h2 className="mobile-resident-panel-title">账户状态</h2>
+          <h2 className="mobile-resident-panel-title">状态</h2>
 
           <div className="mt-4 grid gap-2.5">
             {activityItems.map((item) => (
@@ -224,7 +224,7 @@ export function MeClient() {
 
         <ResidentMobilePanel delay="280ms">
           <div className="mobile-resident-kicker text-[#315d8f]">更多</div>
-          <h2 className="mobile-resident-panel-title">更多页面</h2>
+          <h2 className="mobile-resident-panel-title">更多</h2>
 
           <div className="mt-4 grid gap-2.5">
             {menuItems.map((item) => (
@@ -257,7 +257,6 @@ export function MeClient() {
                   <p className="mt-1 text-sm text-white/72">{currentUser.roomNumber || "未绑定房号"}</p>
                 </div>
               </div>
-              <p className="mt-4 max-w-2xl text-sm leading-6 text-white/76 md:text-[0.95rem] md:leading-7">发布、参与、收藏、工单。</p>
             </div>
 
             <div className="grid grid-cols-2 gap-2 text-center">
@@ -283,7 +282,7 @@ export function MeClient() {
 
         <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-start">
           <section className="app-card px-4 py-4 md:px-5 md:py-5">
-            <SectionHeader title="常用直达" caption="我的" />
+            <SectionHeader title="快捷入口" />
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               {shortcutItems.map((item) => (
                 <Link key={item.label} href={item.href} className="app-card-muted rounded-[1.2rem] px-4 py-4">
@@ -296,7 +295,7 @@ export function MeClient() {
           </section>
 
           <section className="app-card px-4 py-4 md:px-5 md:py-5">
-            <SectionHeader title="更多入口" caption="列表" />
+            <SectionHeader title="更多" />
             <div className="mt-4 grid gap-1">
               {menuItems.map((item, index) => (
                 <Link

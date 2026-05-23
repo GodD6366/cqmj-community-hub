@@ -6,6 +6,8 @@ import { getCurrentUserFromCookie } from "@/lib/auth-server";
 import { getAppOrigin } from "@/lib/app-origin";
 import { ensureUserMcpAccess } from "@/lib/mcp-auth";
 
+export const dynamic = "force-dynamic";
+
 interface McpConnectPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }

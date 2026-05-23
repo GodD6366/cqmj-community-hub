@@ -203,7 +203,7 @@ export function McpConnectClient({
 
         <Card className="glass-card p-5 sm:p-6">
           <Card.Header className="p-0">
-            <div className="section-kicker">接入信息</div>
+            <div className="section-kicker">状态</div>
           </Card.Header>
           <Card.Content className="grid gap-3 p-0 pt-5">
             {[
@@ -249,7 +249,7 @@ export function McpConnectClient({
       <Card className="glass-card p-5 sm:p-6">
         <Card.Header className="p-0">
           <div>
-            <div className="section-kicker">接入信息</div>
+            <div className="section-kicker">配置</div>
             <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">
               接入信息
             </h2>
@@ -265,9 +265,9 @@ export function McpConnectClient({
             <Input aria-label="API key" fullWidth readOnly value={token} variant="secondary" />
           </label>
           <label className="flex flex-col gap-2 text-sm font-semibold text-slate-800">
-            <span>复制这段话给模型或平台</span>
+            <span>接入文案</span>
             <TextArea
-              aria-label="复制这段话给模型或平台"
+              aria-label="接入文案"
               fullWidth
               readOnly
               rows={10}

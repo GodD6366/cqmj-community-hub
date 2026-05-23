@@ -78,8 +78,8 @@ export function ServicesClient() {
         </ResidentMobileHero>
 
         <ResidentMobilePanel delay="120ms">
-          <div className="mobile-resident-kicker text-[#2d8e94]">入口</div>
-          <h2 className="mobile-resident-panel-title">常用入口</h2>
+          <div className="mobile-resident-kicker text-[#2d8e94]">服务</div>
+          <h2 className="mobile-resident-panel-title">服务入口</h2>
 
           <div className="mt-4 grid gap-2.5">
             {serviceCatalog.map((item) => (
@@ -90,7 +90,7 @@ export function ServicesClient() {
 
         <ResidentMobilePanel delay="200ms">
           <div className="mobile-resident-kicker text-[#315d8f]">工单</div>
-          <h2 className="mobile-resident-panel-title">最新工单</h2>
+          <h2 className="mobile-resident-panel-title">工单</h2>
 
           {editingTicket ? (
             <div className="mt-4 space-y-3">
@@ -156,7 +156,7 @@ export function ServicesClient() {
 
         <ResidentMobilePanel delay="280ms">
           <div className="mobile-resident-kicker text-[#c97c45]">分类</div>
-          <h2 className="mobile-resident-panel-title">服务分类</h2>
+          <h2 className="mobile-resident-panel-title">分类</h2>
 
           <div className="mt-4 grid gap-2.5">
               {Object.entries(serviceTicketCategoryMeta).map(([key, meta]) => (
@@ -174,9 +174,6 @@ export function ServicesClient() {
           <div className="max-w-3xl">
             <div className="section-kicker text-white/68">服务台</div>
             <h1 className="mt-3 text-[1.75rem] font-semibold tracking-[-0.05em] md:text-[2.3rem]">工单与服务入口</h1>
-            <p className="mt-3 text-sm leading-6 text-white/78 md:text-[0.95rem] md:leading-7">
-              常用入口和工单状态。
-            </p>
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/publish?kind=ticket" className="rounded-full bg-white px-4 py-2 text-sm font-semibold text-[var(--primary)]">
@@ -190,7 +187,7 @@ export function ServicesClient() {
 
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,0.85fr)] lg:items-start">
           <section className="app-card px-4 py-4 md:px-5 md:py-5">
-            <SectionHeader title="常用服务" caption="快捷入口" />
+            <SectionHeader title="服务入口" />
             <div className="mt-4 grid gap-3 md:grid-cols-2">
               {serviceCatalog.map((item) => (
                 <QuickActionTile key={item.label} {...item} />
@@ -199,7 +196,7 @@ export function ServicesClient() {
           </section>
 
           <section className="app-card px-4 py-4 md:px-5 md:py-5">
-            <SectionHeader title="我的工单" caption="进度" />
+            <SectionHeader title="我的工单" />
             {currentUser ? (
               <div className="mt-4 grid grid-cols-3 gap-3">
                 <div className="app-card-muted px-3 py-4 text-center">
@@ -231,7 +228,7 @@ export function ServicesClient() {
 
         <div className="grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.9fr)] xl:items-start">
           <section className="app-card px-4 py-4 md:px-5 md:py-5">
-            <SectionHeader title="最近工单" caption="列表" />
+            <SectionHeader title="工单" />
             {serviceTickets.length > 0 ? (
               <div className="mt-4 space-y-3">
                 {serviceTickets.map((ticket) => (
@@ -265,7 +262,6 @@ export function ServicesClient() {
               <div className="mt-4">
                 <EmptyState
                   title="还没有工单"
-                  description="先提交一条。"
                   actionHref="/publish?kind=ticket"
                   actionLabel="提交工单"
                 />
@@ -274,7 +270,7 @@ export function ServicesClient() {
           </section>
 
           <section className="app-card px-4 py-4 md:px-5 md:py-5 xl:sticky xl:top-28">
-            <SectionHeader title="服务分类" caption="分类" />
+            <SectionHeader title="分类" />
             <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
               {Object.entries(serviceTicketCategoryMeta).map(([key, meta]) => (
                 <div key={key} className="rounded-[1.1rem] bg-[var(--surface-muted)] px-3 py-3">

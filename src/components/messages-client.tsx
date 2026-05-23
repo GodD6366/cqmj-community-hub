@@ -79,8 +79,8 @@ export function MessagesClient() {
         </ResidentMobileHero>
 
         <ResidentMobilePanel delay="120ms">
-          <div className="mobile-resident-kicker text-[#315d8f]">列表</div>
-          <h2 className="mobile-resident-panel-title">全部消息</h2>
+          <div className="mobile-resident-kicker text-[#315d8f]">收件箱</div>
+          <h2 className="mobile-resident-panel-title">消息</h2>
 
           <div className="mt-4 space-y-3">
             {!currentUser ? (
@@ -171,7 +171,7 @@ export function MessagesClient() {
         ) : (
           <section className="space-y-3 xl:max-w-5xl">
             <div className="flex items-center justify-between gap-3">
-              <SectionHeader title="全部消息" caption="消息列表" />
+              <SectionHeader title="消息" />
               {unreadNotificationCount > 0 ? (
                 <Button
                   isPending={busy}
