@@ -203,7 +203,7 @@ export function MeClient() {
 
         <ResidentMobilePanel delay="200ms">
           <div className="mobile-resident-kicker text-[#2f7d8a]">状态</div>
-          <h2 className="mobile-resident-panel-title">状态</h2>
+          <h2 className="mobile-resident-panel-title">当前状态</h2>
 
           <div className="mt-4 grid gap-2.5">
             {activityItems.map((item) => (
@@ -224,7 +224,7 @@ export function MeClient() {
 
         <ResidentMobilePanel delay="280ms">
           <div className="mobile-resident-kicker text-[#315d8f]">更多</div>
-          <h2 className="mobile-resident-panel-title">更多</h2>
+          <h2 className="mobile-resident-panel-title">更多入口</h2>
 
           <div className="mt-4 grid gap-2.5">
             {menuItems.map((item) => (

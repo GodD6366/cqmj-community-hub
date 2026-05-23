@@ -536,7 +536,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
 
         <ResidentMobilePanel delay="200ms">
           <div className="mobile-resident-kicker text-[#315d8f]">分组</div>
-          <h2 className="mobile-resident-panel-title">分组</h2>
+          <h2 className="mobile-resident-panel-title">切换分组</h2>
 
           <div className="mt-4">
             <AdminTabSwitcher activeTab={activeTab} compact onSelect={switchTab} />
@@ -1038,7 +1038,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
       <SectionCard className="mt-4 hidden p-6 sm:mt-6 sm:p-8 md:block">
         <Card.Header className="flex flex-col gap-3 p-0">
           <div>
-            <Card.Title className="text-xl font-semibold text-slate-900">分组</Card.Title>
+            <Card.Title className="text-xl font-semibold text-slate-900">切换分组</Card.Title>
           </div>
         </Card.Header>
         <Card.Content className="p-0 pt-5">

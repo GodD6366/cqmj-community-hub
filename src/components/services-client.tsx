@@ -90,7 +90,7 @@ export function ServicesClient() {
 
         <ResidentMobilePanel delay="200ms">
           <div className="mobile-resident-kicker text-[#315d8f]">工单</div>
-          <h2 className="mobile-resident-panel-title">工单</h2>
+          <h2 className="mobile-resident-panel-title">工单列表</h2>
 
           {editingTicket ? (
             <div className="mt-4 space-y-3">
@@ -156,7 +156,7 @@ export function ServicesClient() {
 
         <ResidentMobilePanel delay="280ms">
           <div className="mobile-resident-kicker text-[#c97c45]">分类</div>
-          <h2 className="mobile-resident-panel-title">分类</h2>
+          <h2 className="mobile-resident-panel-title">工单分类</h2>
 
           <div className="mt-4 grid gap-2.5">
               {Object.entries(serviceTicketCategoryMeta).map(([key, meta]) => (
