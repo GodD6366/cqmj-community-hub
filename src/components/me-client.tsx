@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
+import { Alert, Button } from "@heroui/react";
 import { EmptyState, ResidentAvatar, ResidentMetricGrid, ResidentMobileHero, ResidentMobilePanel, SectionHeader } from "./resident-shared";
 import { SystemLogo } from "./system-logo";
 import { useCommunityPosts } from "./community-provider";
@@ -15,7 +16,21 @@ const menuItems = [
 ] as const;
 
 export function MeClient() {
-  const { currentUser, posts, polls, serviceTickets, notifications } = useCommunityPosts();
+  const { currentUser, posts, polls, serviceTickets, notifications, logout } = useCommunityPosts();
+  const [loggingOut, setLoggingOut] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleLogout = async () => {
+    setError("");
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (logoutError) {
+      setError(logoutError instanceof Error ? logoutError.message : "退出失败");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   const stats = useMemo(() => {
     const myPosts = currentUser ? posts.filter((post) => post.isMine) : [];
@@ -142,6 +157,14 @@ export function MeClient() {
 
   return (
     <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
+      {error ? (
+        <Alert status="danger">
+          <Alert.Content>
+            <Alert.Description>{error}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+
       <div className="mobile-resident-only mobile-resident-stack">
         <ResidentMobileHero
           background="radial-gradient(circle at 14% 20%, rgba(231,162,84,0.34), transparent 26%), radial-gradient(circle at 85% 14%, rgba(95,178,150,0.26), transparent 22%), linear-gradient(160deg, #221812 0%, #38271f 46%, #5f4638 100%)"
@@ -242,6 +265,9 @@ export function MeClient() {
                 <span className="text-sm text-[var(--muted)]">›</span>
               </Link>
             ))}
+            <Button isPending={loggingOut} onPress={handleLogout} variant="secondary">
+              {loggingOut ? "退出中..." : "退出登录"}
+            </Button>
           </div>
         </ResidentMobilePanel>
       </div>
@@ -307,6 +333,11 @@ export function MeClient() {
                   <span className="text-sm text-[var(--muted)]">›</span>
                 </Link>
               ))}
+            </div>
+            <div className="mt-4">
+              <Button isPending={loggingOut} onPress={handleLogout} variant="secondary">
+                {loggingOut ? "退出中..." : "退出登录"}
+              </Button>
             </div>
           </section>
         </div>

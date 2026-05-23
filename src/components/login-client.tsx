@@ -46,7 +46,7 @@ export function LoginClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const nextPath = useMemo(() => searchParams.get("next") || "/", [searchParams]);
-  const { login, register, currentUser } = useCommunityPosts();
+  const { login, register, currentUser, logout } = useCommunityPosts();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -56,6 +56,7 @@ export function LoginClient() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
   const [checkingInvite, setCheckingInvite] = useState(false);
   const [inviteStatus, setInviteStatus] = useState<InviteCheckResult | null>(null);
   const desktopSteps = mode === "login" ? ["输入账号", "验证身份", "进入社区"] : ["邀请码", "绑定房号", "完成注册"];
@@ -124,6 +125,19 @@ export function LoginClient() {
     }
   };
 
+  const handleLogout = async () => {
+    setError("");
+    setMessage("");
+    setLoggingOut(true);
+    try {
+      await logout();
+    } catch (logoutError) {
+      setError(logoutError instanceof Error ? logoutError.message : "退出失败");
+    } finally {
+      setLoggingOut(false);
+    }
+  };
+
   if (currentUser) {
     return (
       <PageShell className="max-w-3xl py-6">
@@ -155,11 +169,24 @@ export function LoginClient() {
             <div className="mobile-resident-kicker text-[#315d8f]">入口</div>
             <h2 className="mobile-resident-panel-title">进入</h2>
 
+            {error ? (
+              <Alert className="mt-4" status="danger">
+                <Alert.Content>
+                  <Alert.Description>{error}</Alert.Description>
+                </Alert.Content>
+              </Alert>
+            ) : null}
+
             <div className="mt-4 grid gap-2.5">
               <ButtonLink href={nextPath}>进入页面</ButtonLink>
-              <ButtonLink href="/" variant="secondary">
-                返回首页
-              </ButtonLink>
+              <div className="grid grid-cols-2 gap-2.5">
+                <ButtonLink href="/" variant="secondary">
+                  返回首页
+                </ButtonLink>
+                <Button isPending={loggingOut} onPress={handleLogout} variant="secondary">
+                  {loggingOut ? "退出中..." : "退出登录"}
+                </Button>
+              </div>
             </div>
           </ResidentMobilePanel>
         </div>
@@ -177,11 +204,24 @@ export function LoginClient() {
                 </p>
               </div>
             </Card.Header>
-            <Card.Content className="flex flex-col gap-3 p-0 pt-6 sm:flex-row">
-              <ButtonLink href={nextPath}>进入页面</ButtonLink>
-              <ButtonLink href="/" variant="secondary">
-                返回首页
-              </ButtonLink>
+            <Card.Content className="p-0 pt-6">
+              {error ? (
+                <Alert status="danger">
+                  <Alert.Content>
+                    <Alert.Description>{error}</Alert.Description>
+                  </Alert.Content>
+                </Alert>
+              ) : null}
+
+              <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+                <ButtonLink href={nextPath}>进入页面</ButtonLink>
+                <ButtonLink href="/" variant="secondary">
+                  返回首页
+                </ButtonLink>
+                <Button isPending={loggingOut} onPress={handleLogout} variant="secondary">
+                  {loggingOut ? "退出中..." : "退出登录"}
+                </Button>
+              </div>
             </Card.Content>
           </Card>
         </div>

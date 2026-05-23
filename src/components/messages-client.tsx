@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button } from "@heroui/react";
 import { useCommunityPosts } from "./community-provider";
 import { notificationTypeMeta } from "@/lib/types";
@@ -13,6 +13,31 @@ export function MessagesClient() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const currentUserId = currentUser?.id ?? "";
+  const autoReadSignatureRef = useRef("");
+  const unreadNotificationIds = useMemo(
+    () => notifications.filter((notification) => !notification.readAt).map((notification) => notification.id),
+    [notifications],
+  );
+
+  useEffect(() => {
+    if (!currentUserId || unreadNotificationIds.length === 0) {
+      autoReadSignatureRef.current = "";
+      return;
+    }
+
+    const signature = unreadNotificationIds.join(",");
+    if (autoReadSignatureRef.current === signature) {
+      return;
+    }
+
+    autoReadSignatureRef.current = signature;
+    void markNotificationsRead(unreadNotificationIds).catch(() => {
+      if (autoReadSignatureRef.current === signature) {
+        autoReadSignatureRef.current = "";
+      }
+    });
+  }, [currentUser, currentUserId, markNotificationsRead, unreadNotificationIds]);
 
   return (
     <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">

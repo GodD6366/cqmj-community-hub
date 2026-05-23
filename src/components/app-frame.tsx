@@ -42,6 +42,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   const residentExperience = isResidentExperience(pathname);
   const activeKey = getActiveKey(pathname);
   const showComposer = residentExperience && !pathname.startsWith("/publish");
+  const hideMessageBadge = pathname.startsWith("/messages");
 
   if (!residentExperience) {
     return <div className="min-h-screen">{children}</div>;
@@ -64,7 +65,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
           <nav className="app-topnav" aria-label="桌面主导航">
             {navigationItems.map((item) => {
               const isActive = activeKey === item.key;
-              const showBadge = item.key === "messages" && unreadNotificationCount > 0;
+              const showBadge = item.key === "messages" && unreadNotificationCount > 0 && !hideMessageBadge;
 
               return (
                 <Link
@@ -118,7 +119,7 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
         {navigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeKey === item.key;
-          const showBadge = item.key === "messages" && unreadNotificationCount > 0;
+          const showBadge = item.key === "messages" && unreadNotificationCount > 0 && !hideMessageBadge;
 
           return (
             <Link
