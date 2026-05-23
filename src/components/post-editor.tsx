@@ -84,6 +84,29 @@ function readResponseError(body: unknown, fallback: string) {
   return fallback;
 }
 
+function readUploadError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return "上传失败";
+  }
+
+  const message = error.message.trim();
+  if (!message) {
+    return "上传失败";
+  }
+
+  const normalized = message.toLowerCase();
+  if (
+    normalized === "load failed" ||
+    normalized === "failed to fetch" ||
+    normalized === "network request failed" ||
+    normalized.includes("networkerror")
+  ) {
+    return "上传连接失败，请检查图片存储是否提供可访问的 HTTPS 地址";
+  }
+
+  return message;
+}
+
 async function loadImageElement(file: File) {
   const blobUrl = URL.createObjectURL(file);
   try {
@@ -465,7 +488,7 @@ export function PostEditor({
                   ...item,
                   sortOrder: index,
                   status: "error",
-                  error: uploadError instanceof Error ? uploadError.message : "上传失败",
+                  error: readUploadError(uploadError),
                 }
               : item,
           ),
@@ -618,7 +641,7 @@ export function PostEditor({
               </label>
 
               <div className="space-y-3">
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="text-sm font-semibold text-slate-800">4. 图片</p>
                     <p className="mt-1 text-xs leading-5 text-slate-500">
@@ -626,6 +649,7 @@ export function PostEditor({
                     </p>
                   </div>
                   <Button
+                    className="min-h-11 w-full sm:w-auto"
                     onPress={() => fileInputRef.current?.click()}
                     size="sm"
                     type="button"
@@ -647,7 +671,7 @@ export function PostEditor({
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {images.map((image, index) => (
                       <div key={image.clientId} className="overflow-hidden rounded-[1rem] border border-[var(--separator)] bg-white">
-                        <div className="aspect-[4/3] bg-[var(--surface-muted)]">
+                        <div className="aspect-[16/10] bg-[var(--surface-muted)] sm:aspect-[4/3]">
                           {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured CDN URLs are not a fit for static remotePatterns here. */}
                           <img
                             alt={`已选图片 ${index + 1}`}
@@ -655,7 +679,7 @@ export function PostEditor({
                             src={image.previewUrl}
                           />
                         </div>
-                        <div className="space-y-3 p-3">
+                        <div className="space-y-3 p-3 sm:p-4">
                           <div className="flex items-center justify-between gap-2">
                             <Chip size="sm" variant="soft">
                               第 {index + 1} 张
@@ -668,13 +692,14 @@ export function PostEditor({
                               {image.status === "uploaded" ? "已上传" : image.status === "uploading" ? "上传中" : "失败"}
                             </Chip>
                           </div>
-                          <p className="text-xs leading-5 text-slate-500">
+                          <p className={`text-xs leading-5 ${image.status === "error" ? "text-[var(--danger)]" : "text-slate-500"}`}>
                             {image.status === "uploaded"
                               ? `${image.width}×${image.height} · ${(image.sizeBytes / 1024).toFixed(0)}KB`
                               : image.error ?? "正在处理图片"}
                           </p>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
                             <Button
+                              className="min-h-11 w-full justify-center sm:w-auto"
                               isDisabled={index === 0}
                               onPress={() => reorderImage(index, index - 1)}
                               size="sm"
@@ -684,6 +709,7 @@ export function PostEditor({
                               前移
                             </Button>
                             <Button
+                              className="min-h-11 w-full justify-center sm:w-auto"
                               isDisabled={index === images.length - 1}
                               onPress={() => reorderImage(index, index + 1)}
                               size="sm"
@@ -693,6 +719,7 @@ export function PostEditor({
                               后移
                             </Button>
                             <Button
+                              className="min-h-11 w-full justify-center text-[var(--danger)] sm:w-auto"
                               onPress={() => removeImage(image.clientId)}
                               size="sm"
                               type="button"

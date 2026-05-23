@@ -17,6 +17,29 @@ type RequiredStorageEnv = Record<(typeof ENV_KEYS)[number], string>;
 
 let cachedClient: S3Client | null = null;
 
+function isTruthyEnv(value: string) {
+  return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+}
+
+function isFalsyEnv(value: string) {
+  return ["0", "false", "no", "off"].includes(value.trim().toLowerCase());
+}
+
+function shouldForcePathStyle(endpoint: string) {
+  const configured = process.env.S3_FORCE_PATH_STYLE?.trim();
+  if (configured) {
+    if (isTruthyEnv(configured)) return true;
+    if (isFalsyEnv(configured)) return false;
+  }
+
+  try {
+    const hostname = new URL(endpoint).hostname.toLowerCase();
+    return !hostname.endsWith(".amazonaws.com");
+  } catch {
+    return true;
+  }
+}
+
 function readStorageEnv(): RequiredStorageEnv {
   const values = Object.fromEntries(
     ENV_KEYS.map((key) => [key, process.env[key]?.trim() ?? ""]),
@@ -39,6 +62,7 @@ function getS3Client() {
   cachedClient = new S3Client({
     region: env.S3_REGION,
     endpoint: env.S3_ENDPOINT,
+    forcePathStyle: shouldForcePathStyle(env.S3_ENDPOINT),
     credentials: {
       accessKeyId: env.S3_ACCESS_KEY_ID,
       secretAccessKey: env.S3_SECRET_ACCESS_KEY,

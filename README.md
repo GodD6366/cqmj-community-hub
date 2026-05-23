@@ -114,6 +114,7 @@ pnpm build
 - `S3_SECRET_ACCESS_KEY`
 - `S3_PUBLIC_BASE_URL`
 - `S3_UPLOAD_PREFIX`
+- `S3_FORCE_PATH_STYLE`（自定义 S3 / MinIO / 反向代理场景建议设为 `true`）
 
 本地运行参考 [.env.example](./.env.example)：
 
@@ -131,6 +132,7 @@ S3_ACCESS_KEY_ID="<your-access-key-id>"
 S3_SECRET_ACCESS_KEY="<your-secret-access-key>"
 S3_PUBLIC_BASE_URL="https://cdn.example.com"
 S3_UPLOAD_PREFIX="posts"
+S3_FORCE_PATH_STYLE="true"
 ```
 
 ## 内容与可见性规则
@@ -155,6 +157,7 @@ S3_UPLOAD_PREFIX="posts"
 - 单图压缩后不超过 `2MB`
 - 最长边压缩到 `2048px`
 - 由服务端签发预上传地址，再直传 S3 兼容对象存储
+- 如果站点本身通过 `HTTPS` 对外访问，`S3_ENDPOINT` 与 `S3_PUBLIC_BASE_URL` 也必须提供浏览器可直连的 `HTTPS` 地址
 - 帖子列表显示首图缩略图，详情页展示全部图片
 
 ## 投票与工单
