@@ -47,7 +47,7 @@ export function HomeClient() {
   return (
     <main className="page-shell">
       {/* 移动端首页 */}
-      <section className="mobile-home md:hidden">
+      <section className="mobile-home md:!hidden">
         {/* 顶部标题栏 */}
         <div className="mobile-home-header">
           <div>
@@ -162,7 +162,7 @@ export function HomeClient() {
       </section>
 
       {/* 桌面端布局 */}
-      <section className="hidden gap-4 md:grid xl:grid-cols-[minmax(0,1.45fr)_360px]">
+      <section className="hidden md:grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_360px]">
         <div className="space-y-4">
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {postCategoryTabs.map((item) => (

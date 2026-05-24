@@ -36,7 +36,7 @@ export function PostsClient({
 
   return (
     <main className="page-shell space-y-4 md:space-y-5">
-      <section className="terminal-mobile-root md:hidden">
+      <section className="terminal-mobile-root md:!hidden">
         <div className="terminal-hero-card">
           <div className="terminal-page-head">
             <div>
@@ -60,7 +60,7 @@ export function PostsClient({
         </div>
       </section>
 
-      <section className="hidden gap-4 xl:grid-cols-[minmax(0,1.5fr)_320px] md:grid">
+      <section className="hidden md:grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_320px]">
         <CyberPanel title="社区动态" kicker="Posts Feed">
           <div className="flex gap-2 overflow-x-auto pb-3">
             <button type="button" className={`rounded-full px-3 py-1.5 text-[0.82rem] font-semibold ${category === "all" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "border border-[var(--border)] text-[var(--muted)]"}`} onClick={() => setCategory("all")}>全部</button>

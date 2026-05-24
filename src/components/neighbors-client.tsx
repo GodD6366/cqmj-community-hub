@@ -105,7 +105,7 @@ export function NeighborsClient() {
 
   return (
     <main className="page-shell space-y-4 md:space-y-5">
-      <section className="terminal-mobile-root md:hidden">
+      <section className="terminal-mobile-root md:!hidden">
         <div className="terminal-hero-card">
           <div className="terminal-page-head">
             <div>
@@ -132,7 +132,7 @@ export function NeighborsClient() {
         </div>
       </section>
 
-      <section className="hidden gap-4 xl:grid-cols-[minmax(0,1.5fr)_360px] md:grid">
+      <section className="hidden md:grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_360px] neighbors-desktop">
         <CyberPanel title="投票目录" kicker="Voting Directory">
           <div className="space-y-4">
             <Input aria-label="搜索住户" placeholder="搜索邻居 / 房号 / 标签" value={query} onChange={(event) => setQuery(event.target.value)} />

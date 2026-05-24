@@ -50,7 +50,7 @@ export function FilterBar({
             <div className="flex min-w-max gap-2 pb-1 pr-3">{buttons}</div>
           </ScrollShadow>
         </div>
-        <div className="hidden flex-wrap gap-2 md:flex">{buttons}</div>
+        <div className="hidden md:flex flex-wrap gap-2">{buttons}</div>
       </>
     );
   }

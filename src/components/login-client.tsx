@@ -168,7 +168,7 @@ export function LoginClient() {
     return (
       <>
         {/* 移动端已登录 */}
-        <div className="mobile-login md:hidden">
+        <div className="mobile-login md:!hidden">
           <div className="mobile-login-card">
             <div className="mobile-login-logo">邻</div>
             <div className="mobile-login-title">{currentUser.nickname}</div>
@@ -288,7 +288,7 @@ export function LoginClient() {
     <>
       {/* 移动端登录 / 注册 */}
       {mode === "register" ? (
-        <div className="mobile-register-terminal md:hidden">
+        <div className="mobile-register-terminal md:!hidden">
           <div className="mobile-register-corner mobile-register-corner--tl" />
           <div className="mobile-register-corner mobile-register-corner--tr" />
           <div className="mobile-register-corner mobile-register-corner--bl" />
@@ -414,7 +414,7 @@ export function LoginClient() {
           </footer>
         </div>
       ) : (
-        <div className="mobile-login md:hidden">
+        <div className="mobile-login md:!hidden">
           <div className="mobile-login-card">
             <div className="mobile-login-logo">邻</div>
             <div className="mobile-login-title">{communityName}</div>

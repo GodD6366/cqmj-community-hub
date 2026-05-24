@@ -82,7 +82,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   return (
     <main className="page-shell">
       {/* 移动端布局 */}
-      <section className="mobile-post-detail md:hidden">
+      <section className="mobile-post-detail md:!hidden">
         {/* 顶部标题栏 */}
         <div className="mobile-post-topbar">
           <button type="button" className="mobile-post-back" onClick={() => router.back()} aria-label="返回">
@@ -267,7 +267,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
       </section>
 
       {/* 桌面端布局 */}
-      <section className="hidden gap-4 space-y-4 md:grid md:space-y-5 xl:grid-cols-[minmax(0,1.3fr)_320px]">
+      <section className="hidden md:grid gap-4 space-y-4 md:space-y-5 xl:grid-cols-[minmax(0,1.3fr)_320px]">
         <div className="space-y-4">
           <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
             <div className="flex items-start justify-between gap-3">

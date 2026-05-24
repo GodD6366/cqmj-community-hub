@@ -322,6 +322,7 @@ select {
   font-weight: 600;
 }
 .app-shell-link-meta {
+  margin-left: 0.2rem;
   margin-top: 0.2rem;
   font-size: 0.72rem;
   color: #78ab8d;
@@ -2575,9 +2576,6 @@ select {
   opacity: 0.7;
   cursor: not-allowed;
 }
-.hidden {
-  display: none;
-}
 
 /* 移动端登录 */
 .mobile-login {
@@ -3042,7 +3040,6 @@ body:has(.mobile-post-detail) .page-shell {
 }
 
 @media (min-width: 768px) {
-  .mobile-home,
   .mobile-post-detail,
   .mobile-me,
   .mobile-login-card-wrap,
@@ -3366,7 +3363,7 @@ body:has(.mobile-post-detail) .page-shell {
 /* 终端风格组件在桌面端隐藏 */
 @media (min-width: 768px) {
   .terminal-mobile-root {
-    display: none;
+    display: none !important;
   }
 }
 
@@ -3950,4 +3947,73 @@ body:has(.mobile-post-detail) .page-shell {
 }
 .mobile-me-profile-form .mobile-register-submit {
   margin-top: 0;
+}
+
+/* ========== 桌面端响应式布局 ========== */
+
+@media (min-width: 768px) {
+  /* 桌面端内容容器 */
+  .page-shell {
+    max-width: 1400px;
+  }
+
+  .app-shell-content {
+    padding: 1.5rem 2rem 2.5rem;
+  }
+
+  /* 分类网格：桌面端改为6列 */
+  .mobile-category-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .mobile-category-card {
+    min-height: 4.5rem;
+    padding: 0.85rem 0.7rem;
+  }
+
+  /* 过滤器标签：桌面端静态排列 */
+  .mobile-filter-row {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .mobile-filter-tabs {
+    overflow-x: visible;
+    flex-wrap: wrap;
+  }
+
+  /* 文章卡片：桌面端多列网格 */
+  .mobile-post-stream {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* 桌面端交互增强 */
+@media (min-width: 768px) and (hover: hover) {
+  .mobile-post-card:hover {
+    border-color: rgba(76, 255, 177, 0.35);
+    box-shadow: 0 8px 30px rgba(57, 245, 143, 0.08);
+    transform: translateY(-2px);
+  }
+
+  .mobile-category-card:hover {
+    border-color: rgba(57, 245, 143, 0.45);
+    background: linear-gradient(
+      180deg,
+      rgba(8, 22, 20, 0.98),
+      rgba(5, 12, 12, 0.99)
+    );
+  }
+
+  .mobile-message-card:hover {
+    background: rgba(10, 20, 20, 0.98);
+    border-color: rgba(76, 255, 177, 0.28);
+  }
+
+  .mobile-menu-item:hover {
+    background: rgba(57, 245, 143, 0.06);
+  }
 }

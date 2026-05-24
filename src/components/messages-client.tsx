@@ -50,7 +50,7 @@ export function MessagesClient() {
       {message ? <Alert status="success"><Alert.Content><Alert.Description>{message}</Alert.Description></Alert.Content></Alert> : null}
       {error ? <Alert status="danger"><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert> : null}
 
-      <section className="terminal-mobile-root md:hidden">
+      <section className="terminal-mobile-root md:!hidden">
         <div className="terminal-hero-card">
           <div className="terminal-page-head">
             <Link href="/" className="terminal-back-link">
@@ -82,7 +82,7 @@ export function MessagesClient() {
         )}
       </section>
 
-      <section className="hidden gap-4 xl:grid-cols-[280px_minmax(0,1fr)_280px] md:grid">
+      <section className="hidden md:grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)_280px] messages-desktop">
         <CyberPanel title="消息频道" kicker="Inbox Channels">
           <div className="space-y-2">
             {tabs.map((tab) => {

@@ -97,7 +97,7 @@ export function PublishClient({ initialKind }: { initialKind?: string }) {
   return (
     <main className="page-shell">
       {/* 移动端发布页 */}
-      <section className="terminal-mobile-root md:hidden">
+      <section className="terminal-mobile-root md:!hidden">
         {/* 顶部标题 */}
         <div className="terminal-hero-card">
           <div className="terminal-page-head">
@@ -307,7 +307,7 @@ export function PublishClient({ initialKind }: { initialKind?: string }) {
       </section>
 
       {/* 桌面端布局 */}
-      <section className="hidden gap-4 xl:grid-cols-[320px_minmax(0,1fr)] md:grid">
+      <section className="hidden md:grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
         <div className="grid gap-4">
           <div className="app-card p-4 md:p-5">
             <div className="section-kicker">Publish Hub</div>

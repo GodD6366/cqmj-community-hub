@@ -18,7 +18,7 @@ import { getCommunityName } from "@/lib/community-brand";
 const communityName = getCommunityName();
 
 const desktopNavigationItems = [
-  { key: "home", href: "/", label: "社区首页", meta: "Feed", icon: HomeIcon },
+  { key: "home", href: "/", label: "帖子", meta: "Feed", icon: HomeIcon },
   { key: "neighbors", href: "/neighbors", label: "投票", meta: "Voting", icon: VoteIcon },
   { key: "services", href: "/services", label: "工单服务", meta: "Service Desk", icon: ServiceIcon },
   { key: "messages", href: "/messages", label: "消息中心", meta: "Inbox", icon: MessagesIcon },
@@ -157,7 +157,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
         </div>
       </div>
 
-      <nav className="mobile-tabbar md:hidden" aria-label="移动主导航">
+      <nav className="mobile-tabbar md:!hidden" aria-label="移动主导航">
         {mobileNavigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeKey === item.key;

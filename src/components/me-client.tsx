@@ -219,7 +219,7 @@ export function MeClient() {
         </Alert>
       ) : null}
 
-      <section className="mobile-me md:hidden">
+      <section className="mobile-me md:!hidden">
         <section className="mobile-me-profile-card">
           <div className="mobile-me-profile-glitch" />
           <div className="mobile-me-avatar-ring">
@@ -443,7 +443,7 @@ export function MeClient() {
           </div>
         ) : null}
 
-      <section className="hidden gap-4 xl:grid-cols-[280px_minmax(0,1fr)] md:grid">
+      <section className="hidden md:grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
         <CyberPanel title="个人中心" kicker="Profile">
           <div className="flex items-start gap-4">
             <ResidentAvatar name={currentUser.nickname} size="lg" />
@@ -489,7 +489,6 @@ export function MeClient() {
                   <span className="app-shell-link-icon">{item.icon}</span>
                   <span className="app-shell-link-copy">
                     <span className="app-shell-link-title">{item.label}</span>
-                    <span className="app-shell-link-meta">进入模块</span>
                   </span>
                 </Link>
               ))}
@@ -504,7 +503,6 @@ export function MeClient() {
                   <span className="app-shell-link-icon">{item.icon}</span>
                   <span className="app-shell-link-copy">
                     <span className="app-shell-link-title">{item.label}</span>
-                    <span className="app-shell-link-meta">更多信息</span>
                   </span>
                 </Link>
               ))}
@@ -520,7 +518,7 @@ export function MeClient() {
         </CyberPanel>
       </section>
 
-      <section className="hidden gap-4 xl:grid-cols-3 md:grid">
+      <section className="hidden md:grid gap-4 xl:grid-cols-3">
         <CyberPanel title="账户统计" kicker="Summary">
           <DataList
             items={[

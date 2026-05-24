@@ -24,7 +24,7 @@ export function PollDetailClient({ pollId }: { pollId: string }) {
       {message ? <Alert status="success"><Alert.Content><Alert.Description>{message}</Alert.Description></Alert.Content></Alert> : null}
       {error ? <Alert status="danger"><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert> : null}
 
-      <section className="terminal-mobile-root">
+      <section className="terminal-mobile-root md:!hidden">
         <div className="terminal-hero-card">
           <div className="terminal-page-head">
             <Link href="/" className="terminal-back-link">←</Link>

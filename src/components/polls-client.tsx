@@ -70,7 +70,7 @@ export function PollsClient() {
         </Alert>
       ) : null}
 
-      <section className="terminal-mobile-root md:hidden">
+      <section className="terminal-mobile-root md:!hidden">
         <div className="terminal-hero-card">
           <div className="terminal-page-head">
             <div>
@@ -154,7 +154,7 @@ export function PollsClient() {
         </div>
       </section>
 
-      <section className="hidden gap-4 xl:grid-cols-[minmax(0,1.5fr)_360px] md:grid">
+      <section className="hidden md:grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_360px]">
         <CyberPanel
           title="投票广场"
           kicker="Community Voting"
