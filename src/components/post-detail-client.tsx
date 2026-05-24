@@ -10,6 +10,29 @@ import { EmptyState, Toast, useToast } from "./resident-shared";
 import { categoryMeta, visibilityMeta } from "../lib/types";
 import type { PostDraft } from "../lib/types";
 import { formatDateTime, timeAgo, copyToClipboard } from "../lib/utils";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
+const MarkdownComponents = {
+  h1: ({ node, ...props }: any) => <h1 className="text-xl font-bold mt-6 mb-4 text-[#f3fff8]" {...props} />,
+  h2: ({ node, ...props }: any) => <h2 className="text-lg font-bold mt-5 mb-3 text-[#f3fff8]" {...props} />,
+  h3: ({ node, ...props }: any) => <h3 className="text-base font-bold mt-4 mb-2 text-[#f3fff8]" {...props} />,
+  p: ({ node, ...props }: any) => <p className="mb-4 leading-relaxed last:mb-0" {...props} />,
+  ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-4 space-y-1" {...props} />,
+  ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-4 space-y-1" {...props} />,
+  li: ({ node, ...props }: any) => <li className="leading-relaxed" {...props} />,
+  a: ({ node, ...props }: any) => <a className="text-[var(--primary)] hover:underline" {...props} />,
+  strong: ({ node, ...props }: any) => <strong className="font-bold text-[#f3fff8]" {...props} />,
+  blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-[var(--primary)] pl-4 italic text-[var(--muted)] my-4 bg-[rgba(57,245,143,0.05)] py-2 rounded-r" {...props} />,
+  code: ({ node, className, children, ...props }: any) => {
+    const isBlock = className?.includes("language-");
+    if (isBlock) {
+      return <code className={className} {...props}>{children}</code>;
+    }
+    return <code className="bg-[rgba(57,245,143,0.1)] text-[var(--primary)] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>;
+  },
+  pre: ({ node, ...props }: any) => <pre className="bg-[rgba(8,16,16,0.9)] border border-[var(--border)] p-4 rounded-xl overflow-x-auto my-4 text-sm font-mono" {...props} />,
+};
 
 interface PostDetailClientProps { postId: string; }
 
@@ -414,7 +437,9 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
         </div>
 
         <h1 className="mobile-post-title">{post.title}</h1>
-        <div className="mobile-post-content">{post.content}</div>
+        <div className="mobile-post-content text-[0.95rem] leading-8 text-[var(--foreground)]">
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents}>{post.content}</ReactMarkdown>
+        </div>
 
         {post.tags.length > 0 && (
           <div className="mobile-post-tags">
@@ -679,7 +704,9 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
           <div className="glass-card p-4 md:p-5">
             <div className="text-sm font-semibold text-slate-900">正文内容</div>
-            <div className="mt-3 whitespace-pre-wrap text-[0.95rem] leading-8 text-[var(--foreground)]">{post.content}</div>
+            <div className="mt-3 text-[0.95rem] leading-8 text-[var(--foreground)]">
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents}>{post.content}</ReactMarkdown>
+            </div>
             {post.tags.length > 0 ? <div className="mt-4 flex flex-wrap gap-2">{post.tags.map((tag) => <span key={tag} className="rounded-full border border-[rgba(57,245,143,0.12)] bg-[rgba(57,245,143,0.05)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--primary)]">#{tag}</span>)}</div> : null}
           </div>
 
