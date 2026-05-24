@@ -1,11 +1,12 @@
 import type { Prisma } from "@/generated/prisma/client";
-import { normalizeRoomNumber, normalizeUsername } from "./access-control";
+import { normalizeNickname, normalizeRoomNumber, normalizeUsername } from "./access-control";
 import { prisma } from "./db";
 import type { AdminUser } from "./types";
 
 const adminUserSelect = {
   id: true,
   username: true,
+  name: true,
   roomNumber: true,
   role: true,
   disabledAt: true,
@@ -24,6 +25,7 @@ function mapAdminUser(user: AdminUserRecord): AdminUser {
   return {
     id: user.id,
     username: user.username,
+    nickname: user.name ?? user.username,
     roomNumber: user.roomNumber ?? "",
     role: user.role,
     disabled: Boolean(user.disabledAt),
@@ -69,6 +71,7 @@ export async function updateAdminUser(
   userId: string,
   input: {
     username?: string;
+    nickname?: string;
     roomNumber?: string;
     disabled?: boolean;
   },
@@ -79,6 +82,7 @@ export async function updateAdminUser(
       select: {
         id: true,
         username: true,
+        name: true,
         roomNumber: true,
         role: true,
         disabledAt: true,
@@ -105,6 +109,14 @@ export async function updateAdminUser(
       }
       data.username = username;
       data.name = username;
+    }
+
+    if (input.nickname !== undefined) {
+      const nickname = normalizeNickname(input.nickname);
+      if (!nickname) {
+        throw new Error("INVALID_NICKNAME");
+      }
+      data.name = nickname;
     }
 
     if (input.roomNumber !== undefined) {

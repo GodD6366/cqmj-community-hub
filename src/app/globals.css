@@ -3934,3 +3934,20 @@ body:has(.mobile-post-detail) .page-shell {
   box-shadow: none !important;
   padding: 0 !important;
 }
+
+.mobile-me-edit {
+  background: rgba(0, 255, 143, 0.08);
+  cursor: pointer;
+}
+.mobile-me-profile-editor {
+  max-height: min(82vh, 34rem);
+}
+.mobile-me-profile-form {
+  display: grid;
+  gap: 1rem;
+  border-top: 1px solid rgba(232, 255, 242, 0.1);
+  padding-top: 0.9rem;
+}
+.mobile-me-profile-form .mobile-register-submit {
+  margin-top: 0;
+}

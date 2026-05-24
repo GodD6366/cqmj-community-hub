@@ -192,7 +192,7 @@ export async function listPollsForViewer(viewerId: string | null, limit = 6) {
 }
 
 export async function createPollForViewer(
-  viewer: { id: string; username: string },
+  viewer: { id: string; nickname: string },
   draft: PollDraft,
 ) {
   const title = normalizeText(draft.title);
@@ -220,7 +220,7 @@ export async function createPollForViewer(
       data: {
         title,
         description,
-        authorName: viewer.username,
+        authorName: viewer.nickname,
         authorId: viewer.id,
         endsAt,
         options: {
@@ -251,7 +251,7 @@ export async function createPollForViewer(
 export async function votePollForViewer(
   pollId: string,
   optionId: string,
-  viewer: { id: string; username: string },
+  viewer: { id: string; nickname: string },
 ) {
   return prisma.$transaction(async (tx) => {
     await closeExpiredPolls(tx);
@@ -349,7 +349,7 @@ export async function votePollForViewer(
         userId: poll.authorId,
         type: "poll",
         title: `你的投票「${poll.title}」收到了新参与`,
-        body: `${viewer.username} 参与了投票`,
+        body: `${viewer.nickname} 参与了投票`,
         href: "/neighbors",
       });
     }
@@ -358,7 +358,7 @@ export async function votePollForViewer(
 
 export async function updatePollForViewer(
   pollId: string,
-  viewer: { id: string; username: string; role?: string },
+  viewer: { id: string; nickname: string; role?: string },
   draft: PollUpdateDraft,
 ) {
   const current = await prisma.poll.findUnique({
@@ -442,7 +442,7 @@ export async function updatePollForViewer(
 
 export async function deletePollForViewer(
   pollId: string,
-  viewer: { id: string; username: string; role?: string },
+  viewer: { id: string; nickname: string; role?: string },
 ) {
   const poll = await prisma.poll.findUnique({
     where: { id: pollId },
@@ -478,7 +478,7 @@ export async function listServiceTicketsForViewer(viewerId: string | null, limit
 }
 
 export async function createServiceTicketForViewer(
-  viewer: { id: string; username: string; roomNumber?: string },
+  viewer: { id: string; nickname: string; roomNumber?: string },
   draft: ServiceTicketDraft,
 ) {
   const title = normalizeText(draft.title);
@@ -498,7 +498,7 @@ export async function createServiceTicketForViewer(
         title,
         description,
         category: draft.category,
-        authorName: viewer.username,
+        authorName: viewer.nickname,
         authorId: viewer.id,
         roomNumber: viewer.roomNumber ?? null,
       },
@@ -702,7 +702,7 @@ export async function listServiceTicketsForAdmin() {
 
 export async function updateServiceTicketForViewer(
   ticketId: string,
-  viewer: { id: string; username: string; roomNumber?: string; role?: string },
+  viewer: { id: string; nickname: string; roomNumber?: string; role?: string },
   draft: ServiceTicketDraft,
 ) {
   const current = await prisma.serviceTicket.findUnique({

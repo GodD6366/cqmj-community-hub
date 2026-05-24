@@ -68,7 +68,7 @@ export function ServicesClient() {
           </CyberPanel>
           <CyberPanel title="账户信息" kicker="User State">
             <DataList items={[
-              { label: currentUser ? currentUser.username : '访客', hint: currentUser ? currentUser.roomNumber : '登录后可创建工单', value: currentUser ? '在线' : 'Guest' },
+              { label: currentUser ? currentUser.nickname : '访客', hint: currentUser ? currentUser.roomNumber : '登录后可创建工单', value: currentUser ? '在线' : 'Guest' },
               { label: '最近工单', hint: serviceTickets[0]?.title ?? '暂无记录', value: serviceTickets[0] ? statusLabel(serviceTickets[0].status) : '--' },
             ]} />
           </CyberPanel>

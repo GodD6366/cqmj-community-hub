@@ -10,9 +10,10 @@ function parseBody(body: unknown) {
   if (!body || typeof body !== "object") return null;
   const value = body as Record<string, unknown>;
   const username = typeof value.username === "string" ? value.username.trim() : undefined;
+  const nickname = typeof value.nickname === "string" ? value.nickname.trim() : undefined;
   const roomNumber = typeof value.roomNumber === "string" ? value.roomNumber.trim() : undefined;
   const disabled = typeof value.disabled === "boolean" ? value.disabled : undefined;
-  return { username, roomNumber, disabled };
+  return { username, nickname, roomNumber, disabled };
 }
 
 export async function PATCH(request: Request, { params }: RouteParams) {
@@ -45,6 +46,9 @@ export async function PATCH(request: Request, { params }: RouteParams) {
     }
     if (error instanceof Error && error.message === "INVALID_USERNAME") {
       return NextResponse.json({ error: "用户名不合法" }, { status: 400 });
+    }
+    if (error instanceof Error && error.message === "INVALID_NICKNAME") {
+      return NextResponse.json({ error: "昵称不合法" }, { status: 400 });
     }
     if (error instanceof Error && error.message === "INVALID_ROOM_NUMBER") {
       return NextResponse.json({ error: "房号格式不正确，请输入如 1-905" }, { status: 400 });

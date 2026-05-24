@@ -200,7 +200,7 @@ export async function getPostForViewer(
 }
 
 export async function createPostForViewer(
-  viewer: { id: string; username: string },
+  viewer: { id: string; nickname: string },
   draft: PostDraft,
 ) {
   return prisma.$transaction(async (tx) => {
@@ -210,7 +210,7 @@ export async function createPostForViewer(
         content: draft.content,
         category: draft.category,
         tags: buildTags(draft.tags),
-        authorName: draft.anonymous ? "匿名居民" : viewer.username,
+        authorName: draft.anonymous ? "匿名居民" : viewer.nickname,
         authorId: viewer.id,
         visibility: draft.visibility,
         status: "published",
@@ -248,7 +248,7 @@ export async function createPostForViewer(
 
 export async function updatePostForViewer(
   postId: string,
-  viewer: { id: string; username: string; role?: string },
+  viewer: { id: string; nickname: string; role?: string },
   draft: PostDraft,
 ) {
   const post = await prisma.post.findUnique({
@@ -275,7 +275,7 @@ export async function updatePostForViewer(
         content: draft.content,
         category: draft.category,
         tags: buildTags(draft.tags),
-        authorName: draft.anonymous ? "匿名居民" : viewer.username,
+        authorName: draft.anonymous ? "匿名居民" : viewer.nickname,
         visibility: draft.visibility,
         images: {
           create: draft.images.map((image) => ({
@@ -320,7 +320,7 @@ export async function deletePostForViewer(
 
 export async function addCommentForViewer(
   postId: string,
-  viewer: { id: string; username: string; roomNumber?: string | null; role?: string },
+  viewer: { id: string; nickname: string; roomNumber?: string | null; role?: string },
   content: string,
 ) {
   const post = await prisma.post.findUnique({
@@ -347,7 +347,7 @@ export async function addCommentForViewer(
     const comment = await tx.comment.create({
       data: {
         postId,
-        authorName: viewer.username,
+        authorName: viewer.nickname,
         authorId: viewer.id,
         content,
       },
@@ -366,7 +366,7 @@ export async function addCommentForViewer(
         userId: post.authorId,
         type: "comment",
         title: `你的帖子「${post.title}」有了新评论`,
-        body: `${viewer.username} 回复了你`,
+        body: `${viewer.nickname} 回复了你`,
         href: `/posts/${post.id}`,
       });
     }

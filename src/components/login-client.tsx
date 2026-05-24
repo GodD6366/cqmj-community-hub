@@ -171,7 +171,7 @@ export function LoginClient() {
         <div className="mobile-login md:hidden">
           <div className="mobile-login-card">
             <div className="mobile-login-logo">邻</div>
-            <div className="mobile-login-title">{currentUser.username}</div>
+            <div className="mobile-login-title">{currentUser.nickname}</div>
             <div className="text-sm text-[var(--muted)] mt-1">
               {currentUser.role === "admin"
                 ? "管理员账号"
@@ -223,7 +223,7 @@ export function LoginClient() {
                 <SystemLogo showLabel={false} markClassName="h-14 w-14" />
                 <div>
                   <div className="text-[1.6rem] font-semibold text-slate-950">
-                    {currentUser.username}
+                    {currentUser.nickname}
                   </div>
                   <div className="mt-2 text-sm text-[var(--muted)]">
                     {currentUser.role === "admin"
@@ -236,6 +236,7 @@ export function LoginClient() {
                 <CyberStatGrid
                   columns={2}
                   items={[
+                    { label: "昵称", value: currentUser.nickname },
                     { label: "用户名", value: currentUser.username },
                     {
                       label: "角色",

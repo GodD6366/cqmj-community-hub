@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Alert, Button } from "@heroui/react";
 import {
   BrainCircuitIcon,
@@ -102,12 +102,50 @@ const mobileMenuItems = [
 ] as const;
 
 export function MeClient() {
-  const { currentUser, posts, polls, serviceTickets, notifications, logout } =
+  const { currentUser, posts, polls, serviceTickets, notifications, logout, updateProfile } =
     useCommunityPosts();
   const communityName = getCommunityName();
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState("");
+  const [message, setMessage] = useState("");
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [profileDraft, setProfileDraft] = useState({ username: "", nickname: "", roomNumber: "" });
+
+
+  const openProfileEditor = () => {
+    if (!currentUser) return;
+    setError("");
+    setMessage("");
+    setProfileDraft({
+      username: currentUser.username,
+      nickname: currentUser.nickname,
+      roomNumber: currentUser.roomNumber,
+    });
+    setProfileOpen(true);
+  };
+  const closeProfileEditor = () => {
+    if (!profileSaving) {
+      setProfileOpen(false);
+    }
+  };
+
+  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setError("");
+    setMessage("");
+    setProfileSaving(true);
+    try {
+      await updateProfile(profileDraft);
+      setProfileOpen(false);
+      setMessage("资料已更新。");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "更新资料失败");
+    } finally {
+      setProfileSaving(false);
+    }
+  };
 
   const toggleSettings = () => {
     setSettingsOpen((isOpen) => !isOpen);
@@ -117,13 +155,13 @@ export function MeClient() {
   };
 
   useEffect(() => {
-    if (!settingsOpen) return;
+    if (!settingsOpen && !profileOpen) return;
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     return () => {
       document.body.style.overflow = previousOverflow;
     };
-  }, [settingsOpen]);
+  }, [profileOpen, settingsOpen]);
 
   const handleLogout = async () => {
     setError("");
@@ -173,17 +211,25 @@ export function MeClient() {
         </Alert>
       ) : null}
 
+      {message ? (
+        <Alert status="success">
+          <Alert.Content>
+            <Alert.Description>{message}</Alert.Description>
+          </Alert.Content>
+        </Alert>
+      ) : null}
+
       <section className="mobile-me md:hidden">
         <section className="mobile-me-profile-card">
           <div className="mobile-me-profile-glitch" />
           <div className="mobile-me-avatar-ring">
             <div className="mobile-me-avatar">
-              {Array.from(currentUser.username)[0] ?? "我"}
+              {Array.from(currentUser.nickname)[0] ?? "我"}
             </div>
           </div>
           <div className="mobile-me-profile-copy">
             <div className="mobile-me-name-row">
-              <h1 className="mobile-me-name">{currentUser.username}</h1>
+              <h1 className="mobile-me-name">{currentUser.nickname}</h1>
               <span className="mobile-me-level">LV.6 探索者</span>
             </div>
             <div className="mobile-me-room">
@@ -193,9 +239,9 @@ export function MeClient() {
             <span className="mobile-me-status">SYS:ONLINE</span>
             <p>探索 · 连接 · 共建未来社区</p>
           </div>
-          <Link href="/me" className="mobile-me-edit">
+          <button type="button" className="mobile-me-edit" onClick={openProfileEditor}>
             <EditIcon /> 编辑资料
-          </Link>
+          </button>
         </section>
 
         <section className="mobile-me-stats" aria-label="个人统计">
@@ -300,14 +346,111 @@ export function MeClient() {
         ) : null}
       </section>
 
+        {profileOpen ? (
+          <div
+            className="mobile-me-settings-modal"
+            onClick={closeProfileEditor}
+            role="presentation"
+          >
+            <section
+              className="mobile-me-settings-panel mobile-me-profile-editor"
+              aria-label="编辑资料"
+              aria-modal="true"
+              role="dialog"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mobile-me-settings-toolbar">
+                <div className="mobile-me-settings-head">
+                  <span className="mobile-me-settings-icon">
+                    <EditIcon />
+                  </span>
+                  <div>
+                    <h2>编辑资料</h2>
+                    <p>更新昵称、用户名与房号信息</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="mobile-me-settings-close"
+                  aria-label="关闭编辑资料"
+                  onClick={closeProfileEditor}
+                  disabled={profileSaving}
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+              <form className="mobile-me-profile-form" onSubmit={handleProfileSubmit}>
+                <label className="mobile-register-field">
+                  <span>昵称</span>
+                  <span className="mobile-register-input-wrap">
+                    <EditIcon />
+                    <input
+                      type="text"
+                      value={profileDraft.nickname}
+                      onChange={(event) =>
+                        setProfileDraft((draft) => ({ ...draft, nickname: event.target.value }))
+                      }
+                      placeholder="请输入昵称"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      disabled={profileSaving}
+                    />
+                  </span>
+                </label>
+                <label className="mobile-register-field">
+                  <span>用户名</span>
+                  <span className="mobile-register-input-wrap">
+                    <EditIcon />
+                    <input
+                      type="text"
+                      value={profileDraft.username}
+                      onChange={(event) =>
+                        setProfileDraft((draft) => ({ ...draft, username: event.target.value }))
+                      }
+                      placeholder="请输入用户名"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      disabled={profileSaving}
+                    />
+                  </span>
+                </label>
+                <label className="mobile-register-field">
+                  <span>房号</span>
+                  <span className="mobile-register-input-wrap">
+                    <CopyIcon />
+                    <input
+                      type="text"
+                      value={profileDraft.roomNumber}
+                      onChange={(event) =>
+                        setProfileDraft((draft) => ({ ...draft, roomNumber: event.target.value }))
+                      }
+                      placeholder="如：1-905"
+                      autoCapitalize="none"
+                      disabled={profileSaving}
+                    />
+                  </span>
+                  <small>格式：楼栋-房号，例如 1-905</small>
+                </label>
+                <button
+                  type="submit"
+                  className="mobile-register-submit"
+                  disabled={profileSaving}
+                >
+                  {profileSaving ? "保存中..." : "保存资料"}
+                </button>
+              </form>
+            </section>
+          </div>
+        ) : null}
+
       <section className="hidden gap-4 xl:grid-cols-[280px_minmax(0,1fr)] md:grid">
         <CyberPanel title="个人中心" kicker="Profile">
           <div className="flex items-start gap-4">
-            <ResidentAvatar name={currentUser.username} size="lg" />
+            <ResidentAvatar name={currentUser.nickname} size="lg" />
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <div className="text-[1.3rem] font-semibold text-slate-950">
-                  {currentUser.username}
+                  {currentUser.nickname}
                 </div>
                 <span className="app-chip">
                   {currentUser.role === "admin" ? "管理员" : "已认证业主"}
@@ -317,7 +460,7 @@ export function MeClient() {
                 {currentUser.roomNumber}
               </div>
             </div>
-            <Button size="sm" variant="secondary">
+            <Button size="sm" variant="secondary" onPress={openProfileEditor}>
               编辑资料
             </Button>
           </div>

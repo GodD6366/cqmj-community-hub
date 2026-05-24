@@ -3,7 +3,7 @@ import { randomBytes } from "node:crypto";
 import { cookies } from "next/headers";
 import { prisma } from "./db";
 import { consumeInviteCode } from "./invite";
-import { normalizeInviteCode, normalizeRoomNumber, normalizeUsername } from "./access-control";
+import { normalizeInviteCode, normalizeNickname, normalizeRoomNumber, normalizeUsername } from "./access-control";
 import type { CommunityUser } from "./types";
 import { ensureAdminUserInitialized } from "./admin-bootstrap";
 
@@ -26,6 +26,7 @@ export function isUserDisabled(user: { disabledAt?: Date | null } | null | undef
 export function toCommunityUser(user: {
   id: string;
   username: string;
+  name?: string | null;
   roomNumber?: string | null;
   role: "user" | "admin";
   mcpTokenVersion?: number;
@@ -34,6 +35,7 @@ export function toCommunityUser(user: {
   return {
     id: user.id,
     username: user.username,
+    nickname: user.name ?? user.username,
     roomNumber: user.roomNumber ?? "",
     role: user.role,
     mcpTokenVersion: "mcpTokenVersion" in user && typeof user.mcpTokenVersion === "number" ? user.mcpTokenVersion : 0,
@@ -140,6 +142,35 @@ export async function registerUser(input: { username: string; password: string; 
     }).catch(() => undefined);
     throw error;
   }
+}
+
+export async function updateCurrentUserProfile(userId: string, input: { username: string; nickname: string; roomNumber: string }) {
+  const username = normalizeUsername(input.username);
+  if (!username) {
+    throw new Error("INVALID_USERNAME");
+  }
+
+  const nickname = normalizeNickname(input.nickname);
+  if (!nickname) {
+    throw new Error("INVALID_NICKNAME");
+  }
+
+  const roomNumber = normalizeRoomNumber(input.roomNumber);
+  if (!roomNumber) {
+    throw new Error("INVALID_ROOM_NUMBER");
+  }
+
+  const existingUsername = await prisma.user.findUnique({ where: { username } });
+  if (existingUsername && existingUsername.id !== userId) {
+    throw new Error("USERNAME_EXISTS");
+  }
+
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: { username, name: nickname, roomNumber },
+  });
+
+  return user;
 }
 
 export async function loginUser(input: { username: string; password: string }) {

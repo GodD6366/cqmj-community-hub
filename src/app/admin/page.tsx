@@ -38,7 +38,7 @@ async function loadAdminPageState(searchParams: AdminPageProps["searchParams"]):
     const { tab } = await searchParams;
     const initialTab = parseAdminTab(tab);
     if (!currentUser) return { kind: "guest" };
-    if (!isAdminUser(currentUser)) return { kind: "forbidden", username: currentUser.username };
+    if (!isAdminUser(currentUser)) return { kind: "forbidden", username: currentUser.nickname };
     return { kind: "ready", initialTab };
   } catch (error) {
     console.error("Failed to load /admin page", error);

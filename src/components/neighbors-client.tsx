@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Input } from "@heroui/react";
 import { useCommunityPosts } from "./community-provider";
@@ -87,7 +86,7 @@ export function NeighborsClient() {
     });
 
     if (currentUser) {
-      upsert(currentUser.username, currentUser.roomNumber, currentUser.createdAt, 5, "已认证业主");
+      upsert(currentUser.nickname, currentUser.roomNumber, currentUser.createdAt, 5, "已认证业主");
     }
 
     return Array.from(map.values());
@@ -95,7 +94,7 @@ export function NeighborsClient() {
 
   const filteredNeighbors = useMemo(() => {
     const q = deferredQuery.trim().toLowerCase();
-    let items = [...neighbors];
+    const items = [...neighbors];
     if (filter === "active") items.sort((a, b) => new Date(b.lastActive).getTime() - new Date(a.lastActive).getTime());
     else if (filter === "new") items.sort((a, b) => a.score - b.score);
     else items.sort((a, b) => b.score - a.score);

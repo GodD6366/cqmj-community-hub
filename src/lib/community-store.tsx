@@ -46,6 +46,7 @@ interface CommunityStore {
   ) => Promise<{ id: string; authorName: string; content: string; createdAt: string }>;
   toggleFavorite: (postId: string) => Promise<boolean>;
   reportPost: (postId: string, reason?: string) => Promise<void>;
+  updateProfile: (payload: { username: string; nickname: string; roomNumber: string }) => Promise<CommunityUser>;
   login: (payload: AuthPayload) => Promise<CommunityUser>;
   register: (payload: Required<AuthPayload>) => Promise<CommunityUser>;
   logout: () => Promise<void>;
@@ -298,6 +299,22 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const updateProfile = useCallback(
+    async (payload: { username: string; nickname: string; roomNumber: string }) => {
+      const response = await fetch("/api/auth/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(payload),
+      });
+      const data = await readJson<{ user: CommunityUser }>(response);
+      setCurrentUser(data.user);
+      await refresh();
+      return data.user;
+    },
+    [refresh],
+  );
+
   const login = useCallback(
     async (payload: AuthPayload) => {
       const response = await fetch("/api/auth/login", {
@@ -376,6 +393,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       addComment,
       toggleFavorite,
       reportPost,
+      updateProfile,
       login,
       register,
       logout,
@@ -403,6 +421,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       toggleFavorite,
       unreadNotificationCount,
       updatePoll,
+      updateProfile,
       updateServiceTicket,
       updatePost,
       votePoll,

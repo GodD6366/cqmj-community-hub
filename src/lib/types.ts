@@ -162,6 +162,7 @@ export interface AdminPollSummary extends PollSummary {
 export interface CommunityUser {
   id: string;
   username: string;
+  nickname: string;
   roomNumber: string;
   role: "user" | "admin";
   mcpTokenVersion: number;
@@ -180,6 +181,7 @@ export interface ResidentAppData {
 export interface AdminUser {
   id: string;
   username: string;
+  nickname: string;
   roomNumber: string;
   role: "user" | "admin";
   disabled: boolean;

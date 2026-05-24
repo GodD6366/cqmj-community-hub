@@ -42,6 +42,7 @@ type AdminPost = {
 type UserEditorState = {
   id: string;
   username: string;
+  nickname: string;
   roomNumber: string;
   disabled: boolean;
 };
@@ -62,7 +63,7 @@ function formatDate(value: string | null) {
 }
 
 function toEditorState(user: AdminUser): UserEditorState {
-  return { id: user.id, username: user.username, roomNumber: user.roomNumber, disabled: user.disabled };
+  return { id: user.id, username: user.username, nickname: user.nickname, roomNumber: user.roomNumber, disabled: user.disabled };
 }
 
 function getPostStatusLabel(status: string) {
@@ -239,17 +240,17 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
     if (!userEditor) return;
     setUserSaving(true); setError(""); setMessage("");
     try {
-      const data = await readAdminJson<{ user: AdminUser }>(await fetch(`/api/admin/users/${userEditor.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ username: userEditor.username, roomNumber: userEditor.roomNumber, disabled: userEditor.disabled }) }));
-      setMessage(`已更新用户：${data.user.username}`); setUserEditor(toEditorState(data.user)); await loadUsers();
+      const data = await readAdminJson<{ user: AdminUser }>(await fetch(`/api/admin/users/${userEditor.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ username: userEditor.username, nickname: userEditor.nickname, roomNumber: userEditor.roomNumber, disabled: userEditor.disabled }) }));
+      setMessage(`已更新用户：${data.user.nickname}`); setUserEditor(toEditorState(data.user)); await loadUsers();
     } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "保存用户失败"); } finally { setUserSaving(false); }
   };
 
   const toggleUserDisabled = async (user: AdminUser) => {
     setUserActionId(user.id); setError(""); setMessage("");
     try {
-      const data = await readAdminJson<{ user: AdminUser }>(await fetch(`/api/admin/users/${user.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ username: user.username, roomNumber: user.roomNumber, disabled: !user.disabled }) }));
+      const data = await readAdminJson<{ user: AdminUser }>(await fetch(`/api/admin/users/${user.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, credentials: "include", body: JSON.stringify({ username: user.username, nickname: user.nickname, roomNumber: user.roomNumber, disabled: !user.disabled }) }));
       if (userEditor?.id === user.id) setUserEditor(toEditorState(data.user));
-      setMessage(data.user.disabled ? `已禁用用户：${data.user.username}` : `已启用用户：${data.user.username}`); await loadUsers();
+      setMessage(data.user.disabled ? `已禁用用户：${data.user.nickname}` : `已启用用户：${data.user.nickname}`); await loadUsers();
     } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "更新用户状态失败"); } finally { setUserActionId(null); }
   };
 
@@ -258,7 +259,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
     try {
       await readAdminJson(await fetch(`/api/admin/users/${user.id}`, { method: "DELETE", credentials: "include" }));
       if (userEditor?.id === user.id) setUserEditor(null);
-      setMessage(`已删除用户：${user.username}`); await loadUsers();
+      setMessage(`已删除用户：${user.nickname}`); await loadUsers();
     } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "删除用户失败"); } finally { setUserActionId(null); }
   };
 
@@ -286,7 +287,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
             <div className="text-sm leading-6 text-[var(--muted)]">用户、邀请码、内容审核、投票管理与工单协同。</div>
             <div className="mt-4 rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.82)] p-4">
               <div className="cyber-terminal-title">ADMIN_TERMINAL v1.0.0</div>
-              <pre className="m-0 whitespace-pre-wrap text-[0.75rem] leading-7 text-[var(--primary)]">{`> CONNECTED TO COMMUNITY DB ... OK\n> AUTHORIZATION ... OK\n> ADMIN LEVEL ... SUPER\n> CURRENT USER ... ${currentUser?.username ?? "ADMIN"}`}</pre>
+              <pre className="m-0 whitespace-pre-wrap text-[0.75rem] leading-7 text-[var(--primary)]">{`> CONNECTED TO COMMUNITY DB ... OK\n> AUTHORIZATION ... OK\n> ADMIN LEVEL ... SUPER\n> CURRENT USER ... ${currentUser?.nickname ?? "ADMIN"}`}</pre>
             </div>
           </CyberPanel>
 
@@ -299,7 +300,7 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
           </CyberPanel>
 
           <CyberPanel title="管理员" kicker="Session">
-            <DataList items={[{ label: currentUser?.username ?? "管理员账号", hint: "超级权限会话" }]} />
+            <DataList items={[{ label: currentUser?.nickname ?? "管理员账号", hint: currentUser ? `用户名：${currentUser.username}` : "超级权限会话" }]} />
             <Button className="mt-4 w-full" isPending={loggingOut} onPress={async () => { setLoggingOut(true); try { await logout(); router.push("/login"); } finally { setLoggingOut(false); } }} variant="secondary">{loggingOut ? "退出中..." : "退出登录"}</Button>
           </CyberPanel>
         </aside>
@@ -322,8 +323,8 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
           {activeTab === "users" ? (
             <div className="app-card p-5">
               <div className="grid gap-4 xl:grid-cols-[360px_minmax(0,1fr)]">
-                <div>{userEditor ? <div className="app-card-muted p-4"><div className="text-sm font-semibold text-slate-900">编辑用户</div><div className="mt-3 grid gap-3"><Input aria-label="编辑用户名" fullWidth value={userEditor.username} onChange={(event) => setUserEditor((current) => (current ? { ...current, username: event.target.value } : current))} placeholder="输入用户名" /><Input aria-label="编辑房号" fullWidth value={userEditor.roomNumber} onChange={(event) => setUserEditor((current) => (current ? { ...current, roomNumber: event.target.value } : current))} placeholder="输入房号，例如 1-905" /></div><div className="mt-4 flex gap-2"><Button onPress={() => setUserEditor((current) => (current ? { ...current, disabled: !current.disabled } : current))} variant={userEditor.disabled ? "danger" : "secondary"}>{userEditor.disabled ? "启用" : "禁用"}</Button><Button isPending={userSaving} onPress={saveUser}>{userSaving ? "保存中..." : "保存"}</Button><Button isDisabled={userSaving} onPress={() => setUserEditor(null)} variant="secondary">取消</Button></div></div> : <div className="app-card-muted p-4 text-sm text-[var(--muted)]">选择右侧用户可进入编辑。</div>}</div>
-                <div className="grid gap-3">{sortedUsers.length === 0 ? <EmptyState title="当前还没有用户。" /> : sortedUsers.map((user) => { const readOnly = user.role === "admin"; const acting = userActionId === user.id; return <article key={user.id} className="app-card-muted p-4"><div className="flex items-start justify-between gap-3"><div><div className="text-base font-semibold text-slate-950">{user.username}</div><div className="mt-1 text-sm text-[var(--muted)]">房号 {user.roomNumber || "未绑定"} · 注册 {formatDate(user.createdAt)}</div></div><div className="flex flex-wrap gap-2"><span className="app-chip">{user.role === "admin" ? "管理员" : "普通用户"}</span><span className="app-chip app-chip-muted">{user.disabled ? "已禁用" : "启用中"}</span></div></div><div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--muted)]"><span className="rounded-full border border-[var(--border)] px-3 py-1">帖子 {user.postCount}</span><span className="rounded-full border border-[var(--border)] px-3 py-1">评论 {user.commentCount}</span></div><div className="mt-4 flex flex-wrap gap-2"><Button isDisabled={readOnly || userSaving || acting} onPress={() => setUserEditor(toEditorState(user))} variant="secondary">编辑</Button><Button isDisabled={readOnly || userSaving || acting} onPress={() => void toggleUserDisabled(user)} variant={user.disabled ? "secondary" : "danger"}>{acting ? "处理中..." : user.disabled ? "启用" : "禁用"}</Button><Button isDisabled={readOnly || userSaving || acting} onPress={() => void deleteUser(user)} variant="danger">{acting ? "处理中..." : "删除"}</Button></div></article>; })}</div>
+                <div>{userEditor ? <div className="app-card-muted p-4"><div className="text-sm font-semibold text-slate-900">编辑用户</div><div className="mt-3 grid gap-3"><Input aria-label="编辑用户名" fullWidth value={userEditor.username} onChange={(event) => setUserEditor((current) => (current ? { ...current, username: event.target.value } : current))} placeholder="输入用户名" /><Input aria-label="编辑昵称" fullWidth value={userEditor.nickname} onChange={(event) => setUserEditor((current) => (current ? { ...current, nickname: event.target.value } : current))} placeholder="输入昵称" /><Input aria-label="编辑房号" fullWidth value={userEditor.roomNumber} onChange={(event) => setUserEditor((current) => (current ? { ...current, roomNumber: event.target.value } : current))} placeholder="输入房号，例如 1-905" /></div><div className="mt-4 flex gap-2"><Button onPress={() => setUserEditor((current) => (current ? { ...current, disabled: !current.disabled } : current))} variant={userEditor.disabled ? "danger" : "secondary"}>{userEditor.disabled ? "启用" : "禁用"}</Button><Button isPending={userSaving} onPress={saveUser}>{userSaving ? "保存中..." : "保存"}</Button><Button isDisabled={userSaving} onPress={() => setUserEditor(null)} variant="secondary">取消</Button></div></div> : <div className="app-card-muted p-4 text-sm text-[var(--muted)]">选择右侧用户可进入编辑。</div>}</div>
+                <div className="grid gap-3">{sortedUsers.length === 0 ? <EmptyState title="当前还没有用户。" /> : sortedUsers.map((user) => { const readOnly = user.role === "admin"; const acting = userActionId === user.id; return <article key={user.id} className="app-card-muted p-4"><div className="flex items-start justify-between gap-3"><div><div className="text-base font-semibold text-slate-950">{user.nickname}</div><div className="mt-1 text-sm text-[var(--muted)]">房号 {user.roomNumber || "未绑定"} · 注册 {formatDate(user.createdAt)}</div></div><div className="flex flex-wrap gap-2"><span className="app-chip">{user.role === "admin" ? "管理员" : "普通用户"}</span><span className="app-chip app-chip-muted">{user.disabled ? "已禁用" : "启用中"}</span></div></div><div className="mt-3 flex flex-wrap gap-2 text-xs text-[var(--muted)]"><span className="rounded-full border border-[var(--border)] px-3 py-1">帖子 {user.postCount}</span><span className="rounded-full border border-[var(--border)] px-3 py-1">评论 {user.commentCount}</span></div><div className="mt-4 flex flex-wrap gap-2"><Button isDisabled={readOnly || userSaving || acting} onPress={() => setUserEditor(toEditorState(user))} variant="secondary">编辑</Button><Button isDisabled={readOnly || userSaving || acting} onPress={() => void toggleUserDisabled(user)} variant={user.disabled ? "secondary" : "danger"}>{acting ? "处理中..." : user.disabled ? "启用" : "禁用"}</Button><Button isDisabled={readOnly || userSaving || acting} onPress={() => void deleteUser(user)} variant="danger">{acting ? "处理中..." : "删除"}</Button></div></article>; })}</div>
               </div>
             </div>
           ) : null}

@@ -122,9 +122,9 @@ export function AppFrame({ children }: { children: ReactNode }) {
               </Link>
               {currentUser ? (
                 <Link href="/me" className="app-shell-user">
-                  <span className="app-shell-user-mark">{Array.from(currentUser.username)[0] ?? "我"}</span>
+                  <span className="app-shell-user-mark">{Array.from(currentUser.nickname)[0] ?? "我"}</span>
                   <span>
-                    <span className="app-shell-user-name">{currentUser.username}</span>
+                    <span className="app-shell-user-name">{currentUser.nickname}</span>
                     <span className="app-shell-user-meta">{currentUser.roomNumber}{currentUser.role === "admin" ? " · 管理员" : ""}</span>
                   </span>
                 </Link>
@@ -149,7 +149,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
                 <div className="app-shell-topbar-title">{pageMeta.title}</div>
               </div>
               <div className="app-shell-topbar-meta">
-                {currentUser ? `${currentUser.username} · ${currentUser.roomNumber}` : "Guest Session"}
+                {currentUser ? `${currentUser.nickname} · ${currentUser.roomNumber}` : "Guest Session"}
               </div>
             </header>
             {children}

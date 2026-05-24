@@ -47,12 +47,12 @@ export function SiteNav() {
       ) : null}
       <Badge.Anchor>
         <Avatar className="border-2 border-[var(--border-strong)] bg-[var(--surface)] text-[var(--primary-strong)]" size="sm">
-          <Avatar.Fallback>{currentUser.username.slice(0, 1).toUpperCase()}</Avatar.Fallback>
+          <Avatar.Fallback>{currentUser.nickname.slice(0, 1).toUpperCase()}</Avatar.Fallback>
         </Avatar>
         <Badge color="success" placement="bottom-right" size="sm" />
       </Badge.Anchor>
       <Chip color="success" size="sm" variant="soft">
-        {currentUser.role === "admin" ? `${currentUser.username} · 管理员` : `${currentUser.username} · ${currentUser.roomNumber}`}
+        {currentUser.role === "admin" ? `${currentUser.nickname} · 管理员` : `${currentUser.nickname} · ${currentUser.roomNumber}`}
       </Chip>
       <Button
         size="sm"

@@ -5,6 +5,11 @@ export function normalizeUsername(value: string) {
   return username ? username : null;
 }
 
+export function normalizeNickname(value: string) {
+  const nickname = normalizeText(value);
+  return nickname ? nickname : null;
+}
+
 export function normalizeInviteCode(value: string) {
   const inviteCode = normalizeText(value).toUpperCase();
   return inviteCode ? inviteCode : null;
