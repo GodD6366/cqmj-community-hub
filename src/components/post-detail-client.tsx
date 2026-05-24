@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCommunityPosts } from "./community-provider";
 import { PostEditor } from "./post-editor";
 import { EmptyState } from "./resident-shared";
@@ -13,6 +13,133 @@ import { formatDateTime, timeAgo } from "../lib/utils";
 
 interface PostDetailClientProps { postId: string; }
 
+type CommentSort = "hot" | "new";
+
+/* ── 图片灯箱组件 ─────────────────────────────────── */
+function ImageLightbox({
+  images,
+  startIndex,
+  onClose,
+}: {
+  images: { id: string; url: string; width?: number; height?: number }[];
+  startIndex: number;
+  onClose: () => void;
+}) {
+  const [index, setIndex] = useState(startIndex);
+  const touchStartX = useRef<number | null>(null);
+
+  const prev = useCallback(() => setIndex((i) => (i - 1 + images.length) % images.length), [images.length]);
+  const next = useCallback(() => setIndex((i) => (i + 1) % images.length), [images.length]);
+
+  // 键盘控制
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose, prev, next]);
+
+  // 锁定背景滚动
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    return () => { document.body.style.overflow = ""; };
+  }, []);
+
+  const img = images[index];
+
+  return (
+    <div
+      className="lightbox-overlay"
+      role="dialog"
+      aria-modal="true"
+      aria-label="图片预览"
+      onClick={onClose}
+      onTouchStart={(e) => { touchStartX.current = e.touches[0].clientX; }}
+      onTouchEnd={(e) => {
+        if (touchStartX.current === null) return;
+        const dx = e.changedTouches[0].clientX - touchStartX.current;
+        if (dx > 50) prev();
+        else if (dx < -50) next();
+        touchStartX.current = null;
+      }}
+    >
+      {/* 关闭按钮 */}
+      <button type="button" className="lightbox-close" onClick={onClose} aria-label="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+          <path d="M18 6L6 18M6 6l12 12" />
+        </svg>
+      </button>
+
+      {/* 计数器 */}
+      {images.length > 1 && (
+        <div className="lightbox-counter">{index + 1} / {images.length}</div>
+      )}
+
+      {/* 主图 */}
+      <div
+        className="lightbox-img-wrap"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={img.url}
+          alt={`图片 ${index + 1}`}
+          className="lightbox-img"
+          draggable={false}
+        />
+      </div>
+
+      {/* 左右切换按钮 */}
+      {images.length > 1 && (
+        <>
+          <button
+            type="button"
+            className="lightbox-nav lightbox-nav--prev"
+            onClick={(e) => { e.stopPropagation(); prev(); }}
+            aria-label="上一张"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="lightbox-nav lightbox-nav--next"
+            onClick={(e) => { e.stopPropagation(); next(); }}
+            aria-label="下一张"
+          >
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M9 18l6-6-6-6" />
+            </svg>
+          </button>
+        </>
+      )}
+
+      {/* 缩略图栏 */}
+      {images.length > 1 && (
+        <div className="lightbox-thumbs" onClick={(e) => e.stopPropagation()}>
+          {images.map((image, i) => (
+            <button
+              key={image.id}
+              type="button"
+              className={`lightbox-thumb ${i === index ? "is-active" : ""}`}
+              onClick={() => setIndex(i)}
+              aria-label={`切换到第 ${i + 1} 张`}
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={image.url} alt={`缩略图 ${i + 1}`} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 主组件 ──────────────────────────────────────── */
 export function PostDetailClient({ postId }: PostDetailClientProps) {
   const router = useRouter();
   const { posts, addComment, toggleFavorite, reportPost, updatePost, deletePost, currentUser } = useCommunityPosts();
@@ -23,9 +150,23 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [commentContent, setCommentContent] = useState("");
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
+  const [commentSort, setCommentSort] = useState<CommentSort>("hot");
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+
   const post = useMemo(() => posts.find((item) => item.id === postId), [postId, posts]);
 
   useEffect(() => { setActiveImageIndex(0); }, [postId, post?.images.length]);
+
+  // 排序后的评论
+  const sortedComments = useMemo(() => {
+    if (!post) return [];
+    const list = [...post.comments];
+    if (commentSort === "new") {
+      return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    }
+    // 最热：优先显示新的（暂无点赞数据，按时间倒序兜底）
+    return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }, [post, commentSort]);
 
   if (!post) return <main className="page-shell"><EmptyState title="帖子不存在" actionHref="/neighbors" actionLabel="返回邻里" /></main>;
 
@@ -52,22 +193,12 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   }
 
   async function handleCommentSubmit() {
-    if (!currentUser) {
-      setError("请先登录");
-      return;
-    }
-    if (!commentContent.trim()) {
-      setError("请填写评论内容");
-      return;
-    }
-
-    setIsSubmittingComment(true);
-    setError("");
-
+    if (!currentUser) { setError("请先登录"); return; }
+    if (!commentContent.trim()) { setError("请填写评论内容"); return; }
+    setIsSubmittingComment(true); setError("");
     try {
       await addComment(postId, { content: commentContent.trim() });
-      setCommentContent("");
-      setMessage("评论已发布。");
+      setCommentContent(""); setMessage("评论已发布。");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "评论发布失败");
     } finally {
@@ -81,6 +212,15 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
   return (
     <main className="page-shell">
+      {/* 灯箱 */}
+      {lightboxIndex !== null && (
+        <ImageLightbox
+          images={post.images}
+          startIndex={lightboxIndex}
+          onClose={() => setLightboxIndex(null)}
+        />
+      )}
+
       {/* 移动端布局 */}
       <section className="mobile-post-detail md:!hidden">
         {/* 顶部标题栏 */}
@@ -100,7 +240,6 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           </button>
         </div>
 
-        {/* 错误和成功消息 */}
         {error && <div className="mobile-login-error">{error}</div>}
         {message && <div className="mobile-login-success">{message}</div>}
 
@@ -118,13 +257,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                 {post.featured && <span className="mobile-post-author-badge mobile-post-author-badge--featured">精选</span>}
               </div>
             </div>
-            <button
-              type="button"
-              className="mobile-post-follow-btn"
-              onClick={() => {}}
-            >
-              + 关注
-            </button>
+            <button type="button" className="mobile-post-follow-btn" onClick={() => {}}>+ 关注</button>
           </div>
           <div className="mobile-post-publish-meta">
             <span>{timeAgo(post.createdAt)}</span>
@@ -134,13 +267,9 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           </div>
         </div>
 
-        {/* 帖子标题 */}
         <h1 className="mobile-post-title">{post.title}</h1>
-
-        {/* 帖子内容 */}
         <div className="mobile-post-content">{post.content}</div>
 
-        {/* 标签 */}
         {post.tags.length > 0 && (
           <div className="mobile-post-tags">
             {post.tags.map((tag) => (
@@ -149,7 +278,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           </div>
         )}
 
-        {/* 图片展示 */}
+        {/* 图片展示（点击打开灯箱） */}
         {post.images.length > 0 && (
           <div className="mobile-post-images-section">
             <div className="mobile-post-images-grid">
@@ -158,7 +287,8 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                   key={image.id}
                   type="button"
                   className={`mobile-post-image-thumb ${index === activeImageIndex ? "is-active" : ""}`}
-                  onClick={() => setActiveImageIndex(index)}
+                  onClick={() => { setActiveImageIndex(index); setLightboxIndex(index); }}
+                  aria-label={`查看第 ${index + 1} 张图片`}
                 >
                   <img src={image.url} alt={`${post.title} ${index + 1}`} />
                 </button>
@@ -169,12 +299,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
         {/* 互动按钮 */}
         <div className="mobile-post-interactions">
-          <button
-            type="button"
-            className={`mobile-post-interact-btn ${post.favorited ? "is-active" : ""}`}
-            onClick={handleFavorite}
-            disabled={busy}
-          >
+          <button type="button" className={`mobile-post-interact-btn ${post.favorited ? "is-active" : ""}`} onClick={handleFavorite} disabled={busy}>
             <svg viewBox="0 0 24 24" fill={post.favorited ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
             </svg>
@@ -199,15 +324,27 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           <div className="mobile-post-comments-header">
             全部评论 ({post.comments.length})
             <div className="mobile-post-comments-sort">
-              <button type="button" className="mobile-post-sort-btn is-active">最热</button>
-              <button type="button" className="mobile-post-sort-btn">最新</button>
+              <button
+                type="button"
+                className={`mobile-post-sort-btn ${commentSort === "hot" ? "is-active" : ""}`}
+                onClick={() => setCommentSort("hot")}
+              >
+                最热
+              </button>
+              <button
+                type="button"
+                className={`mobile-post-sort-btn ${commentSort === "new" ? "is-active" : ""}`}
+                onClick={() => setCommentSort("new")}
+              >
+                最新
+              </button>
             </div>
           </div>
 
-          {post.comments.length === 0 ? (
+          {sortedComments.length === 0 ? (
             <div className="mobile-post-no-comments">还没有评论，快来抢沙发吧</div>
           ) : (
-            post.comments.map((comment) => (
+            sortedComments.map((comment) => (
               <div key={comment.id} className="mobile-post-comment">
                 <span className="mobile-post-comment-avatar">
                   {Array.from(comment.authorName)[0] ?? "邻"}
@@ -225,12 +362,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
                         </svg>
-                        <span>5</span>
-                      </button>
-                      <button type="button" className="mobile-post-comment-fav">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
-                        </svg>
+                        <span>0</span>
                       </button>
                     </div>
                   </div>
@@ -255,12 +387,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
               }
             }}
           />
-          <button
-            type="button"
-            className="mobile-post-comment-send"
-            onClick={handleCommentSubmit}
-            disabled={isSubmittingComment}
-          >
+          <button type="button" className="mobile-post-comment-send" onClick={handleCommentSubmit} disabled={isSubmittingComment}>
             发送
           </button>
         </div>
@@ -289,12 +416,48 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             <div className="mt-3 text-sm text-[var(--muted)]">{timeAgo(post.createdAt)} · 评论 {post.commentCount} · 收藏 {post.favoriteCount}</div>
           </div>
 
+          {/* 桌面端图片区（点击放大） */}
           {activeImage ? (
             <div className="space-y-3 rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4">
-              <div className="overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.9)]">
-                <Image alt={post.title} className="max-h-[32rem] w-full object-cover" src={activeImage.url} width={activeImage.width || 1200} height={activeImage.height || 900} unoptimized />
+              <div
+                className="overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.9)] cursor-zoom-in"
+                onClick={() => setLightboxIndex(activeImageIndex)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") setLightboxIndex(activeImageIndex); }}
+                aria-label="点击放大查看"
+              >
+                <Image
+                  alt={post.title}
+                  className="max-h-[32rem] w-full object-cover transition-transform hover:scale-[1.01]"
+                  src={activeImage.url}
+                  width={activeImage.width || 1200}
+                  height={activeImage.height || 900}
+                  unoptimized
+                />
               </div>
-              {post.images.length > 1 ? <div className="flex gap-2 overflow-x-auto pb-1">{post.images.map((image, index) => <button key={image.id} type="button" className={`overflow-hidden rounded-[0.9rem] border ${index === activeImageIndex ? 'border-[var(--primary)]' : 'border-[var(--border)]'}`} onClick={() => setActiveImageIndex(index)}><Image alt={`${post.title} 缩略图 ${index + 1}`} className="h-20 w-20 object-cover" src={image.url} width={image.width || 80} height={image.height || 80} unoptimized /></button>)}</div> : null}
+              {post.images.length > 1 ? (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {post.images.map((image, index) => (
+                    <button
+                      key={image.id}
+                      type="button"
+                      className={`overflow-hidden rounded-[0.9rem] border flex-shrink-0 transition-all ${index === activeImageIndex ? "border-[var(--primary)] ring-1 ring-[var(--primary)]" : "border-[var(--border)] hover:border-[var(--primary)]"}`}
+                      onClick={() => setActiveImageIndex(index)}
+                      aria-label={`选择第 ${index + 1} 张图片`}
+                    >
+                      <Image
+                        alt={`${post.title} 缩略图 ${index + 1}`}
+                        className="h-20 w-20 object-cover"
+                        src={image.url}
+                        width={image.width || 80}
+                        height={image.height || 80}
+                        unoptimized
+                      />
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           ) : null}
 
@@ -304,13 +467,32 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             {post.tags.length > 0 ? <div className="mt-4 flex flex-wrap gap-2">{post.tags.map((tag) => <span key={tag} className="rounded-full border border-[rgba(57,245,143,0.12)] bg-[rgba(57,245,143,0.05)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--primary)]">#{tag}</span>)}</div> : null}
           </div>
 
+          {/* 桌面端评论区 */}
           <div className="glass-card p-4 md:p-5">
-            <div className="text-sm font-semibold text-slate-900">评论区</div>
-            {post.comments.length === 0 ? (
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold text-slate-900">评论区 ({post.comments.length})</div>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${commentSort === "hot" ? "bg-[var(--primary)] text-[#032111]" : "border border-[var(--border)] text-[var(--muted)] hover:border-[var(--primary)]"}`}
+                  onClick={() => setCommentSort("hot")}
+                >
+                  最热
+                </button>
+                <button
+                  type="button"
+                  className={`px-3 py-1 rounded-full text-xs font-semibold transition-all ${commentSort === "new" ? "bg-[var(--primary)] text-[#032111]" : "border border-[var(--border)] text-[var(--muted)] hover:border-[var(--primary)]"}`}
+                  onClick={() => setCommentSort("new")}
+                >
+                  最新
+                </button>
+              </div>
+            </div>
+            {sortedComments.length === 0 ? (
               <div className="mt-3 text-sm text-[var(--muted)]">还没有评论，快来抢沙发吧</div>
             ) : (
               <div className="mt-3 grid gap-3">
-                {post.comments.map((comment) => (
+                {sortedComments.map((comment) => (
                   <div key={comment.id} className="flex gap-3 p-3.5 rounded-[1rem] border border-[var(--border)] bg-[rgba(6,12,12,0.6)] transition-all hover:bg-[rgba(10,18,18,0.88)] hover:border-[var(--border-strong)]">
                     <div className="inline-flex w-10 h-10 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(57,245,143,0.15)] to-[rgba(72,201,255,0.1)] text-[var(--primary)] text-sm font-bold flex-shrink-0">
                       {Array.from(comment.authorName)[0] ?? "邻"}
@@ -397,36 +579,18 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           <div className="glass-card p-4">
             <div className="text-sm font-semibold text-slate-900">数据概览</div>
             <div className="mt-3 grid gap-2 text-sm text-[var(--muted)]">
-              <div className="flex justify-between">
-                <span>评论</span>
-                <span className="font-semibold text-[var(--foreground)]">{post.commentCount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>收藏</span>
-                <span className="font-semibold text-[var(--foreground)]">{post.favoriteCount}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>图片</span>
-                <span className="font-semibold text-[var(--foreground)]">{post.images.length}</span>
-              </div>
+              <div className="flex justify-between"><span>评论</span><span className="font-semibold text-[var(--foreground)]">{post.commentCount}</span></div>
+              <div className="flex justify-between"><span>收藏</span><span className="font-semibold text-[var(--foreground)]">{post.favoriteCount}</span></div>
+              <div className="flex justify-between"><span>图片</span><span className="font-semibold text-[var(--foreground)]">{post.images.length}</span></div>
             </div>
           </div>
 
           <div className="glass-card p-4">
             <div className="text-sm font-semibold text-slate-900">帖子属性</div>
             <div className="mt-3 grid gap-2 text-sm text-[var(--muted)]">
-              <div className="flex justify-between">
-                <span>分类</span>
-                <span className="font-semibold text-[var(--foreground)]">{meta.label}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>可见范围</span>
-                <span className="font-semibold text-[var(--foreground)]">{visibilityMeta[post.visibility].label}</span>
-              </div>
-              <div className="flex justify-between">
-                <span>作者</span>
-                <span className="font-semibold text-[var(--foreground)]">{post.authorName}</span>
-              </div>
+              <div className="flex justify-between"><span>分类</span><span className="font-semibold text-[var(--foreground)]">{meta.label}</span></div>
+              <div className="flex justify-between"><span>可见范围</span><span className="font-semibold text-[var(--foreground)]">{visibilityMeta[post.visibility].label}</span></div>
+              <div className="flex justify-between"><span>作者</span><span className="font-semibold text-[var(--foreground)]">{post.authorName}</span></div>
             </div>
           </div>
         </div>

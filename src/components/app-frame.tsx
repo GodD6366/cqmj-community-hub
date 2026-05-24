@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useCommunityPosts } from "./community-provider";
 import { SystemLogo } from "./system-logo";
 import {
@@ -62,13 +62,19 @@ function getPageMeta(pathname: string) {
 
 export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { currentUser, unreadNotificationCount } = useCommunityPosts();
+  const router = useRouter();
+  const { currentUser, unreadNotificationCount, hydrated } = useCommunityPosts();
   const residentExperience = isResidentExperience(pathname);
   const activeKey = getActiveKey(pathname);
   const pageMeta = getPageMeta(pathname);
 
   if (!residentExperience) {
     return <div className="min-h-screen">{children}</div>;
+  }
+
+  // 加载完成后，未登录用户显示登录引导页
+  if (hydrated && !currentUser) {
+    return <GuestGateway onLogin={() => router.push("/login")} />;
   }
 
   return (
@@ -196,6 +202,64 @@ export function AppFrame({ children }: { children: ReactNode }) {
           );
         })}
       </nav>
+    </div>
+  );
+}
+
+function GuestGateway({ onLogin }: { onLogin: () => void }) {
+  const communityDisplayName = getCommunityName();
+  return (
+    <div className="guest-gateway">
+      {/* 背景装饰 */}
+      <div className="guest-gateway-bg" aria-hidden="true" />
+
+      <div className="guest-gateway-inner">
+        {/* 品牌标识 */}
+        <div className="guest-gateway-brand">
+          <SystemLogo className="items-center gap-3" markClassName="h-14 w-14" showLabel={false} />
+          <div className="guest-gateway-brand-name">社区终端</div>
+          <div className="guest-gateway-brand-sub">{communityDisplayName} · Community Terminal</div>
+        </div>
+
+        {/* 标语 */}
+        <h1 className="guest-gateway-headline">
+          邻里互助<br />
+          <span className="guest-gateway-headline-accent">从登录开始</span>
+        </h1>
+        <p className="guest-gateway-desc">登录后即可查看社区动态、参与投票、发布内容，与邻居一起共建美好社区。</p>
+
+        {/* 功能亮点 */}
+        <ul className="guest-gateway-features" aria-label="社区功能">
+          {[
+            { icon: "📢", text: "社区动态 · 邻里帖子" },
+            { icon: "🗳️", text: "社区投票 · 公开透明" },
+            { icon: "🔧", text: "工单报修 · 快速响应" },
+            { icon: "💬", text: "消息中心 · 实时互动" },
+          ].map((item) => (
+            <li key={item.text} className="guest-gateway-feature-item">
+              <span className="guest-gateway-feature-icon">{item.icon}</span>
+              <span>{item.text}</span>
+            </li>
+          ))}
+        </ul>
+
+        {/* 操作按钮 */}
+        <div className="guest-gateway-actions">
+          <button
+            type="button"
+            id="guest-gateway-login-btn"
+            className="guest-gateway-btn-primary"
+            onClick={onLogin}
+          >
+            登录账户
+          </button>
+          <Link href="/login?tab=register" className="guest-gateway-btn-secondary">
+            注册新账户
+          </Link>
+        </div>
+
+        <p className="guest-gateway-footer">仅限已验证居民使用 · 需要邀请码注册</p>
+      </div>
     </div>
   );
 }
