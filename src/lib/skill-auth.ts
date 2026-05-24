@@ -4,6 +4,7 @@ import { isUserDisabled, toCommunityUser } from "./auth-server";
 
 const TOKEN_PREFIX = "skill";
 const LEGACY_TOKEN_PREFIX = "mcp";
+export const SKILL_BUNDLE_DOWNLOAD_TOKEN_TTL_MS = 15 * 60 * 1000;
 
 function getSkillSigningSecret() {
   const secret = process.env.SKILL_SIGNING_SECRET?.trim();
@@ -16,6 +17,12 @@ function getSkillSigningSecret() {
 function signTokenPayload(userId: string, version: number) {
   return createHmac("sha256", getSkillSigningSecret())
     .update(`${userId}:${version}`)
+    .digest("base64url");
+}
+
+function signBundleDownloadPayload(userId: string, version: number, expiresAtMs: number) {
+  return createHmac("sha256", getSkillSigningSecret())
+    .update(`bundle:${userId}:${version}:${expiresAtMs}`)
     .digest("base64url");
 }
 
@@ -33,6 +40,23 @@ function parseToken(token: string) {
   }
 
   return { prefix, userId, version, signature };
+}
+
+function parseBundleDownloadToken(token: string) {
+  const match = /^skilldl_([a-z0-9]+)_([1-9]\d*)_([1-9]\d*)_([A-Za-z0-9_-]+)$/.exec(token);
+  if (!match) {
+    return null;
+  }
+
+  const [, userId, versionValue, expiresAtValue, signature] = match;
+  const version = Number(versionValue);
+  const expiresAtMs = Number(expiresAtValue);
+
+  if (!Number.isSafeInteger(version) || version <= 0 || !Number.isSafeInteger(expiresAtMs) || expiresAtMs <= 0) {
+    return null;
+  }
+
+  return { userId, version, expiresAtMs, signature };
 }
 
 function signaturesMatch(expected: string, actual: string) {
@@ -66,6 +90,22 @@ export function issueUserSkillToken(user: { id: string; skillTokenVersion: numbe
 
   const signature = signTokenPayload(user.id, user.skillTokenVersion);
   return `${TOKEN_PREFIX}_${user.id}_${user.skillTokenVersion}_${signature}`;
+}
+
+export function issueUserSkillBundleDownloadToken(
+  user: { id: string; skillTokenVersion: number },
+  nowMs = Date.now(),
+) {
+  if (user.skillTokenVersion <= 0) {
+    throw new Error("SKILL_TOKEN_NOT_ISSUED");
+  }
+
+  const expiresAtMs = nowMs + SKILL_BUNDLE_DOWNLOAD_TOKEN_TTL_MS;
+  const signature = signBundleDownloadPayload(user.id, user.skillTokenVersion, expiresAtMs);
+  return {
+    token: `skilldl_${user.id}_${user.skillTokenVersion}_${expiresAtMs}_${signature}`,
+    expiresAt: new Date(expiresAtMs).toISOString(),
+  };
 }
 
 export async function ensureUserSkillAccess(userId: string) {
@@ -185,6 +225,33 @@ export async function verifyUserSkillToken(token: string) {
   }
 
   return toCommunityUser(user);
+}
+
+export async function verifyUserSkillBundleDownloadToken(token: string) {
+  const parsed = parseBundleDownloadToken(token);
+  if (!parsed || parsed.expiresAtMs <= Date.now()) {
+    return null;
+  }
+
+  const expectedSignature = signBundleDownloadPayload(parsed.userId, parsed.version, parsed.expiresAtMs);
+  if (!signaturesMatch(expectedSignature, parsed.signature)) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: parsed.userId },
+    select: userSelect(),
+  });
+
+  if (!user || isUserDisabled(user) || user.skillTokenVersion !== parsed.version || user.skillTokenVersion <= 0) {
+    return null;
+  }
+
+  return {
+    user: toCommunityUser(user),
+    token: issueUserSkillToken(user),
+    expiresAt: new Date(parsed.expiresAtMs).toISOString(),
+  };
 }
 
 export function issueUserMcpToken(user: { id: string; mcpTokenVersion?: number; skillTokenVersion?: number }) {

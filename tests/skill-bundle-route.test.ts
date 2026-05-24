@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUserFromCookieMock = vi.hoisted(() => vi.fn());
 const ensureUserSkillAccessMock = vi.hoisted(() => vi.fn());
+const verifyUserSkillBundleDownloadTokenMock = vi.hoisted(() => vi.fn());
 const getAppOriginMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/auth-server", () => ({
@@ -10,6 +11,7 @@ vi.mock("@/lib/auth-server", () => ({
 
 vi.mock("@/lib/skill-auth", () => ({
   ensureUserSkillAccess: ensureUserSkillAccessMock,
+  verifyUserSkillBundleDownloadToken: verifyUserSkillBundleDownloadTokenMock,
 }));
 
 vi.mock("@/lib/app-origin", () => ({
@@ -34,10 +36,19 @@ function parseTar(buffer: Buffer) {
 describe("/api/skill/bundle route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    getCurrentUserFromCookieMock.mockReset();
+    ensureUserSkillAccessMock.mockReset();
+    verifyUserSkillBundleDownloadTokenMock.mockReset();
+    getAppOriginMock.mockReset();
     getCurrentUserFromCookieMock.mockResolvedValue({ id: "user-1", username: "alice" });
     ensureUserSkillAccessMock.mockResolvedValue({
       token: "skill_demo_token",
       user: { id: "user-1", username: "alice" },
+    });
+    verifyUserSkillBundleDownloadTokenMock.mockResolvedValue({
+      token: "skill_demo_token",
+      user: { id: "user-1", username: "alice" },
+      expiresAt: "2026-05-24T00:15:00.000Z",
     });
     getAppOriginMock.mockResolvedValue("https://community.example.com");
   });
@@ -46,20 +57,22 @@ describe("/api/skill/bundle route", () => {
     getCurrentUserFromCookieMock.mockResolvedValueOnce(null);
     const { GET } = await import("../src/app/api/skill/bundle/route");
 
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/skill/bundle"));
 
     expect(response.status).toBe(401);
     expect(ensureUserSkillAccessMock).not.toHaveBeenCalled();
   });
 
-  it("serves the Community Hub skill bundle with config.json credentials", async () => {
+  it("serves the Community Hub skill bundle with config.json credentials from a temporary download token", async () => {
+    getCurrentUserFromCookieMock.mockResolvedValueOnce(null);
     const { GET } = await import("../src/app/api/skill/bundle/route");
-    const response = await GET();
+    const response = await GET(new Request("http://localhost/api/skill/bundle?token=skilldl_demo_token"));
     const buffer = Buffer.from(await response.arrayBuffer());
     const entries = parseTar(buffer);
     const text = buffer.toString("utf8");
 
     expect(response.status).toBe(200);
+    expect(verifyUserSkillBundleDownloadTokenMock).toHaveBeenCalledWith("skilldl_demo_token");
     expect(response.headers.get("cache-control")).toBe("no-store");
     expect(response.headers.get("content-type")).toBe("application/x-tar");
     expect([...entries.keys()]).toEqual([
@@ -78,5 +91,14 @@ describe("/api/skill/bundle route", () => {
     expect(text).toContain("config.json");
     expect(text).not.toContain("COMMUNITY_HUB_API_BASE");
     expect(text).not.toContain("COMMUNITY_HUB_API_KEY");
+  });
+
+  it("serves the bundle using login state when no temporary token is supplied", async () => {
+    const { GET } = await import("../src/app/api/skill/bundle/route");
+
+    const response = await GET(new Request("http://localhost/api/skill/bundle"));
+
+    expect(response.status).toBe(200);
+    expect(ensureUserSkillAccessMock).toHaveBeenCalledWith("user-1");
   });
 });

@@ -7,8 +7,33 @@ export type PollStatus = "active" | "closed";
 export type ServiceTicketCategory = "repair" | "complaint" | "cleaning" | "facility" | "other";
 export type ServiceTicketStatus = "open" | "processing" | "resolved";
 export type NotificationType = "comment" | "favorite" | "poll" | "ticket" | "system";
+export type NeighborSkillCategory =
+  | "computer_repair"
+  | "bicycle_repair"
+  | "photography"
+  | "pet_care"
+  | "tutoring"
+  | "cooking"
+  | "gardening"
+  | "tool_sharing"
+  | "home_repair"
+  | "errand"
+  | "other";
 
 export const postCategories = ["request", "secondhand", "discussion", "play"] as const;
+export const neighborSkillCategories = [
+  "computer_repair",
+  "bicycle_repair",
+  "photography",
+  "pet_care",
+  "tutoring",
+  "cooking",
+  "gardening",
+  "tool_sharing",
+  "home_repair",
+  "errand",
+  "other",
+] as const;
 
 export type PostCategoryTone = "green" | "orange" | "cyan" | "teal";
 
@@ -37,6 +62,10 @@ export function parsePostCategoryFilter(value: string | null | undefined): PostC
 
 export function isRequestStatus(value: unknown): value is RequestStatus {
   return value === "open" || value === "processing" || value === "resolved";
+}
+
+export function isNeighborSkillCategory(value: unknown): value is NeighborSkillCategory {
+  return typeof value === "string" && (neighborSkillCategories as readonly string[]).includes(value);
 }
 
 export interface CommunityComment {
@@ -145,6 +174,51 @@ export interface ServiceTicketDraft {
   category: ServiceTicketCategory;
 }
 
+export interface NeighborSkillSummary {
+  id: string;
+  userId: string;
+  ownerName: string;
+  roomNumber: string;
+  building: string;
+  category: NeighborSkillCategory;
+  title: string;
+  description: string;
+  tags: string[];
+  availability: string | null;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  isMine: boolean;
+}
+
+export interface NeighborSkillDraft {
+  category: NeighborSkillCategory;
+  title: string;
+  description: string;
+  tags: string[];
+  availability?: string | null;
+  active?: boolean;
+}
+
+export interface PostSkillMatchSummary {
+  id: string;
+  postId: string;
+  skillId: string;
+  userId: string;
+  ownerName: string;
+  roomNumber: string;
+  building: string;
+  category: NeighborSkillCategory;
+  skillTitle: string;
+  skillDescription: string;
+  tags: string[];
+  availability: string | null;
+  score: number;
+  reasons: string[];
+  source: string;
+  notifiedAt: string | null;
+}
+
 export interface NotificationItem {
   id: string;
   type: NotificationType;
@@ -179,6 +253,7 @@ export interface CommunityUser {
 export interface ResidentAppData {
   posts: CommunityPost[];
   polls: PollSummary[];
+  neighborSkills: NeighborSkillSummary[];
   serviceTickets: ServiceTicketSummary[];
   notifications: NotificationItem[];
   unreadNotificationCount: number;

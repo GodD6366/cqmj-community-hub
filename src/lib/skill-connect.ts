@@ -5,6 +5,8 @@ const communityName = getCommunityName();
 
 export function buildSkillConnectionPrompt(input: {
   skillBundleUrl: string;
+  bundleDownloadToken: string;
+  bundleDownloadTokenExpiresAt: string;
   username: string;
 }) {
   return [
@@ -13,10 +15,10 @@ export function buildSkillConnectionPrompt(input: {
     `Skill 名称：${communityName} Community Hub`,
     "默认调用：$community-hub",
     `Skill Bundle：${input.skillBundleUrl}`,
+    `Token 有效期至：${input.bundleDownloadTokenExpiresAt}`,
     `账号：${input.username}`,
     "",
-    "请下载并安装/加载该 Skill Bundle。Bundle 内已包含 config.json，无需再配置环境变量。",
-    "config.json 包含当前账号的 apiBaseUrl 与 apiKey，请勿转发给他人。",
+    "请用上面的临时 token 下载并安装/加载该 Skill Bundle。临时 token 只用于下载 bundle;",
     "",
     "常用能力：看帖、发帖、回帖、收藏/举报、看投票、发起投票、参与投票。",
   ].join("\n");
@@ -24,10 +26,14 @@ export function buildSkillConnectionPrompt(input: {
 
 export function buildSkillConnectionPromptForUser(input: {
   skillBundleUrl: string;
+  bundleDownloadToken: string;
+  bundleDownloadTokenExpiresAt: string;
   user: Pick<CommunityUser, "username">;
 }) {
   return buildSkillConnectionPrompt({
     skillBundleUrl: input.skillBundleUrl,
+    bundleDownloadToken: input.bundleDownloadToken,
+    bundleDownloadTokenExpiresAt: input.bundleDownloadTokenExpiresAt,
     username: input.user.username,
   });
 }

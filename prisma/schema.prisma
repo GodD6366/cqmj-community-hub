@@ -66,6 +66,20 @@ enum NotificationType {
   system
 }
 
+enum NeighborSkillCategory {
+  computer_repair
+  bicycle_repair
+  photography
+  pet_care
+  tutoring
+  cooking
+  gardening
+  tool_sharing
+  home_repair
+  errand
+  other
+}
+
 model User {
   id               String            @id @default(cuid())
   username         String            @unique
@@ -90,6 +104,8 @@ model User {
   notifications    Notification[]
   followers        Follow[]          @relation("following")
   following        Follow[]          @relation("follower")
+  neighborSkills   NeighborSkill[]
+  skillMatches     PostSkillMatch[]  @relation("skillMatchTarget")
 
   @@index([roomNumber])
 }
@@ -128,6 +144,7 @@ model Post {
   favorites     Favorite[]
   images        PostImage[]
   reports       Report[]
+  skillMatches  PostSkillMatch[]
 
   @@index([status, visibility])
   @@index([category, requestStatus])
@@ -294,4 +311,43 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followerId])
   @@index([followingId])
+}
+
+model NeighborSkill {
+  id           String                @id @default(cuid())
+  userId       String
+  category     NeighborSkillCategory
+  title        String
+  description  String
+  tags         String                @default("[]")
+  availability String?
+  active       Boolean               @default(true)
+  createdAt    DateTime              @default(now())
+  updatedAt    DateTime              @updatedAt
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matches      PostSkillMatch[]
+
+  @@index([category, active])
+  @@index([userId, active])
+  @@index([createdAt])
+}
+
+model PostSkillMatch {
+  id         String        @id @default(cuid())
+  postId     String
+  skillId    String
+  userId     String
+  score      Int
+  reasons    String        @default("[]")
+  source     String        @default("rules")
+  notifiedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+  post       Post          @relation(fields: [postId], references: [id], onDelete: Cascade)
+  skill      NeighborSkill @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  user       User          @relation("skillMatchTarget", fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, skillId])
+  @@index([postId, score])
+  @@index([userId, notifiedAt])
 }

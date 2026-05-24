@@ -11,6 +11,10 @@ vi.mock("@/lib/auth-server", () => ({
 
 vi.mock("@/lib/skill-auth", () => ({
   ensureUserSkillAccess: ensureUserSkillAccessMock,
+  issueUserSkillBundleDownloadToken: vi.fn(() => ({
+    token: "skilldl_demo_token",
+    expiresAt: "2026-05-24T00:15:00.000Z",
+  })),
 }));
 
 vi.mock("@/lib/app-origin", () => ({
@@ -63,7 +67,9 @@ describe("/skill/connect page", () => {
     });
 
     expect(view.props.apiBaseUrl).toBe("https://community.example.com/api/skill");
-    expect(view.props.skillBundleUrl).toBe("https://community.example.com/api/skill/bundle");
+    expect(view.props.skillBundleUrl).toBe("https://community.example.com/api/skill/bundle?token=skilldl_demo_token");
+    expect(view.props.bundleDownloadToken).toBe("skilldl_demo_token");
+    expect(view.props.bundleDownloadTokenExpiresAt).toBe("2026-05-24T00:15:00.000Z");
     expect(view.props.initialToken).toBe("skill_demo_token");
     expect(view.props.welcome).toBe(true);
     expect(view.props.currentUser.username).toBe("alice");

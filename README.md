@@ -205,7 +205,7 @@ S3_FORCE_PATH_STYLE="true"
 
 - 登录用户可在 `/skill/connect` 下载包含 `config.json` 的个人 Skill Bundle，并一键复制接入文案
 - Skill 名称固定为 `community-hub`，默认调用写法为 `$community-hub`
-- Skill Bundle 地址固定为 `/api/skill/bundle`，需登录后下载，包内 `community-hub/config.json` 包含 `apiBaseUrl` 与个人 `apiKey`
+- Skill Bundle 地址固定为 `/api/skill/bundle?token=<临时下载 token>`；接入页会生成 15 分钟有效的临时 token，包内 `community-hub/config.json` 包含 `apiBaseUrl` 与个人 `apiKey`
 - Skill API Base 固定为 `/api/skill`
 - 认证方式：`Authorization: Bearer <config.json apiKey>`
 - 当前开放常用读写能力：
@@ -226,7 +226,7 @@ Authorization: Bearer <config.json apiKey>
 Content-Type: application/json
 ```
 
-旧 `/mcp` 端点已下线并返回 `410 Gone`；旧 `/mcp/connect` 会跳转到 `/skill/connect`。
+临时下载 token 只用于下载 bundle，不是 API Key；下载后的 API Key 在 `config.json` 中。旧 `/mcp` 端点已下线并返回 `410 Gone`；旧 `/mcp/connect` 会跳转到 `/skill/connect`。
 
 ## Coolify 部署
 

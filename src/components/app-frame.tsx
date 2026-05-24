@@ -95,7 +95,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
 
             <section className="cyber-terminal">
               <div className="cyber-terminal-title">Community_Terminal v1.0.0</div>
-              <pre>{`> CONNECTING TO NEIGHBORHOOD... OK\n> AUTH SESSION............... ${currentUser ? "RESIDENT" : "GUEST"}\n> CURRENT ROOM............... ${currentUser?.roomNumber ?? "UNBOUND"}\n> UNREAD MESSAGES............ ${unreadNotificationCount}\n\n{ TERMINAL ONLINE }`}</pre>
+              <pre>{`> CONNECTING TO NEIGHBORHOOD... OK\n> AUTH SESSION............... ${currentUser ? "RESIDENT" : "GUEST"}\n> CURRENT ROOM............... ${currentUser?.roomNumber ?? "UNBOUND"}\n> UNREAD MESSAGES............ ${unreadNotificationCount}`}</pre>
             </section>
 
             <nav className="app-shell-nav" aria-label="桌面主导航">

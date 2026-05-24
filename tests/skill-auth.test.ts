@@ -178,6 +178,36 @@ describe("skill auth", () => {
     });
   });
 
+  it("issues and verifies temporary bundle download tokens", async () => {
+    vi.setSystemTime(new Date("2026-05-24T00:00:00.000Z"));
+    const { issueUserSkillBundleDownloadToken, verifyUserSkillBundleDownloadToken } = await import("../src/lib/skill-auth");
+    const issued = issueUserSkillBundleDownloadToken({ id: "userabc123", skillTokenVersion: 1 });
+
+    expect(issued.token.startsWith("skilldl_userabc123_1_")).toBe(true);
+    expect(issued.expiresAt).toBe("2026-05-24T00:15:00.000Z");
+
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: "userabc123",
+      username: "godd",
+      name: "Godd",
+      roomNumber: "1-905",
+      role: "user",
+      disabledAt: null,
+      skillTokenVersion: 1,
+      createdAt: new Date("2026-04-19T00:00:00.000Z"),
+    });
+
+    await expect(verifyUserSkillBundleDownloadToken(issued.token)).resolves.toMatchObject({
+      token: expect.stringMatching(/^skill_userabc123_1_/),
+      expiresAt: "2026-05-24T00:15:00.000Z",
+      user: { id: "userabc123", skillTokenVersion: 1 },
+    });
+
+    vi.setSystemTime(new Date("2026-05-24T00:15:01.000Z"));
+    await expect(verifyUserSkillBundleDownloadToken(issued.token)).resolves.toBeNull();
+    vi.useRealTimers();
+  });
+
   it("clears sessions and rejects rotation for disabled users", async () => {
     const { rotateUserSkillToken } = await import("../src/lib/skill-auth");
 

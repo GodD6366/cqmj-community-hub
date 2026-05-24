@@ -4,7 +4,7 @@ import { SkillConnectClient } from "@/components/skill-connect-client";
 import { ButtonLink, PageShell } from "@/components/ui";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
 import { getAppOrigin } from "@/lib/app-origin";
-import { ensureUserSkillAccess } from "@/lib/skill-auth";
+import { ensureUserSkillAccess, issueUserSkillBundleDownloadToken } from "@/lib/skill-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +19,8 @@ type SkillConnectPageState =
       token: string;
       user: Awaited<ReturnType<typeof ensureUserSkillAccess>>["user"];
       appOrigin: string;
+      bundleDownloadToken: string;
+      bundleDownloadTokenExpiresAt: string;
       welcome: boolean;
     }
   | { kind: "unavailable" };
@@ -87,11 +89,18 @@ async function loadSkillConnectPageState(searchParams: SkillConnectPageProps["se
       searchParams,
     ]);
 
+    const bundleDownloadToken = issueUserSkillBundleDownloadToken({
+      id: user.id,
+      skillTokenVersion: user.skillTokenVersion,
+    });
+
     return {
       kind: "ready",
       token,
       user,
       appOrigin,
+      bundleDownloadToken: bundleDownloadToken.token,
+      bundleDownloadTokenExpiresAt: bundleDownloadToken.expiresAt,
       welcome: parseSingle(params?.welcome) === "1",
     };
   } catch (error) {
@@ -115,7 +124,9 @@ export default async function SkillConnectPage({ searchParams }: SkillConnectPag
     <SkillConnectClient
       currentUser={state.user}
       apiBaseUrl={`${state.appOrigin}/api/skill`}
-      skillBundleUrl={`${state.appOrigin}/api/skill/bundle`}
+      skillBundleUrl={`${state.appOrigin}/api/skill/bundle?token=${encodeURIComponent(state.bundleDownloadToken)}`}
+      bundleDownloadToken={state.bundleDownloadToken}
+      bundleDownloadTokenExpiresAt={state.bundleDownloadTokenExpiresAt}
       initialToken={state.token}
       welcome={state.welcome}
     />
