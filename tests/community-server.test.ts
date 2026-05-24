@@ -1,16 +1,18 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { canViewPost, mapPost } from "../src/lib/community-server";
 
-function createPostRecord() {
+function createPostRecord(): any {
   const now = new Date("2026-04-29T00:00:00.000Z");
 
   return {
     id: "post-1",
     title: "闲置：餐椅转让",
     content: "九成新，可自提。",
-    category: "secondhand",
+    category: "secondhand" as any,
     tags: JSON.stringify(["闲置"]),
+    authorId: "user-1",
     authorName: "alice",
+    author: null,
     createdAt: now,
     updatedAt: now,
     commentCount: 0,

@@ -18,5 +18,4 @@ const serwist = new Serwist({
   navigationPreload: true,
   runtimeCaching: defaultCache,
 });
-
-serwist.start();
+serwist.addEventListeners();
