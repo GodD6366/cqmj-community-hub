@@ -9,7 +9,7 @@ import { PostEditor } from "./post-editor";
 import { EmptyState } from "./resident-shared";
 import { categoryMeta, visibilityMeta } from "../lib/types";
 import type { PostDraft } from "../lib/types";
-import { formatDateTime, timeAgo } from "../lib/utils";
+import { formatDateTime, timeAgo, copyToClipboard } from "../lib/utils";
 
 interface PostDetailClientProps { postId: string; }
 
@@ -309,7 +309,8 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
         return;
       }
 
-      await navigator.clipboard.writeText(url);
+      const copied = await copyToClipboard(url);
+      if (!copied) throw new Error("无法复制链接，请手动复制");
       setMessage("链接已复制，快去分享吧。");
     } catch (shareError) {
       if (shareError instanceof Error && shareError.name === "AbortError") {
