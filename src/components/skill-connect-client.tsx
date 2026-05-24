@@ -65,9 +65,15 @@ function useToast() {
 }
 
 function CopyToast({ toast }: { toast: ToastState }) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const isSuccess = toast.status === "success";
 
-  if (typeof document === "undefined") return null;
+  if (!mounted || typeof document === "undefined") return null;
 
   return createPortal(
     <div

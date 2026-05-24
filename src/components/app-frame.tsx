@@ -11,6 +11,7 @@ import {
   PublishIcon,
   ServiceIcon,
   UserIcon,
+  UsersIcon,
   VoteIcon,
 } from "./app-icons";
 import { getCommunityName } from "@/lib/community-brand";
@@ -19,7 +20,7 @@ const communityName = getCommunityName();
 
 const desktopNavigationItems = [
   { key: "home", href: "/", label: "帖子", meta: "Feed", icon: HomeIcon },
-  { key: "neighbors", href: "/neighbors", label: "投票", meta: "Voting", icon: VoteIcon },
+  { key: "neighbors", href: "/neighbors", label: "邻里互助", meta: "Neighbors", icon: UsersIcon },
   { key: "services", href: "/services", label: "工单服务", meta: "Service Desk", icon: ServiceIcon },
   { key: "messages", href: "/messages", label: "消息中心", meta: "Inbox", icon: MessagesIcon },
   { key: "me", href: "/me", label: "个人中心", meta: "Profile", icon: UserIcon },
@@ -27,7 +28,7 @@ const desktopNavigationItems = [
 
 const mobileNavigationItems = [
   { key: "home", href: "/", label: "首页", icon: HomeIcon },
-  { key: "neighbors", href: "/neighbors", label: "投票", icon: VoteIcon },
+  { key: "neighbors", href: "/neighbors", label: "邻里", icon: UsersIcon },
   { key: "publish", href: "/publish", label: "发布", icon: PublishIcon, isPublish: true },
   { key: "messages", href: "/messages", label: "消息", icon: MessagesIcon },
   { key: "me", href: "/me", label: "我的", icon: UserIcon },
@@ -51,13 +52,13 @@ function getActiveKey(pathname: string) {
 function getPageMeta(pathname: string) {
   if (pathname === "/") return { title: "社区终端", description: "社区动态与邻里互助" };
   if (pathname.startsWith("/posts")) return { title: "社区动态", description: "需求、闲置、交流、约玩" };
-  if (pathname.startsWith("/neighbors")) return { title: "投票", description: "社区投票与意见征集" };
+  if (pathname.startsWith("/neighbors")) return { title: "邻里互助", description: "技能登记与互助广场" };
   if (pathname.startsWith("/polls")) return { title: "投票详情", description: "社区治理与意见征集" };
   if (pathname.startsWith("/services")) return { title: "工单服务", description: "物业报修与处理进度" };
   if (pathname.startsWith("/messages")) return { title: "消息中心", description: "评论、收藏、投票与系统提醒" };
   if (pathname.startsWith("/publish")) return { title: "发布内容", description: "发帖、报修、投票、活动" };
   if (pathname.startsWith("/me")) return { title: "个人中心", description: "我的互动、工单与账户信息" };
-  return { title: communityName, description: "让社区投票更直接" };
+  return { title: communityName, description: "让社区互助更简单" };
 }
 
 export function AppFrame({ children }: { children: ReactNode }) {
@@ -89,7 +90,7 @@ export function AppFrame({ children }: { children: ReactNode }) {
               </div>
               <div className="app-shell-brand-subtitle">居民互助 · 公开透明 · Mobile-first</div>
               <div className="app-shell-brand-kicker" style={{ marginTop: "0.85rem" }}>
-                动态 · 投票 · 消息 · 我的
+                动态 · 邻里 · 消息 · 我的
               </div>
             </div>
 

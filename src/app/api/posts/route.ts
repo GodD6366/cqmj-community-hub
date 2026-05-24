@@ -7,10 +7,11 @@ import {
   listPollsForViewer,
   listServiceTicketsForViewer,
 } from "@/lib/resident-server";
+import { listNeighborSkillsForViewer } from "@/lib/skill-server";
 import { getPublicImageBaseUrl, getUploadPrefix } from "@/lib/s3-storage";
 import { validateImageStorageFields, validatePostImages } from "@/lib/post-images";
 import { isPostCategory } from "@/lib/types";
-import type { CommunityUser, NotificationItem, PollSummary, ServiceTicketSummary } from "@/lib/types";
+import type { CommunityUser, NotificationItem, PollSummary, ServiceTicketSummary, NeighborSkillSummary } from "@/lib/types";
 
 function parseDraft(body: unknown) {
   if (!body || typeof body !== "object") return null;
@@ -29,6 +30,7 @@ function buildResidentFallbackPayload(currentUser: CommunityUser | null = null) 
   return {
     posts: [],
     polls: [] as PollSummary[],
+    neighborSkills: [] as NeighborSkillSummary[],
     serviceTickets: [] as ServiceTicketSummary[],
     notifications: [] as NotificationItem[],
     unreadNotificationCount: 0,
@@ -73,17 +75,19 @@ export async function GET(request: Request) {
   // 否则返回完整的数据（初始化时使用）
   try {
     const viewerId = currentUser?.id ?? null;
-    const [posts, polls, serviceTickets, notifications, unreadNotificationCount] = await Promise.all([
+    const [posts, polls, serviceTickets, notifications, unreadNotificationCount, neighborSkills] = await Promise.all([
       listPostsForViewer(viewerId),
       listPollsForViewer(viewerId),
       listServiceTicketsForViewer(viewerId),
       currentUser ? listNotificationsForViewer(currentUser.id) : Promise.resolve([]),
       currentUser ? countUnreadNotificationsForViewer(currentUser.id) : Promise.resolve(0),
+      listNeighborSkillsForViewer(viewerId),
     ]);
 
     return NextResponse.json({
       posts,
       polls,
+      neighborSkills,
       serviceTickets,
       notifications,
       unreadNotificationCount,

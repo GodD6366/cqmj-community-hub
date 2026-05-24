@@ -142,7 +142,7 @@ function ImageLightbox({
 /* ── 主组件 ──────────────────────────────────────── */
 export function PostDetailClient({ postId }: PostDetailClientProps) {
   const router = useRouter();
-  const { posts, addComment, toggleFavorite, reportPost, updatePost, deletePost, currentUser } = useCommunityPosts();
+  const { posts, addComment, toggleFavorite, reportPost, updatePost, deletePost, currentUser, refresh } = useCommunityPosts();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -226,6 +226,26 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
       setMessage(data.following ? "已关注。" : "已取消关注。");
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "关注失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleNotifyMatch(matchId: string) {
+    if (!currentUser) return;
+    setBusy(true); setMessage(""); setError("");
+    try {
+      const response = await fetch(`/api/posts/${postIdValue}/notify-match`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ matchId })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "通知失败");
+      setMessage("已通知邻居，请耐心等待回复。");
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "通知失败");
     } finally {
       setBusy(false);
     }
@@ -344,6 +364,40 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             {post.tags.map((tag) => (
               <span key={tag} className="mobile-post-tag">#{tag}</span>
             ))}
+          </div>
+        )}
+
+        {post.category === "request" && post.skillMatches && post.skillMatches.length > 0 && (
+          <div className="mt-6 border border-[var(--primary)] rounded-xl p-4 bg-[rgba(57,245,143,0.05)]">
+            <h3 className="text-[var(--primary)] font-semibold mb-3 flex items-center gap-2">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+              AI 推荐邻居
+            </h3>
+            <div className="space-y-3">
+              {post.skillMatches.map(match => (
+                <div key={match.id} className="flex flex-col gap-2 p-3 bg-[rgba(8,16,16,0.6)] rounded-lg border border-[var(--border)]">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-sm text-[#f0fff6]">{match.roomNumber} {match.ownerName}</span>
+                    <span className="text-xs text-[var(--muted)]">{match.skillTitle}</span>
+                  </div>
+                  {match.reasons && match.reasons.length > 0 && (
+                    <div className="text-xs text-[#a0dfbc]">{match.reasons[0]}</div>
+                  )}
+                  {post.isMine && (
+                    <button
+                      type="button"
+                      className="mt-1 w-full py-1.5 text-xs font-semibold rounded bg-[var(--primary)] text-[#032111] disabled:opacity-50"
+                      onClick={() => handleNotifyMatch(match.id)}
+                      disabled={busy || !!match.notifiedAt}
+                    >
+                      {match.notifiedAt ? "已通知" : "一键通知TA来帮忙"}
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -535,6 +589,42 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             <div className="mt-3 whitespace-pre-wrap text-[0.95rem] leading-8 text-[var(--foreground)]">{post.content}</div>
             {post.tags.length > 0 ? <div className="mt-4 flex flex-wrap gap-2">{post.tags.map((tag) => <span key={tag} className="rounded-full border border-[rgba(57,245,143,0.12)] bg-[rgba(57,245,143,0.05)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--primary)]">#{tag}</span>)}</div> : null}
           </div>
+
+          {post.category === "request" && post.skillMatches && post.skillMatches.length > 0 && (
+            <div className="glass-card p-4 md:p-5 border border-[var(--primary)] shadow-[0_0_15px_rgba(57,245,143,0.1)]">
+              <h3 className="text-[var(--primary)] font-semibold mb-4 flex items-center gap-2">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-5 h-5">
+                  <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+                </svg>
+                AI 技能匹配推荐
+              </h3>
+              <div className="grid gap-3 sm:grid-cols-2">
+                {post.skillMatches.map(match => (
+                  <div key={match.id} className="p-4 bg-[rgba(8,16,16,0.6)] rounded-xl border border-[var(--border)] hover:border-[rgba(57,245,143,0.4)] transition-colors">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <div className="font-semibold text-sm text-[#f0fff6]">{match.roomNumber} {match.ownerName}</div>
+                        <div className="text-xs text-[var(--primary)] mt-0.5">{match.skillTitle}</div>
+                      </div>
+                    </div>
+                    {match.reasons && match.reasons.length > 0 && (
+                      <div className="text-xs text-[var(--muted)] mb-3 leading-relaxed">匹配理由：{match.reasons[0]}</div>
+                    )}
+                    {post.isMine && (
+                      <button
+                        type="button"
+                        className="w-full py-2 text-xs font-semibold rounded-lg bg-[var(--primary)] text-[#032111] hover:shadow-[0_0_10px_rgba(57,245,143,0.3)] disabled:opacity-50 disabled:shadow-none transition-all"
+                        onClick={() => handleNotifyMatch(match.id)}
+                        disabled={busy || !!match.notifiedAt}
+                      >
+                        {match.notifiedAt ? "已发送互助请求" : "一键通知TA来帮忙"}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* 桌面端评论区 */}
           <div className="glass-card p-4 md:p-5">

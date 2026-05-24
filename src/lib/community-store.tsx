@@ -12,6 +12,8 @@ import type {
   RequestStatus,
   ServiceTicketDraft,
   ServiceTicketSummary,
+  NeighborSkillSummary,
+  NeighborSkillDraft,
 } from "./types";
 
 interface AuthPayload {
@@ -24,6 +26,7 @@ interface AuthPayload {
 interface CommunityStore {
   posts: CommunityPost[];
   polls: PollSummary[];
+  neighborSkills: NeighborSkillSummary[];
   serviceTickets: ServiceTicketSummary[];
   notifications: NotificationItem[];
   unreadNotificationCount: number;
@@ -42,6 +45,8 @@ interface CommunityStore {
   addServiceTicket: (draft: ServiceTicketDraft) => Promise<string>;
   updateServiceTicket: (ticketId: string, draft: ServiceTicketDraft) => Promise<void>;
   deleteServiceTicket: (ticketId: string) => Promise<void>;
+  addNeighborSkill: (draft: NeighborSkillDraft) => Promise<string>;
+  updateNeighborSkill: (skillId: string, draft: NeighborSkillDraft) => Promise<void>;
   addComment: (
     postId: string,
     comment: { content: string },
@@ -78,6 +83,7 @@ async function readJson<T>(response: Response): Promise<T> {
 export function CommunityProvider({ children }: { children: ReactNode }) {
   const [posts, setPosts] = useState<CommunityPost[]>([]);
   const [polls, setPolls] = useState<PollSummary[]>([]);
+  const [neighborSkills, setNeighborSkills] = useState<NeighborSkillSummary[]>([]);
   const [serviceTickets, setServiceTickets] = useState<ServiceTicketSummary[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
@@ -89,6 +95,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     const data = await readJson<{
       posts: CommunityPost[];
       polls: PollSummary[];
+      neighborSkills: NeighborSkillSummary[];
       serviceTickets: ServiceTicketSummary[];
       notifications: NotificationItem[];
       unreadNotificationCount: number;
@@ -97,6 +104,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
 
     setPosts(data.posts ?? []);
     setPolls(data.polls ?? []);
+    setNeighborSkills(data.neighborSkills ?? []);
     setServiceTickets(data.serviceTickets ?? []);
     setNotifications(data.notifications ?? []);
     setUnreadNotificationCount(data.unreadNotificationCount ?? 0);
@@ -223,6 +231,35 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       const response = await fetch(`/api/polls/${pollId}`, {
         method: "DELETE",
         credentials: "include",
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const addNeighborSkill = useCallback(
+    async (draft: NeighborSkillDraft) => {
+      const response = await fetch("/api/skills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(draft),
+      });
+      const data = await readJson<{ id: string }>(response);
+      await refresh();
+      return data.id;
+    },
+    [refresh],
+  );
+
+  const updateNeighborSkill = useCallback(
+    async (skillId: string, draft: NeighborSkillDraft) => {
+      const response = await fetch(`/api/skills/${skillId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(draft),
       });
       await readJson<{ ok: boolean }>(response);
       await refresh();
@@ -389,6 +426,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     () => ({
       posts,
       polls,
+      neighborSkills,
       serviceTickets,
       notifications,
       unreadNotificationCount,
@@ -407,6 +445,8 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       addServiceTicket,
       updateServiceTicket,
       deleteServiceTicket,
+      addNeighborSkill,
+      updateNeighborSkill,
       addComment,
       toggleFavorite,
       reportPost,

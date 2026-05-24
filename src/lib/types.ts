@@ -119,6 +119,7 @@ export interface CommunityPost {
   favorited?: boolean;
   reported?: boolean;
   isMine?: boolean;
+  skillMatches?: PostSkillMatchSummary[];
 }
 
 export interface PollOptionSummary {

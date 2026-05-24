@@ -12,6 +12,7 @@ import { prisma } from "./db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createNotificationRecord } from "./resident-server";
 import { resolvePublicImageUrl } from "./s3-storage";
+import { triggerSkillMatching } from "./skill-server";
 import { getBuildingFromRoomNumber } from "./access-control";
 
 type PostRecord = Prisma.PostGetPayload<{
@@ -248,14 +249,50 @@ export async function getPostForViewer(
     return null;
   }
 
-  return mapPost(post, viewer?.id ?? null);
+  const mapped = mapPost(post, viewer?.id ?? null);
+
+  if (post.category === "request") {
+    const matches = await prisma.postSkillMatch.findMany({
+      where: { postId: post.id },
+      include: {
+        skill: {
+          include: {
+            user: { select: { name: true, roomNumber: true } }
+          }
+        }
+      },
+      orderBy: { score: "desc" },
+      take: 5
+    });
+
+    mapped.skillMatches = matches.map(m => ({
+      id: m.id,
+      postId: m.postId,
+      skillId: m.skillId,
+      userId: m.skill.userId,
+      ownerName: m.skill.user.name,
+      roomNumber: m.skill.user.roomNumber ?? "未知",
+      building: m.skill.user.roomNumber ? m.skill.user.roomNumber.split("-")[0] : "未知",
+      category: m.skill.category as any,
+      skillTitle: m.skill.title,
+      skillDescription: m.skill.description,
+      tags: JSON.parse(m.skill.tags || "[]"),
+      availability: m.skill.availability,
+      score: m.score / 100,
+      reasons: JSON.parse(m.reasons || "[]"),
+      source: m.source as "llm" | "rule",
+      notifiedAt: m.notifiedAt ? m.notifiedAt.toISOString() : null,
+    }));
+  }
+
+  return mapped;
 }
 
 export async function createPostForViewer(
   viewer: { id: string; nickname: string },
   draft: PostDraft,
 ) {
-  return prisma.$transaction(async (tx) => {
+  const id = await prisma.$transaction(async (tx) => {
     const post = await tx.post.create({
       data: {
         title: draft.title,
@@ -297,6 +334,13 @@ export async function createPostForViewer(
 
     return post.id;
   });
+
+  if (draft.category === "request") {
+    // 异步触发，不阻塞返回
+    triggerSkillMatching(id, draft.content).catch(console.error);
+  }
+
+  return id;
 }
 
 export async function updatePostForViewer(
@@ -350,6 +394,10 @@ export async function updatePostForViewer(
       },
     });
   });
+
+  if (draft.category === "request") {
+    triggerSkillMatching(postId, draft.content).catch(console.error);
+  }
 
   return { status: "ok" as const };
 }

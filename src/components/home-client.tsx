@@ -5,13 +5,13 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCommunityPosts } from "./community-provider";
 import { filterPublicPosts } from "@/lib/community-store";
 import { PostCard } from "./post-card";
-import { EmptyState } from "./resident-shared";
+import { EmptyState, PollCard } from "./resident-shared";
 import { BellIcon, FilterIcon, PlusIcon, SearchIcon, VoteIcon } from "./app-icons";
 import { CategoryGlyph } from "./category-glyph";
 import { PostCategoryTabs } from "./post-category-tabs";
 import { getCommunityName } from "@/lib/community-brand";
 import { uniquePosts } from "@/lib/utils";
-import { postCategoryTabMeta, postCategoryTabs, type CommunityPost, type PostCategory } from "@/lib/types";
+import { postCategoryTabMeta, postCategoryTabs, type CommunityPost, type PostCategory, type PollSummary } from "@/lib/types";
 
 const filterTabs: Array<{ tab: FilterTab; label: string }> = [
   { tab: "all", label: "全部" },
@@ -23,13 +23,32 @@ const filterTabs: Array<{ tab: FilterTab; label: string }> = [
 type FilterTab = "all" | "latest" | "following" | "featured";
 
 export function HomeClient() {
-  const { currentUser, posts, unreadNotificationCount, hydrated } = useCommunityPosts();
+  const { currentUser, posts, polls, unreadNotificationCount, hydrated, votePoll } = useCommunityPosts();
   const communityName = getCommunityName();
   const buildingLabel = currentUser?.roomNumber?.split("-")[0]?.trim();
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
   const [activeCategory, setActiveCategory] = useState<PostCategory | "all">("all");
   const [filteredPosts, setFilteredPosts] = useState<CommunityPost[]>([]);
   const [loading, setLoading] = useState(false);
+  const [pendingPollId, setPendingPollId] = useState<string | null>(null);
+  const [pollError, setPollError] = useState("");
+  const [pollMessage, setPollMessage] = useState("");
+
+  const mixedFeed = useMemo(() => {
+    let currentPolls = [...polls];
+    if (activeFilter === "featured" || activeFilter === "following") {
+       currentPolls = [];
+    }
+    if (activeCategory !== "all") {
+       currentPolls = [];
+    }
+    const items: Array<{ type: "post"; data: CommunityPost; createdAt: number } | { type: "poll"; data: PollSummary; createdAt: number }> = [
+      ...filteredPosts.map(p => ({ type: "post" as const, data: p, createdAt: new Date(p.createdAt).getTime() })),
+      ...currentPolls.map(p => ({ type: "poll" as const, data: p, createdAt: new Date(p.createdAt).getTime() }))
+    ];
+    items.sort((a, b) => b.createdAt - a.createdAt);
+    return items;
+  }, [filteredPosts, polls, activeFilter, activeCategory]);
 
   // 初始帖子列表（从 provider 获取）
   const publicPosts = useMemo(() => uniquePosts(filterPublicPosts(posts)), [posts]);
@@ -128,57 +147,81 @@ export function HomeClient() {
 
         {/* 帖子列表 */}
         <div className="mobile-post-list">
+          {pollError ? <div className="text-red-500 text-sm mb-2 px-4">{pollError}</div> : null}
+          {pollMessage ? <div className="text-green-500 text-sm mb-2 px-4">{pollMessage}</div> : null}
           {!hydrated || loading ? (
             <div className="mobile-post-loading">加载中...</div>
-          ) : filteredPosts.length > 0 ? (
-            filteredPosts.slice(0, 10).map((post) => (
+          ) : mixedFeed.length > 0 ? (
+            mixedFeed.slice(0, 10).map((item) => (
+              item.type === "post" ? (
               <Link
-                key={post.id}
-                href={`/posts/${post.id}`}
+                key={`post-${item.data.id}`}
+                href={`/posts/${item.data.id}`}
                 className="mobile-post-card"
               >
                 <div className="mobile-post-card-header">
                   <div className="mobile-post-card-author">
                     <span className="mobile-post-card-avatar">
-                      {Array.from(post.authorName)[0] ?? "邻"}
+                      {Array.from((item.data as CommunityPost).authorName)[0] ?? "邻"}
                     </span>
                     <div>
-                      <span className="mobile-post-card-name">{post.authorName}</span>
+                      <span className="mobile-post-card-name">{(item.data as CommunityPost).authorName}</span>
                       <span className="mobile-post-card-location">2栋-1502</span>
                     </div>
                   </div>
-                  <span className={`mobile-post-card-badge mobile-post-card-badge--${post.category}`}>
-                    {postCategoryTabMeta[post.category].title}
+                  <span className={`mobile-post-card-badge mobile-post-card-badge--${(item.data as CommunityPost).category}`}>
+                    {postCategoryTabMeta[(item.data as CommunityPost).category].title}
                   </span>
                 </div>
 
-                <h3 className="mobile-post-card-title">{post.title}</h3>
-                <p className="mobile-post-card-content">{post.content}</p>
+                <h3 className="mobile-post-card-title">{item.data.title}</h3>
+                <p className="mobile-post-card-content">{(item.data as CommunityPost).content}</p>
 
-                {post.tags.length > 0 && (
+                {(item.data as CommunityPost).tags.length > 0 && (
                   <div className="mobile-post-card-tags">
-                    {post.tags.slice(0, 3).map((tag) => (
+                    {(item.data as CommunityPost).tags.slice(0, 3).map((tag) => (
                       <span key={tag} className="mobile-post-tag">#{tag}</span>
                     ))}
                   </div>
                 )}
 
-                {post.images.length > 0 && (
+                {(item.data as CommunityPost).images.length > 0 && (
                   <div className="mobile-post-card-images">
-                    {post.images.slice(0, 3).map((image, index) => (
+                    {(item.data as CommunityPost).images.slice(0, 3).map((image, index) => (
                       <div key={image.id} className="mobile-post-card-image">
-                        <img src={image.url} alt={`${post.title} ${index + 1}`} />
+                        <img src={image.url} alt={`${item.data.title} ${index + 1}`} />
                       </div>
                     ))}
                   </div>
                 )}
 
                 <div className="mobile-post-card-stats">
-                  <span><HeartStatIcon /> {post.favoriteCount}</span>
-                  <span><CommentStatIcon /> {post.commentCount}</span>
-                  <span><StarStatIcon /> {post.favoriteCount}</span>
+                  <span><HeartStatIcon /> {(item.data as CommunityPost).favoriteCount}</span>
+                  <span><CommentStatIcon /> {(item.data as CommunityPost).commentCount}</span>
+                  <span><StarStatIcon /> {(item.data as CommunityPost).favoriteCount}</span>
                 </div>
               </Link>
+              ) : (
+                <PollCard 
+                  key={`poll-${item.data.id}`} 
+                  poll={item.data as PollSummary} 
+                  pending={pendingPollId === item.data.id}
+                  allowVote={Boolean(currentUser)}
+                  onVote={async (optionId) => {
+                    if (!currentUser) { setPollError("请先登录后参与投票"); return; }
+                    setPendingPollId(item.data.id);
+                    setPollError(""); setPollMessage("");
+                    try {
+                      await votePoll(item.data.id, optionId);
+                      setPollMessage(`已参与投票：${item.data.title}`);
+                    } catch (err) {
+                      setPollError(err instanceof Error ? err.message : "参与投票失败");
+                    } finally {
+                      setPendingPollId(null);
+                    }
+                  }}
+                />
+              )
             ))
           ) : (
             <EmptyState title="还没有帖子" actionHref="/publish" actionLabel="去发布" />
@@ -256,11 +299,35 @@ export function HomeClient() {
           </div>
 
           <div className="grid gap-3">
+            {pollError ? <div className="text-red-500 text-sm">{pollError}</div> : null}
+            {pollMessage ? <div className="text-green-500 text-sm">{pollMessage}</div> : null}
             {!hydrated || loading ? (
               <div className="app-card p-6 text-sm text-[var(--muted)]">加载中...</div>
-            ) : filteredPosts.length > 0 ? (
-              filteredPosts.slice(0, 8).map((post) => (
-                <PostCard key={post.id} post={post} />
+            ) : mixedFeed.length > 0 ? (
+              mixedFeed.slice(0, 8).map((item) => (
+                item.type === "post" ? (
+                  <PostCard key={`post-${item.data.id}`} post={item.data as CommunityPost} />
+                ) : (
+                  <PollCard 
+                    key={`poll-${item.data.id}`} 
+                    poll={item.data as PollSummary} 
+                    pending={pendingPollId === item.data.id}
+                    allowVote={Boolean(currentUser)}
+                    onVote={async (optionId) => {
+                      if (!currentUser) { setPollError("请先登录后参与投票"); return; }
+                      setPendingPollId(item.data.id);
+                      setPollError(""); setPollMessage("");
+                      try {
+                        await votePoll(item.data.id, optionId);
+                        setPollMessage(`已参与投票：${item.data.title}`);
+                      } catch (err) {
+                        setPollError(err instanceof Error ? err.message : "参与投票失败");
+                      } finally {
+                        setPendingPollId(null);
+                      }
+                    }}
+                  />
+                )
               ))
             ) : (
               <EmptyState title="还没有帖子" actionHref="/publish" actionLabel="去发布" />
@@ -300,11 +367,11 @@ export function HomeClient() {
                   <span className="app-shell-link-meta">分享你的想法</span>
                 </span>
               </Link>
-              <Link href="/neighbors" className="app-shell-link !p-3">
+              <Link href="/publish?kind=poll" className="app-shell-link !p-3">
                 <span className="app-shell-link-icon"><VoteIcon /></span>
                 <span className="app-shell-link-copy">
-                  <span className="app-shell-link-title">投票</span>
-                  <span className="app-shell-link-meta">参与社区投票</span>
+                  <span className="app-shell-link-title">发起投票</span>
+                  <span className="app-shell-link-meta">发布社区议题</span>
                 </span>
               </Link>
             </div>
