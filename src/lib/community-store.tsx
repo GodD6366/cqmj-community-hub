@@ -51,6 +51,11 @@ interface CommunityStore {
     postId: string,
     comment: { content: string },
   ) => Promise<{ id: string; authorName: string; content: string; createdAt: string }>;
+  updateComment: (
+    postId: string,
+    commentId: string,
+    comment: { content: string },
+  ) => Promise<{ id: string; authorName: string; content: string; createdAt: string }>;
   toggleFavorite: (postId: string) => Promise<boolean>;
   reportPost: (postId: string, reason?: string) => Promise<void>;
   updateProfile: (payload: { username: string; nickname: string; roomNumber: string }) => Promise<CommunityUser>;
@@ -325,6 +330,23 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     [refresh],
   );
 
+  const updateComment = useCallback(
+    async (postId: string, commentId: string, comment: { content: string }) => {
+      const response = await fetch(`/api/posts/${postId}/comments/${commentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(comment),
+      });
+      const data = await readJson<{
+        comment: { id: string; authorName: string; content: string; createdAt: string };
+      }>(response);
+      await refresh();
+      return data.comment;
+    },
+    [refresh],
+  );
+
   const toggleFavorite = useCallback(
     async (postId: string) => {
       const response = await fetch(`/api/posts/${postId}/favorite`, {
@@ -448,6 +470,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       addNeighborSkill,
       updateNeighborSkill,
       addComment,
+      updateComment,
       toggleFavorite,
       reportPost,
       updateProfile,
@@ -457,6 +480,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
     }),
     [
       addComment,
+      updateComment,
       addPoll,
       addPost,
       addServiceTicket,
@@ -477,6 +501,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       serviceTickets,
       toggleFavorite,
       unreadNotificationCount,
+      updateComment,
       updatePoll,
       updateProfile,
       updateRequestStatus,

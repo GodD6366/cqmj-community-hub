@@ -20,6 +20,7 @@ from typing import Any
 VALID_CATEGORIES = ("request", "secondhand", "discussion", "play")
 VALID_VISIBILITIES = ("community", "building", "private")
 VALID_FILTERS = ("all", "latest", "following", "featured")
+VALID_REQUEST_STATUSES = ("open", "processing", "resolved")
 
 
 def die(message: str, code: int = 1) -> None:
@@ -90,7 +91,7 @@ def cmd_me(_: argparse.Namespace) -> None:
 
 
 def cmd_posts_list(args: argparse.Namespace) -> None:
-    print_json(request_json("GET", "/posts", query={"filter": args.filter, "category": args.category, "limit": args.limit}))
+    print_json(request_json("GET", "/posts", query={"filter": args.filter, "category": args.category, "requestStatus": args.request_status, "limit": args.limit}))
 
 
 def cmd_posts_get(args: argparse.Namespace) -> None:
@@ -157,6 +158,7 @@ def build_parser() -> argparse.ArgumentParser:
     posts_list = posts_sub.add_parser("list", help="List visible posts")
     posts_list.add_argument("--filter", choices=VALID_FILTERS)
     posts_list.add_argument("--category", choices=VALID_CATEGORIES)
+    posts_list.add_argument("--request-status", choices=VALID_REQUEST_STATUSES)
     posts_list.add_argument("--limit", type=int, default=10)
     posts_list.set_defaults(func=cmd_posts_list)
 

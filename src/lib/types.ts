@@ -71,8 +71,10 @@ export function isNeighborSkillCategory(value: unknown): value is NeighborSkillC
 export interface CommunityComment {
   id: string;
   authorName: string;
+  authorId?: string | null;
   content: string;
   createdAt: string;
+  isMine?: boolean;
 }
 
 export interface PostImage {

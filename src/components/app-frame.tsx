@@ -73,8 +73,8 @@ export function AppFrame({ children }: { children: ReactNode }) {
     return <div className="min-h-screen">{children}</div>;
   }
 
-  // 加载完成后，未登录用户显示登录引导页
-  if (hydrated && !currentUser) {
+  // 仅对需要登录的页面显示登录引导；帖子浏览对访客开放
+  if (hydrated && !currentUser && pathname !== "/" && !pathname.startsWith("/posts")) {
     return <GuestGateway onLogin={() => router.push("/login")} />;
   }
 

@@ -3,8 +3,8 @@ import { verifyUserSkillToken } from "./skill-auth";
 import { createPostForViewer, listPostsForViewer } from "./community-server";
 import { validateImageStorageFields, validatePostImages } from "./post-images";
 import { getPublicImageBaseUrl, getUploadPrefix } from "./s3-storage";
-import { isPostCategory } from "./types";
-import type { CommunityUser, PostCategory, VisibilityScope } from "./types";
+import { isPostCategory, isRequestStatus } from "./types";
+import type { CommunityUser, PostCategory, VisibilityScope, RequestStatus } from "./types";
 
 export interface SkillRouteContext {
   viewer: CommunityUser;
@@ -98,6 +98,10 @@ export function parsePostCategory(value: string | null): PostCategory | undefine
   return isPostCategory(value) ? value : undefined;
 }
 
+export function parseRequestStatus(value: string | null): RequestStatus | undefined {
+  return isRequestStatus(value) ? value : undefined;
+}
+
 export async function createSkillPostFromRequest(request: Request, viewer: CommunityUser) {
   const draft = parsePostDraft(await request.json().catch(() => null));
   if (!draft?.title || !draft.content || !draft.tags.length) {
@@ -157,11 +161,13 @@ export async function listSkillPostsFromRequest(request: Request, viewer: Commun
     ? (filter as "all" | "latest" | "following" | "featured")
     : undefined;
   const categoryParam = parsePostCategory(searchParams.get("category"));
+  const requestStatusParam = parseRequestStatus(searchParams.get("requestStatus"));
   const limit = parseLimit(searchParams.get("limit"), 10, 50);
 
   const posts = await listPostsForViewer(viewer.id, {
     filter: filterParam,
     category: categoryParam,
+    requestStatus: requestStatusParam,
   });
 
   return skillJson({ posts: posts.slice(0, limit) });

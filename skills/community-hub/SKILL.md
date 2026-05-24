@@ -33,6 +33,7 @@ python3 scripts/community_hub.py polls list --limit 20
 ### 帖子
 
 - 列出帖子：`python3 scripts/community_hub.py posts list --filter latest --category discussion --limit 10`
+- 查求助记录：`python3 scripts/community_hub.py posts list --category request --request-status open --limit 10`
 - 查看帖子：`python3 scripts/community_hub.py posts get <post-id>`
 - 创建文字帖子：
   ```bash
@@ -50,6 +51,7 @@ python3 scripts/community_hub.py polls list --limit 20
 分类：`request`、`secondhand`、`discussion`、`play`。
 可见范围：`community`、`building`、`private`。
 筛选器：`all`、`latest`、`following`、`featured`。
+求助状态 (request-status)：`open`、`processing`、`resolved`。
 
 ### 投票
 

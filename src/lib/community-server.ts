@@ -77,6 +77,9 @@ export function canViewPost(
   }
 
   if (post.visibility === "building") {
+    if (!viewer) {
+      return false;
+    }
     if (isOwner) {
       return true;
     }
@@ -93,12 +96,17 @@ function canManagePost(
   return post.authorId === viewer.id || viewer.role === "admin";
 }
 
-function mapComment(comment: { id: string; authorName: string; content: string; createdAt: Date }): CommunityComment {
+function mapComment(
+  comment: { id: string; authorName: string; authorId?: string | null; content: string; createdAt: Date },
+  viewerId: string | null,
+): CommunityComment {
   return {
     id: comment.id,
     authorName: comment.authorName,
+    authorId: comment.authorId ?? null,
     content: comment.content,
     createdAt: comment.createdAt.toISOString(),
+    isMine: viewerId ? comment.authorId === viewerId : false,
   };
 }
 
@@ -121,7 +129,7 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
     favoriteCount: post.favoriteCount,
     visibility: post.visibility as VisibilityScope,
     status: post.status as PostStatus,
-    comments: post.comments.map(mapComment),
+    comments: post.comments.map((comment) => mapComment(comment, viewerId)),
     images: post.images.map((image) => ({
       id: image.id,
       objectKey: image.objectKey,
@@ -145,6 +153,7 @@ export async function listPostsForViewer(
   options?: {
     filter?: "all" | "latest" | "following" | "featured";
     category?: PostCategory;
+    requestStatus?: RequestStatus;
   },
 ) {
   if (options?.filter === "following" && !viewerId) {
@@ -181,6 +190,9 @@ export async function listPostsForViewer(
   // 分类筛选
   if (options?.category) {
     baseWhere.category = options.category;
+  }
+  if (options?.requestStatus) {
+    baseWhere.requestStatus = options.requestStatus;
   }
 
   // 特殊筛选
@@ -534,7 +546,52 @@ export async function addCommentForViewer(
     return comment;
   });
 
-  return mapComment(created);
+  return mapComment(created, viewer.id);
+}
+
+export async function updateCommentForViewer(
+  postId: string,
+  commentId: string,
+  viewer: { id: string; role?: string },
+  content: string,
+) {
+  const comment = await prisma.comment.findUnique({
+    where: { id: commentId },
+    select: {
+      id: true,
+      postId: true,
+      authorId: true,
+      authorName: true,
+      content: true,
+      createdAt: true,
+    },
+  });
+
+  if (!comment || comment.postId !== postId) {
+    return { status: "not_found" as const };
+  }
+
+  if (comment.authorId !== viewer.id && viewer.role !== "admin") {
+    return { status: "forbidden" as const };
+  }
+
+  const updated = await prisma.comment.update({
+    where: { id: commentId },
+    data: { content },
+    select: {
+      id: true,
+      postId: true,
+      authorId: true,
+      authorName: true,
+      content: true,
+      createdAt: true,
+    },
+  });
+
+  return {
+    status: "ok" as const,
+    comment: mapComment(updated, viewer.id),
+  };
 }
 
 export async function toggleFavoriteForViewer(

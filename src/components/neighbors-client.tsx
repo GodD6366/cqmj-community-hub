@@ -262,6 +262,33 @@ export function NeighborsClient() {
 }
 
 function SkillRow({ skill, desktop = false }: { skill: NeighborSkillSummary; desktop?: boolean }) {
+  const [contacting, setContacting] = useState(false);
+  const [contacted, setContacted] = useState(false);
+
+  const handleContact = async () => {
+    if (skill.isMine) {
+      alert("这是您自己登记的技能");
+      return;
+    }
+    setContacting(true);
+    try {
+      const res = await fetch(`/api/skills/${skill.id}/contact`, {
+        method: "POST"
+      });
+      if (res.ok) {
+        setContacted(true);
+        alert("已发送通知给该邻居！");
+      } else {
+        const data = await res.json();
+        alert(`通知失败: ${data.error || "未知错误"}`);
+      }
+    } catch (e) {
+      alert("请求失败，请稍后重试");
+    } finally {
+      setContacting(false);
+    }
+  };
+
   return (
     <article className={desktop ? "app-card-muted p-4" : "terminal-list-row"}>
       <div className="flex items-start gap-3">
@@ -274,7 +301,14 @@ function SkillRow({ skill, desktop = false }: { skill: NeighborSkillSummary; des
           <div className="mt-1 font-medium text-sm text-slate-800">{skill.title}</div>
           <div className="mt-1 text-xs text-[var(--muted)]">{skill.description}</div>
         </div>
-        <button type="button" className="terminal-outline-button self-center">联系TA</button>
+        <button 
+          type="button" 
+          className={`terminal-outline-button self-center ${contacted ? "opacity-50 cursor-not-allowed" : ""}`}
+          onClick={handleContact}
+          disabled={contacting || contacted || skill.isMine}
+        >
+          {contacting ? "发送中..." : contacted ? "已联系" : "联系TA"}
+        </button>
       </div>
     </article>
   );

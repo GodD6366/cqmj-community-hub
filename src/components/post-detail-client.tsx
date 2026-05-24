@@ -142,7 +142,7 @@ function ImageLightbox({
 /* ── 主组件 ──────────────────────────────────────── */
 export function PostDetailClient({ postId }: PostDetailClientProps) {
   const router = useRouter();
-  const { posts, addComment, toggleFavorite, reportPost, updatePost, deletePost, currentUser, refresh } = useCommunityPosts();
+  const { posts, addComment, updateComment, toggleFavorite, reportPost, updatePost, deletePost, currentUser, refresh } = useCommunityPosts();
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -154,6 +154,9 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [showMoreMenu, setShowMoreMenu] = useState(false);
   const [following, setFollowing] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editingCommentContent, setEditingCommentContent] = useState("");
+  const [sharing, setSharing] = useState(false);
   const postListHref = "/posts";
 
   const post = useMemo(() => posts.find((item) => item.id === postId), [postId, posts]);
@@ -262,6 +265,59 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
       setError(submitError instanceof Error ? submitError.message : "评论发布失败");
     } finally {
       setIsSubmittingComment(false);
+    }
+  }
+
+  async function handleCommentEditSubmit() {
+    if (!currentUser || !editingCommentId) {
+      return;
+    }
+    if (!editingCommentContent.trim()) {
+      setError("请填写评论内容");
+      return;
+    }
+    setBusy(true); setError(""); setMessage("");
+    try {
+      await updateComment(postId, editingCommentId, { content: editingCommentContent.trim() });
+      setEditingCommentId(null);
+      setEditingCommentContent("");
+      setMessage("评论已更新。");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "评论修改失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleShare() {
+    if (typeof window === "undefined" || !post) {
+      return;
+    }
+
+    const url = window.location.href;
+    const shareData = {
+      title: post.title,
+      text: `${post.authorName} 发布的帖子：${post.title}`,
+      url,
+    };
+
+    setSharing(true); setError(""); setMessage("");
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        setMessage("分享成功。");
+        return;
+      }
+
+      await navigator.clipboard.writeText(url);
+      setMessage("链接已复制，快去分享吧。");
+    } catch (shareError) {
+      if (shareError instanceof Error && shareError.name === "AbortError") {
+        return;
+      }
+      setError(shareError instanceof Error ? shareError.message : "分享失败");
+    } finally {
+      setSharing(false);
     }
   }
 
@@ -434,11 +490,11 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             </svg>
             <span>{post.commentCount}</span>
           </button>
-          <button type="button" className="mobile-post-interact-btn">
+          <button type="button" className="mobile-post-interact-btn" onClick={handleShare} disabled={sharing}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
             </svg>
-            <span>分享</span>
+            <span>{sharing ? "处理中" : "分享"}</span>
           </button>
         </div>
 
@@ -477,9 +533,37 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                     <span className="mobile-post-comment-name">{comment.authorName}</span>
                     <span className="mobile-post-comment-time">{timeAgo(comment.createdAt)}</span>
                   </div>
-                  <p className="mobile-post-comment-text">{comment.content}</p>
+                  {editingCommentId === comment.id ? (
+                    <div className="mt-2 space-y-2">
+                      <textarea
+                        className="mobile-post-comment-input !min-h-[88px]"
+                        value={editingCommentContent}
+                        onChange={(e) => setEditingCommentContent(e.target.value)}
+                      />
+                      <div className="flex gap-2">
+                        <button type="button" className="mobile-post-comment-reply" onClick={handleCommentEditSubmit} disabled={busy}>
+                          保存
+                        </button>
+                        <button type="button" className="mobile-post-comment-reply" onClick={() => { setEditingCommentId(null); setEditingCommentContent(""); }}>
+                          取消
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="mobile-post-comment-text">{comment.content}</p>
+                  )}
                   <div className="mobile-post-comment-actions">
-                    <button type="button" className="mobile-post-comment-reply">回复</button>
+                    {comment.isMine ? (
+                      <button
+                        type="button"
+                        className="mobile-post-comment-reply"
+                        onClick={() => { setEditingCommentId(comment.id); setEditingCommentContent(comment.content); }}
+                      >
+                        编辑
+                      </button>
+                    ) : (
+                      <button type="button" className="mobile-post-comment-reply">回复</button>
+                    )}
                     <div className="mobile-post-comment-stats">
                       <button type="button" className="mobile-post-comment-like">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -497,22 +581,30 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
         {/* 底部评论输入框 */}
         <div className="mobile-post-comment-input-bar">
-          <input
-            name="mobileComment"
-            className="mobile-post-comment-input"
-            placeholder="写下你的回复..."
-            value={commentContent}
-            onChange={(e) => setCommentContent(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleCommentSubmit();
-              }
-            }}
-          />
-          <button type="button" className="mobile-post-comment-send" onClick={handleCommentSubmit} disabled={isSubmittingComment}>
-            发送
-          </button>
+          {currentUser ? (
+            <>
+              <input
+                name="mobileComment"
+                className="mobile-post-comment-input"
+                placeholder="写下你的回复..."
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleCommentSubmit();
+                  }
+                }}
+              />
+              <button type="button" className="mobile-post-comment-send" onClick={handleCommentSubmit} disabled={isSubmittingComment}>
+                发送
+              </button>
+            </>
+          ) : (
+            <Link href={`/login?next=/posts/${post.id}`} className="mobile-post-comment-send !w-full !text-center">
+              登录后回复
+            </Link>
+          )}
         </div>
       </section>
 
@@ -661,7 +753,29 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                         <span className="text-sm font-semibold text-slate-950">{comment.authorName}</span>
                         <span className="text-xs text-[var(--muted)]">{timeAgo(comment.createdAt)}</span>
                       </div>
-                      <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]">{comment.content}</p>
+                      {editingCommentId === comment.id ? (
+                        <div className="mt-2 space-y-2">
+                          <textarea
+                            className="w-full p-3 rounded-2xl border border-[var(--border)] bg-[rgba(3,7,7,0.4)] text-[var(--field-foreground)] resize-none transition-colors focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] focus:bg-[rgba(10,20,20,0.92)]"
+                            rows={3}
+                            value={editingCommentContent}
+                            onChange={(e) => setEditingCommentContent(e.target.value)}
+                          />
+                          <div className="flex gap-2">
+                            <button type="button" className="px-3 py-1.5 rounded-full bg-[var(--primary)] text-[#032111] text-xs font-semibold" onClick={handleCommentEditSubmit} disabled={busy}>保存</button>
+                            <button type="button" className="px-3 py-1.5 rounded-full border border-[var(--border)] text-xs font-semibold text-[var(--foreground)]" onClick={() => { setEditingCommentId(null); setEditingCommentContent(""); }}>取消</button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]">{comment.content}</p>
+                      )}
+                      {comment.isMine && editingCommentId !== comment.id ? (
+                        <div className="mt-2">
+                          <button type="button" className="text-xs font-semibold text-[var(--primary)]" onClick={() => { setEditingCommentId(comment.id); setEditingCommentContent(comment.content); }}>
+                            编辑评论
+                          </button>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ))}
@@ -672,23 +786,36 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           <div className="glass-card p-4 md:p-5">
             <div className="text-sm font-semibold text-slate-900">发表评论</div>
             <div className="mt-3">
-              <textarea
-                className="w-full p-4 rounded-2xl border border-[var(--border)] bg-[rgba(3,7,7,0.4)] text-[var(--field-foreground)] resize-none transition-colors focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] focus:bg-[rgba(10,20,20,0.92)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
-                placeholder="写下你的评论..."
-                rows={4}
-                value={commentContent}
-                onChange={(e) => setCommentContent(e.target.value)}
-              />
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  className={`px-5 py-2.5 rounded-full bg-gradient-to-r from-[var(--primary)] to-[#7affc6] text-[#032111] font-semibold shadow-[0_4px_16px_rgba(57,245,143,0.25)] transition-all hover:shadow-[0_6px_24px_rgba(57,245,143,0.4)] hover:-translate-y-[1px] ${isSubmittingComment ? "opacity-70 cursor-not-allowed" : ""}`}
-                  onClick={handleCommentSubmit}
-                  disabled={isSubmittingComment}
-                >
-                  {isSubmittingComment ? "发送中..." : "发布评论"}
-                </button>
-              </div>
+              {currentUser ? (
+                <>
+                  <textarea
+                    className="w-full p-4 rounded-2xl border border-[var(--border)] bg-[rgba(3,7,7,0.4)] text-[var(--field-foreground)] resize-none transition-colors focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] focus:bg-[rgba(10,20,20,0.92)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
+                    placeholder="写下你的评论..."
+                    rows={4}
+                    value={commentContent}
+                    onChange={(e) => setCommentContent(e.target.value)}
+                  />
+                  <div className="mt-3 flex justify-end">
+                    <button
+                      type="button"
+                      className={`px-5 py-2.5 rounded-full bg-gradient-to-r from-[var(--primary)] to-[#7affc6] text-[#032111] font-semibold shadow-[0_4px_16px_rgba(57,245,143,0.25)] transition-all hover:shadow-[0_6px_24px_rgba(57,245,143,0.4)] hover:-translate-y-[1px] ${isSubmittingComment ? "opacity-70 cursor-not-allowed" : ""}`}
+                      onClick={handleCommentSubmit}
+                      disabled={isSubmittingComment}
+                    >
+                      {isSubmittingComment ? "发送中..." : "发布评论"}
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="rounded-2xl border border-[var(--border)] bg-[rgba(3,7,7,0.4)] p-4 text-sm text-[var(--muted)]">
+                  登录后可发表评论。
+                  <div className="mt-3">
+                    <Link href={`/login?next=/posts/${post.id}`} className="inline-flex px-4 py-2 rounded-full bg-[var(--primary)] text-[#032111] font-semibold">
+                      去登录
+                    </Link>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -712,6 +839,14 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                 disabled={busy}
               >
                 举报内容
+              </button>
+              <button
+                type="button"
+                className="w-full py-2.5 px-4 rounded-full border border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)] font-semibold transition-all duration-200 hover:border-[var(--primary)] hover:bg-[rgba(57,245,143,0.05)] hover:-translate-y-[1px] hover:shadow-[0_4px_12px_rgba(57,245,143,0.1)]"
+                onClick={handleShare}
+                disabled={sharing}
+              >
+                {sharing ? "分享中..." : "分享帖子"}
               </button>
               {canManagePost && (
                 <button
