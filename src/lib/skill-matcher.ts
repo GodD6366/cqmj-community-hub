@@ -9,7 +9,7 @@ export interface MatchResult {
 
 const LLM_BASE_URL = process.env.COMMUNITY_LLM_BASE_URL;
 const LLM_API_KEY = process.env.COMMUNITY_LLM_API_KEY;
-const LLM_MODEL = process.env.COMMUNITY_LLM_MODEL || "gpt-3.5-turbo";
+const LLM_MODEL = process.env.COMMUNITY_LLM_MODEL || "gpt-5.4-mini";
 
 // 简单的降级规则匹配
 export function fallbackRuleMatch(
@@ -24,7 +24,7 @@ export function fallbackRuleMatch(
     const reasons: string[] = [];
 
     const keywords = [skill.category, skill.title, ...skill.tags].map(k => k.toLowerCase());
-    
+
     // 中文分词要求比较高，这里简化为包含关系
     for (const kw of keywords) {
       if (kw.length > 1 && contentLower.includes(kw)) {
@@ -107,7 +107,7 @@ ${JSON.stringify(availableSkills.map(s => ({ id: s.id, category: s.category, tit
 
     const data = await response.json();
     let resultText = data.choices[0]?.message?.content?.trim() || "[]";
-    
+
     // 容错处理：去除 markdown code block
     if (resultText.startsWith("```json")) {
       resultText = resultText.replace(/^```json/, "").replace(/```$/, "").trim();
@@ -116,7 +116,7 @@ ${JSON.stringify(availableSkills.map(s => ({ id: s.id, category: s.category, tit
     }
 
     const parsed = JSON.parse(resultText);
-    
+
     if (Array.isArray(parsed)) {
       return parsed.map((item: any) => ({
         skillId: item.skillId,
@@ -125,7 +125,7 @@ ${JSON.stringify(availableSkills.map(s => ({ id: s.id, category: s.category, tit
         source: "llm" as const,
       })).filter(r => r.skillId).sort((a, b) => b.score - a.score).slice(0, 5);
     }
-    
+
     throw new Error("Invalid LLM response format");
   } catch (error) {
     console.error("LLM Matching failed, falling back to rule matching:", error);
