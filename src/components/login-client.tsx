@@ -54,10 +54,10 @@ function getInviteHint(result: InviteCheckResult | null) {
 
 function getPostLoginDestination(
   nextPath: string,
-  user: { mcpTokenVersion: number },
+  user: { skillTokenVersion: number },
 ) {
-  if (nextPath === "/" && user.mcpTokenVersion === 0)
-    return "/mcp/connect?welcome=1";
+  if (nextPath === "/" && user.skillTokenVersion === 0)
+    return "/skill/connect?welcome=1";
   return nextPath;
 }
 

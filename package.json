@@ -23,7 +23,6 @@
     "@aws-sdk/s3-request-presigner": "^3.1037.0",
     "@heroui/react": "^3.0.2",
     "@heroui/styles": "^3.0.2",
-    "@modelcontextprotocol/sdk": "^1.29.0",
     "@prisma/client": "^6.16.0",
     "@serwist/next": "^9.5.11",
     "bcryptjs": "^3.0.3",

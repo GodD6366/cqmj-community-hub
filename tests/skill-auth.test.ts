@@ -17,20 +17,21 @@ vi.mock("../src/lib/db", () => ({
 
 vi.mock("../src/lib/auth-server", () => ({
   isUserDisabled: vi.fn((user: { disabledAt?: Date | null }) => Boolean(user.disabledAt)),
-  toCommunityUser: vi.fn((user: { id: string; username: string; roomNumber?: string | null; role: "user" | "admin"; mcpTokenVersion?: number; createdAt: Date }) => ({
+  toCommunityUser: vi.fn((user: { id: string; username: string; name?: string | null; roomNumber?: string | null; role: "user" | "admin"; skillTokenVersion?: number; createdAt: Date }) => ({
     id: user.id,
     username: user.username,
+    nickname: user.name ?? user.username,
     roomNumber: user.roomNumber ?? "",
     role: user.role,
-    mcpTokenVersion: user.mcpTokenVersion ?? 0,
+    skillTokenVersion: user.skillTokenVersion ?? 0,
     createdAt: user.createdAt.toISOString(),
   })),
 }));
 
-describe("mcp auth", () => {
+describe("skill auth", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.MCP_SIGNING_SECRET = "test-secret";
+    process.env.SKILL_SIGNING_SECRET = "test-secret";
     prismaMock.$transaction.mockImplementation(async (operations: unknown) => {
       if (Array.isArray(operations)) {
         return Promise.all(operations);
@@ -39,64 +40,92 @@ describe("mcp auth", () => {
     });
   });
 
-  it("issues and verifies a token for the current token version", async () => {
-    const { issueUserMcpToken, verifyUserMcpToken } = await import("../src/lib/mcp-auth");
+  it("issues and verifies a skill token for the current token version", async () => {
+    const { issueUserSkillToken, verifyUserSkillToken } = await import("../src/lib/skill-auth");
     const createdAt = new Date("2026-04-19T00:00:00.000Z");
-    const token = issueUserMcpToken({ id: "userabc123", mcpTokenVersion: 1 });
+    const token = issueUserSkillToken({ id: "userabc123", skillTokenVersion: 1 });
+
+    expect(token.startsWith("skill_userabc123_1_")).toBe(true);
 
     prismaMock.user.findUnique.mockResolvedValue({
       id: "userabc123",
       username: "godd",
+      name: "Godd",
       roomNumber: "1-905",
       role: "user",
       disabledAt: null,
-      mcpTokenVersion: 1,
+      skillTokenVersion: 1,
       createdAt,
     });
 
-    await expect(verifyUserMcpToken(token)).resolves.toEqual({
+    await expect(verifyUserSkillToken(token)).resolves.toEqual({
       id: "userabc123",
       username: "godd",
+      nickname: "Godd",
       roomNumber: "1-905",
       role: "user",
-      mcpTokenVersion: 1,
+      skillTokenVersion: 1,
       createdAt: "2026-04-19T00:00:00.000Z",
     });
   });
 
-  it("rejects tampered signatures, stale versions, and disabled users", async () => {
-    const { issueUserMcpToken, verifyUserMcpToken } = await import("../src/lib/mcp-auth");
-    const token = issueUserMcpToken({ id: "userabc123", mcpTokenVersion: 1 });
+  it("accepts legacy mcp-prefixed tokens during migration", async () => {
+    const { issueUserMcpToken, verifyUserSkillToken } = await import("../src/lib/skill-auth");
+    const createdAt = new Date("2026-04-19T00:00:00.000Z");
+    const token = issueUserMcpToken({ id: "userabc123", skillTokenVersion: 1 }).replace(/^skill_/, "mcp_");
 
-    prismaMock.user.findUnique.mockResolvedValueOnce({
+    prismaMock.user.findUnique.mockResolvedValue({
       id: "userabc123",
       username: "godd",
+      name: null,
       roomNumber: "1-905",
       role: "user",
       disabledAt: null,
-      mcpTokenVersion: 2,
-      createdAt: new Date("2026-04-19T00:00:00.000Z"),
+      skillTokenVersion: 1,
+      createdAt,
     });
 
-    await expect(verifyUserMcpToken(token)).resolves.toBeNull();
-    await expect(verifyUserMcpToken(`${token.slice(0, -1)}x`)).resolves.toBeNull();
+    await expect(verifyUserSkillToken(token)).resolves.toMatchObject({
+      id: "userabc123",
+      skillTokenVersion: 1,
+    });
+  });
+
+  it("rejects tampered signatures, stale versions, and disabled users", async () => {
+    const { issueUserSkillToken, verifyUserSkillToken } = await import("../src/lib/skill-auth");
+    const token = issueUserSkillToken({ id: "userabc123", skillTokenVersion: 1 });
 
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: "userabc123",
       username: "godd",
+      name: null,
       roomNumber: "1-905",
       role: "user",
-      disabledAt: new Date("2026-04-19T01:00:00.000Z"),
-      mcpTokenVersion: 1,
+      disabledAt: null,
+      skillTokenVersion: 2,
       createdAt: new Date("2026-04-19T00:00:00.000Z"),
     });
 
-    await expect(verifyUserMcpToken(token)).resolves.toBeNull();
+    await expect(verifyUserSkillToken(token)).resolves.toBeNull();
+    await expect(verifyUserSkillToken(`${token.slice(0, -1)}x`)).resolves.toBeNull();
+
+    prismaMock.user.findUnique.mockResolvedValueOnce({
+      id: "userabc123",
+      username: "godd",
+      name: null,
+      roomNumber: "1-905",
+      role: "user",
+      disabledAt: new Date("2026-04-19T01:00:00.000Z"),
+      skillTokenVersion: 1,
+      createdAt: new Date("2026-04-19T00:00:00.000Z"),
+    });
+
+    await expect(verifyUserSkillToken(token)).resolves.toBeNull();
   });
 
   it("rotates to a new version and invalidates the old token", async () => {
-    const { issueUserMcpToken, rotateUserMcpToken, verifyUserMcpToken } = await import("../src/lib/mcp-auth");
-    const oldToken = issueUserMcpToken({ id: "userabc123", mcpTokenVersion: 1 });
+    const { issueUserSkillToken, rotateUserSkillToken, verifyUserSkillToken } = await import("../src/lib/skill-auth");
+    const oldToken = issueUserSkillToken({ id: "userabc123", skillTokenVersion: 1 });
     const createdAt = new Date("2026-04-19T00:00:00.000Z");
 
     prismaMock.user.findUnique.mockResolvedValueOnce({
@@ -106,66 +135,66 @@ describe("mcp auth", () => {
     prismaMock.user.update.mockResolvedValueOnce({
       id: "userabc123",
       username: "godd",
+      name: null,
       roomNumber: "1-905",
       role: "user",
       disabledAt: null,
-      mcpTokenVersion: 2,
+      skillTokenVersion: 2,
       createdAt,
     });
 
-    const rotated = await rotateUserMcpToken("userabc123");
+    const rotated = await rotateUserSkillToken("userabc123");
 
-    expect(rotated.user.mcpTokenVersion).toBe(2);
+    expect(rotated.user.skillTokenVersion).toBe(2);
     expect(rotated.token).not.toBe(oldToken);
+    expect(rotated.token.startsWith("skill_")).toBe(true);
 
     prismaMock.user.findUnique
       .mockResolvedValueOnce({
         id: "userabc123",
         username: "godd",
+        name: null,
         roomNumber: "1-905",
         role: "user",
         disabledAt: null,
-        mcpTokenVersion: 2,
+        skillTokenVersion: 2,
         createdAt,
       })
       .mockResolvedValueOnce({
         id: "userabc123",
         username: "godd",
+        name: null,
         roomNumber: "1-905",
         role: "user",
         disabledAt: null,
-        mcpTokenVersion: 2,
+        skillTokenVersion: 2,
         createdAt,
       });
 
-    await expect(verifyUserMcpToken(oldToken)).resolves.toBeNull();
-    await expect(verifyUserMcpToken(rotated.token)).resolves.toEqual({
+    await expect(verifyUserSkillToken(oldToken)).resolves.toBeNull();
+    await expect(verifyUserSkillToken(rotated.token)).resolves.toMatchObject({
       id: "userabc123",
-      username: "godd",
-      roomNumber: "1-905",
-      role: "user",
-      mcpTokenVersion: 2,
-      createdAt: "2026-04-19T00:00:00.000Z",
+      skillTokenVersion: 2,
     });
   });
 
   it("clears sessions and rejects rotation for disabled users", async () => {
-    const { rotateUserMcpToken } = await import("../src/lib/mcp-auth");
+    const { rotateUserSkillToken } = await import("../src/lib/skill-auth");
 
     prismaMock.user.findUnique.mockResolvedValueOnce({
       id: "userabc123",
       disabledAt: new Date("2026-04-19T01:00:00.000Z"),
     });
     prismaMock.session.deleteMany.mockResolvedValue({ count: 2 });
-    prismaMock.user.update.mockResolvedValue({ id: "userabc123", mcpTokenVersion: 0 });
+    prismaMock.user.update.mockResolvedValue({ id: "userabc123", skillTokenVersion: 0 });
 
-    await expect(rotateUserMcpToken("userabc123")).rejects.toThrowError("USER_DISABLED");
+    await expect(rotateUserSkillToken("userabc123")).rejects.toThrowError("USER_DISABLED");
     expect(prismaMock.session.deleteMany).toHaveBeenCalledWith({ where: { userId: "userabc123" } });
     expect(prismaMock.user.update).toHaveBeenCalledWith({
       where: { id: "userabc123" },
       data: {
-        mcpTokenVersion: 0,
-        mcpTokenIssuedAt: null,
+        skillTokenVersion: 0,
+        skillTokenIssuedAt: null,
       },
     });
   });

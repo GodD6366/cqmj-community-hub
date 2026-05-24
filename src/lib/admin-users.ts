@@ -130,8 +130,8 @@ export async function updateAdminUser(
     if (input.disabled !== undefined) {
       if (input.disabled && !current.disabledAt) {
         data.disabledAt = new Date();
-        data.mcpTokenVersion = 0;
-        data.mcpTokenIssuedAt = null;
+        data.skillTokenVersion = 0;
+        data.skillTokenIssuedAt = null;
         await clearUserAccess(tx, userId);
       }
 

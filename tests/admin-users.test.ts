@@ -69,8 +69,8 @@ describe("admin user services", () => {
         name: "alice-new",
         roomNumber: "1-905",
         disabledAt: expect.any(Date),
-        mcpTokenVersion: 0,
-        mcpTokenIssuedAt: null,
+        skillTokenVersion: 0,
+        skillTokenIssuedAt: null,
       }),
       select: expect.any(Object),
     });

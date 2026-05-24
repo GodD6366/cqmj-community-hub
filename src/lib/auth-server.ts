@@ -29,7 +29,7 @@ export function toCommunityUser(user: {
   name?: string | null;
   roomNumber?: string | null;
   role: "user" | "admin";
-  mcpTokenVersion?: number;
+  skillTokenVersion?: number;
   createdAt: Date;
 }) : CommunityUser {
   return {
@@ -38,7 +38,7 @@ export function toCommunityUser(user: {
     nickname: user.name ?? user.username,
     roomNumber: user.roomNumber ?? "",
     role: user.role,
-    mcpTokenVersion: "mcpTokenVersion" in user && typeof user.mcpTokenVersion === "number" ? user.mcpTokenVersion : 0,
+    skillTokenVersion: "skillTokenVersion" in user && typeof user.skillTokenVersion === "number" ? user.skillTokenVersion : 0,
     createdAt: user.createdAt.toISOString(),
   };
 }

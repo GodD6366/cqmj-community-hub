@@ -43,7 +43,7 @@ const functionItems = [
 ] as const;
 
 const extraItems = [
-  { label: "MCP / AI 配置", href: "/mcp/connect", icon: <BrainCircuitIcon /> },
+  { label: "Skill / AI 配置", href: "/skill/connect", icon: <BrainCircuitIcon /> },
   { label: "浏览历史", href: "/posts", icon: <ClockIcon /> },
   { label: "邀请邻居", href: "/about", icon: <MessagesIcon /> },
   { label: "社区规则", href: "/rules", icon: <ShieldIcon /> },
@@ -82,8 +82,8 @@ const mobileStats = [
 
 const mobileMenuItems = [
   {
-    label: "MCP / AI 配置",
-    href: "/mcp/connect",
+    label: "Skill / AI 配置",
+    href: "/skill/connect",
     tone: "cyan",
     icon: <BrainCircuitIcon />,
   },

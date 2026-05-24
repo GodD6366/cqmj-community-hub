@@ -121,7 +121,7 @@ describe("auth server", () => {
       name: "alice",
       roomNumber: "1-905",
       role: "user",
-      mcpTokenVersion: 0,
+      skillTokenVersion: 0,
       createdAt: new Date("2026-04-19T00:00:00.000Z"),
     });
 
@@ -216,7 +216,7 @@ describe("toCommunityUser", () => {
         username: "admin",
         roomNumber: null,
         role: "admin",
-        mcpTokenVersion: 2,
+        skillTokenVersion: 2,
         createdAt,
       }),
     ).toEqual({
@@ -225,7 +225,7 @@ describe("toCommunityUser", () => {
       nickname: "admin",
       roomNumber: "",
       role: "admin",
-      mcpTokenVersion: 2,
+      skillTokenVersion: 2,
       createdAt: "2026-04-19T12:00:00.000Z",
     });
   });

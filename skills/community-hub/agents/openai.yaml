@@ -1,0 +1,6 @@
+interface:
+  display_name: "Community Hub"
+  short_description: "用 AI 助手读写社区帖子与投票互动"
+  default_prompt: "Use $community-hub to summarize the latest community posts and help me draft a reply."
+policy:
+  allow_implicit_invocation: true

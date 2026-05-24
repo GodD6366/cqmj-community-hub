@@ -172,7 +172,7 @@ export interface CommunityUser {
   nickname: string;
   roomNumber: string;
   role: "user" | "admin";
-  mcpTokenVersion: number;
+  skillTokenVersion: number;
   createdAt: string;
 }
 

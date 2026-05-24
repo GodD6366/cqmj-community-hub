@@ -35,7 +35,7 @@ const mobileNavigationItems = [
 
 function isResidentExperience(pathname: string) {
   if (pathname.startsWith("/admin") || pathname.startsWith("/login")) return false;
-  if (pathname === "/mcp") return false;
+  if ((pathname === "/mcp" || pathname === "/api/skill/bundle")) return false;
   return true;
 }
 
@@ -44,7 +44,7 @@ function getActiveKey(pathname: string) {
   if (pathname.startsWith("/neighbors") || pathname.startsWith("/polls")) return "neighbors";
   if (pathname.startsWith("/services")) return "services";
   if (pathname.startsWith("/messages")) return "messages";
-  if (pathname.startsWith("/me") || pathname.startsWith("/about") || pathname.startsWith("/rules") || pathname.startsWith("/mcp/connect") || pathname.startsWith("/login")) return "me";
+  if (pathname.startsWith("/me") || pathname.startsWith("/about") || pathname.startsWith("/rules") || pathname.startsWith("/skill/connect") || pathname.startsWith("/login")) return "me";
   return null;
 }
 

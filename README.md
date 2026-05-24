@@ -20,7 +20,7 @@
 - 服务工单的提交、状态流转、后台管理
 - 消息中心与未读/已读处理
 - 用户、邀请码、帖子、投票、工单后台
-- MCP HTTP 端点与个人只读 API key
+- Community Hub Skill 与个人读写 API key
 - 社区规则页、项目说明页、个人中心
 
 ## 页面入口
@@ -36,8 +36,9 @@
 - `/rules`：社区规则
 - `/about`：项目介绍（优先渲染仓库根目录 `why.md`）
 - `/admin`：管理员后台
-- `/mcp/connect`：登录后的 MCP 接入页
-- `/mcp`：MCP HTTP 端点
+- `/skill/connect`：登录后的 Skill 接入页
+- `/api/skill/*`：Skill JSON API
+- `/api/skill/bundle`：Community Hub Skill 包下载
 
 ## 技术栈
 
@@ -105,7 +106,7 @@ pnpm build
 - `COMMUNITY_ADMIN_USERNAME`
 - `COMMUNITY_ADMIN_PASSWORD`
 - `COMMUNITY_INVITE_CODES`
-- `MCP_SIGNING_SECRET`
+- `SKILL_SIGNING_SECRET`
 - `NEXT_PUBLIC_APP_ORIGIN`
 - `NEXT_PUBLIC_COMMUNITY_NAME`
 - `S3_ENDPOINT`
@@ -124,7 +125,7 @@ DATABASE_URL="postgresql://postgres:postgres@localhost:5432/community_hub?schema
 COMMUNITY_ADMIN_USERNAME="admin"
 COMMUNITY_ADMIN_PASSWORD="cqmjadmin"
 COMMUNITY_INVITE_CODES="WELCOME-2026,NEIGHBOR-2026"
-MCP_SIGNING_SECRET="replace-with-a-long-random-secret"
+SKILL_SIGNING_SECRET="replace-with-a-long-random-secret"
 NEXT_PUBLIC_APP_ORIGIN="http://localhost:3000"
 NEXT_PUBLIC_COMMUNITY_NAME="汤臣一品"
 S3_ENDPOINT="https://<your-s3-endpoint>"
@@ -200,28 +201,32 @@ S3_FORCE_PATH_STYLE="true"
 - 投票管理：查看、结束、重新开放、删除
 - 工单管理：切换状态
 
-## MCP 接入
+## Skill 接入
 
-- MCP HTTP 端点固定为 `/mcp`
-- 登录用户可在 `/mcp/connect` 查看个人 API key，并一键复制接入文案
-- 认证方式：`Authorization: Bearer <API_KEY>`
-- 当前开放只读工具：
-  - `community.current_user`
-  - `community.list_posts`
-  - `community.get_post`
-
-标准接入流程：
-
-1. `POST /mcp`
-2. 先发送 `initialize`
-3. 再调用 `tools/list` 和 `tools/call`
+- 登录用户可在 `/skill/connect` 下载包含 `config.json` 的个人 Skill Bundle，并一键复制接入文案
+- Skill 名称固定为 `community-hub`，默认调用写法为 `$community-hub`
+- Skill Bundle 地址固定为 `/api/skill/bundle`，需登录后下载，包内 `community-hub/config.json` 包含 `apiBaseUrl` 与个人 `apiKey`
+- Skill API Base 固定为 `/api/skill`
+- 认证方式：`Authorization: Bearer <config.json apiKey>`
+- 当前开放常用读写能力：
+  - `GET /api/skill/me`
+  - `GET /api/skill/posts` / `GET /api/skill/posts/[id]`
+  - `POST /api/skill/posts`
+  - `POST /api/skill/posts/[id]/comments`
+  - `POST /api/skill/posts/[id]/favorite`
+  - `POST /api/skill/posts/[id]/report`
+  - `GET /api/skill/polls`
+  - `POST /api/skill/polls`
+  - `POST /api/skill/polls/[id]/vote`
 
 示例请求头：
 
 ```http
-Authorization: Bearer <your-api-key>
+Authorization: Bearer <config.json apiKey>
 Content-Type: application/json
 ```
+
+旧 `/mcp` 端点已下线并返回 `410 Gone`；旧 `/mcp/connect` 会跳转到 `/skill/connect`。
 
 ## Coolify 部署
 
@@ -240,7 +245,7 @@ Content-Type: application/json
 - `COMMUNITY_ADMIN_USERNAME`
 - `COMMUNITY_ADMIN_PASSWORD`
 - `COMMUNITY_INVITE_CODES`
-- `MCP_SIGNING_SECRET`
+- `SKILL_SIGNING_SECRET`
 - 一组完整的 S3 相关环境变量
 
 ## 当前明确不做的能力

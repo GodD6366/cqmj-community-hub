@@ -11,7 +11,7 @@ import { SystemLogo } from "./system-logo";
 const navItems: Array<{ href: string; label: string; requiresAuth?: boolean }> = [
   { href: "/posts", label: "帖子广场" },
   { href: "/publish", label: "发布中心" },
-  { href: "/mcp/connect", label: "AI助手", requiresAuth: true },
+  { href: "/skill/connect", label: "AI助手", requiresAuth: true },
   { href: "/rules", label: "社区规则" },
   { href: "/about", label: "项目介绍" },
 ];
