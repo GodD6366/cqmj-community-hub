@@ -52,3 +52,5 @@ next-env.d.ts
 .pnpm-store
 .codex-artifacts/
 .antigravitycli/
+
+tests/skill
