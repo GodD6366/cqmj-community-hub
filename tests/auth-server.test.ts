@@ -222,6 +222,7 @@ describe("toCommunityUser", () => {
     ).toEqual({
       id: "admin-1",
       username: "admin",
+      nickname: "admin",
       roomNumber: "",
       role: "admin",
       mcpTokenVersion: 2,

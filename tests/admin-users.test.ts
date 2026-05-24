@@ -77,6 +77,7 @@ describe("admin user services", () => {
     expect(result).toEqual({
       id: "user-1",
       username: "alice-new",
+      nickname: "alice-new",
       roomNumber: "1-905",
       role: "user",
       disabled: true,

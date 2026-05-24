@@ -5,6 +5,7 @@ import type {
   PostCategory,
   PostDraft,
   PostStatus,
+  RequestStatus,
   VisibilityScope,
 } from "./types";
 import { prisma } from "./db";
@@ -109,8 +110,10 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
     title: post.title,
     content: post.content,
     category: post.category as PostCategory,
+    requestStatus: (post.requestStatus as RequestStatus | null | undefined) ?? null,
     tags: parseTags(post.tags),
     authorName: post.authorName,
+    authorId: post.authorId,
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     commentCount: post.commentCount,
@@ -136,7 +139,17 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
   };
 }
 
-export async function listPostsForViewer(viewerId: string | null) {
+export async function listPostsForViewer(
+  viewerId: string | null,
+  options?: {
+    filter?: "all" | "latest" | "following" | "featured";
+    category?: PostCategory;
+  },
+) {
+  if (options?.filter === "following" && !viewerId) {
+    return [];
+  }
+
   const viewer =
     viewerId
       ? await prisma.user.findUnique({
@@ -145,19 +158,57 @@ export async function listPostsForViewer(viewerId: string | null) {
         })
       : null;
 
+  // 基础查询条件
+  const baseWhere: Prisma.PostWhereInput = viewer?.role === "admin"
+    ? { status: { not: "deleted" } }
+    : viewerId
+    ? {
+        AND: [
+          { status: { not: "deleted" } },
+          {
+            OR: [
+              { status: "published" },
+              { authorId: viewerId },
+            ],
+          },
+        ],
+      }
+    : {
+        status: "published",
+      };
+
+  // 分类筛选
+  if (options?.category) {
+    baseWhere.category = options.category;
+  }
+
+  // 特殊筛选
+  if (options?.filter === "featured") {
+    baseWhere.OR = [
+      { pinned: true },
+      { featured: true },
+    ];
+  } else if (options?.filter === "following" && viewerId) {
+    // 查询关注用户的帖子
+    const followingIds = await prisma.follow.findMany({
+      where: { followerId: viewerId },
+      select: { followingId: true },
+    });
+    const authorIds = followingIds.map((f) => f.followingId);
+    authorIds.push(viewerId); // 包含自己的帖子
+    baseWhere.authorId = { in: authorIds };
+  }
+
+  // 排序
+  let orderBy: Prisma.PostOrderByWithRelationInput[];
+  if (options?.filter === "latest") {
+    orderBy = [{ createdAt: "desc" }];
+  } else {
+    orderBy = [{ pinned: "desc" }, { featured: "desc" }, { createdAt: "desc" }];
+  }
+
   const posts = await prisma.post.findMany({
-    where: viewer?.role === "admin"
-      ? undefined
-      : viewerId
-      ? {
-          OR: [
-            { status: "published" },
-            { authorId: viewerId },
-          ],
-        }
-      : {
-          status: "published",
-        },
+    where: baseWhere,
     include: {
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
@@ -165,7 +216,7 @@ export async function listPostsForViewer(viewerId: string | null) {
       reports: { select: { userId: true } },
       author: { select: { roomNumber: true } },
     },
-    orderBy: [{ pinned: "desc" }, { featured: "desc" }, { createdAt: "desc" }],
+    orderBy,
   });
 
   return posts.filter((post) => canViewPost(post, viewer)).map((post) => mapPost(post, viewerId));
@@ -192,7 +243,8 @@ export async function getPostForViewer(
     },
   });
 
-  if (!post || !canViewPost(post, viewer)) {
+  // 帖子不存在或已删除，返回 null
+  if (!post || post.status === "deleted" || !canViewPost(post, viewer)) {
     return null;
   }
 
@@ -209,6 +261,7 @@ export async function createPostForViewer(
         title: draft.title,
         content: draft.content,
         category: draft.category,
+        requestStatus: draft.category === "request" ? "open" : null,
         tags: buildTags(draft.tags),
         authorName: draft.anonymous ? "匿名居民" : viewer.nickname,
         authorId: viewer.id,
@@ -253,7 +306,7 @@ export async function updatePostForViewer(
 ) {
   const post = await prisma.post.findUnique({
     where: { id: postId },
-    select: { id: true, authorId: true },
+    select: { id: true, authorId: true, category: true, requestStatus: true },
   });
 
   if (!post) {
@@ -274,6 +327,12 @@ export async function updatePostForViewer(
         title: draft.title,
         content: draft.content,
         category: draft.category,
+        requestStatus:
+          draft.category === "request"
+            ? post.category === "request" && post.requestStatus
+              ? post.requestStatus
+              : "open"
+            : null,
         tags: buildTags(draft.tags),
         authorName: draft.anonymous ? "匿名居民" : viewer.nickname,
         visibility: draft.visibility,
@@ -295,6 +354,57 @@ export async function updatePostForViewer(
   return { status: "ok" as const };
 }
 
+export async function updateRequestStatusForViewer(
+  postId: string,
+  viewer: { id: string; role?: string; nickname?: string },
+  requestStatus: RequestStatus,
+) {
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: {
+      id: true,
+      title: true,
+      authorId: true,
+      category: true,
+      requestStatus: true,
+    },
+  });
+
+  if (!post || post.category !== "request") {
+    return { status: "not_found" as const };
+  }
+
+  if (!canManagePost(post, viewer)) {
+    return { status: "forbidden" as const };
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.post.update({
+      where: { id: postId },
+      data: {
+        requestStatus,
+      },
+    });
+
+    if (post.authorId) {
+      await createNotificationRecord(tx, {
+        userId: post.authorId,
+        type: "system",
+        title: `你的需求「${post.title}」状态已更新`,
+        body:
+          requestStatus === "open"
+            ? "当前状态：待处理"
+            : requestStatus === "processing"
+            ? "当前状态：处理中"
+            : "当前状态：已解决",
+        href: `/posts/${postId}`,
+      });
+    }
+  });
+
+  return { status: "ok" as const };
+}
+
 export async function deletePostForViewer(
   postId: string,
   viewer: { id: string; role?: string },
@@ -311,8 +421,10 @@ export async function deletePostForViewer(
     return { status: "forbidden" as const };
   }
 
-  await prisma.post.delete({
+  // 逻辑删除：更新状态为 deleted
+  await prisma.post.update({
     where: { id: postId },
+    data: { status: "deleted" },
   });
 
   return { status: "ok" as const };
@@ -493,6 +605,7 @@ export async function reportPostForViewer(
 
 export async function listPostsForAdmin() {
   const posts = await prisma.post.findMany({
+    where: { status: { not: "deleted" } },
     include: {
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
@@ -587,8 +700,10 @@ export async function deletePostForAdmin(postId: string) {
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.post.delete({
+    // 逻辑删除：更新状态为 deleted
+    await tx.post.update({
       where: { id: postId },
+      data: { status: "deleted" },
     });
 
     if (post.authorId) {
@@ -603,4 +718,60 @@ export async function deletePostForAdmin(postId: string) {
   });
 
   return true;
+}
+
+// ==================== 关注功能 ====================
+
+export async function toggleFollow(followerId: string, followingId: string) {
+  if (followerId === followingId) {
+    throw new Error("CANNOT_FOLLOW_SELF");
+  }
+
+  const existing = await prisma.follow.findUnique({
+    where: {
+      followerId_followingId: {
+        followerId,
+        followingId,
+      },
+    },
+  });
+
+  if (existing) {
+    await prisma.follow.delete({ where: { id: existing.id } });
+    return { following: false };
+  }
+
+  await prisma.follow.create({
+    data: {
+      followerId,
+      followingId,
+    },
+  });
+
+  return { following: true };
+}
+
+export async function isFollowing(followerId: string, followingId: string) {
+  const existing = await prisma.follow.findUnique({
+    where: {
+      followerId_followingId: {
+        followerId,
+        followingId,
+      },
+    },
+  });
+
+  return Boolean(existing);
+}
+
+export async function getFollowersCount(userId: string) {
+  return prisma.follow.count({
+    where: { followingId: userId },
+  });
+}
+
+export async function getFollowingCount(userId: string) {
+  return prisma.follow.count({
+    where: { followerId: userId },
+  });
 }

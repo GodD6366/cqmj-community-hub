@@ -9,6 +9,7 @@ import type {
   PollUpdateDraft,
   PollSummary,
   PostDraft,
+  RequestStatus,
   ServiceTicketDraft,
   ServiceTicketSummary,
 } from "./types";
@@ -32,6 +33,7 @@ interface CommunityStore {
   markNotificationsRead: (ids?: string[]) => Promise<number>;
   addPost: (draft: PostDraft) => Promise<string>;
   updatePost: (postId: string, draft: PostDraft) => Promise<void>;
+  updateRequestStatus: (postId: string, status: RequestStatus) => Promise<void>;
   deletePost: (postId: string) => Promise<void>;
   addPoll: (draft: PollDraft) => Promise<string>;
   updatePoll: (pollId: string, draft: PollUpdateDraft) => Promise<void>;
@@ -140,6 +142,20 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify(draft),
+      });
+      await readJson<{ ok: boolean }>(response);
+      await refresh();
+    },
+    [refresh],
+  );
+
+  const updateRequestStatus = useCallback(
+    async (postId: string, status: RequestStatus) => {
+      const response = await fetch(`/api/posts/${postId}/request-status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ requestStatus: status }),
       });
       await readJson<{ ok: boolean }>(response);
       await refresh();
@@ -382,6 +398,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       markNotificationsRead,
       addPost,
       updatePost,
+      updateRequestStatus,
       deletePost,
       addPoll,
       updatePoll,
@@ -422,6 +439,7 @@ export function CommunityProvider({ children }: { children: ReactNode }) {
       unreadNotificationCount,
       updatePoll,
       updateProfile,
+      updateRequestStatus,
       updateServiceTicket,
       updatePost,
       votePoll,

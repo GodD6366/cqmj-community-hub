@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCommunityPosts } from "./community-provider";
 import { filterPublicPosts } from "@/lib/community-store";
 import { PostCard } from "./post-card";
@@ -11,38 +11,68 @@ import { CategoryGlyph } from "./category-glyph";
 import { PostCategoryTabs } from "./post-category-tabs";
 import { getCommunityName } from "@/lib/community-brand";
 import { uniquePosts } from "@/lib/utils";
-import { postCategoryTabMeta, postCategoryTabs, type PostCategory } from "@/lib/types";
+import { postCategoryTabMeta, postCategoryTabs, type CommunityPost, type PostCategory } from "@/lib/types";
+
+const filterTabs: Array<{ tab: FilterTab; label: string }> = [
+  { tab: "all", label: "全部" },
+  { tab: "latest", label: "最新" },
+  { tab: "following", label: "关注" },
+  { tab: "featured", label: "精华" },
+];
 
 type FilterTab = "all" | "latest" | "following" | "featured";
 
 export function HomeClient() {
   const { currentUser, posts, unreadNotificationCount, hydrated } = useCommunityPosts();
-  const publicPosts = useMemo(() => uniquePosts(filterPublicPosts(posts)), [posts]);
   const communityName = getCommunityName();
   const buildingLabel = currentUser?.roomNumber?.split("-")[0]?.trim();
   const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
   const [activeCategory, setActiveCategory] = useState<PostCategory | "all">("all");
+  const [filteredPosts, setFilteredPosts] = useState<CommunityPost[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filteredPosts = useMemo(() => {
-    let result = publicPosts;
+  // 初始帖子列表（从 provider 获取）
+  const publicPosts = useMemo(() => uniquePosts(filterPublicPosts(posts)), [posts]);
 
-    // 按分类筛选
-    if (activeCategory !== "all") {
-      result = result.filter((post) => post.category === activeCategory);
+  const normalizePosts = useCallback((items: CommunityPost[]) => uniquePosts(filterPublicPosts(items)), []);
+
+  // 当筛选条件变化时，调用 API 获取筛选后的帖子
+  const fetchFilteredPosts = useCallback(async (filter: FilterTab, category: PostCategory | "all") => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams();
+      if (filter !== "all") params.set("filter", filter);
+      if (category !== "all") params.set("category", category);
+
+      const query = params.toString();
+      const response = await fetch(query ? `/api/posts?${query}` : "/api/posts");
+      if (response.ok) {
+        const data = await response.json();
+        setFilteredPosts(normalizePosts(data.posts || []));
+      } else {
+        setFilteredPosts(publicPosts);
+      }
+    } catch (error) {
+      console.error("Failed to fetch filtered posts:", error);
+      setFilteredPosts(publicPosts);
+    } finally {
+      setLoading(false);
     }
+  }, [normalizePosts, publicPosts]);
 
-    // 按筛选标签排序/筛选
-    switch (activeFilter) {
-      case "latest":
-        return [...result].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-      case "featured":
-        return result.filter((post) => post.pinned || post.featured);
-      case "following":
-        return result.filter((post) => post.isMine || post.pinned);
-      default:
-        return result;
+  // 初始化时使用 provider 的数据
+  useEffect(() => {
+    if (hydrated) {
+      setFilteredPosts(publicPosts);
     }
-  }, [publicPosts, activeFilter, activeCategory]);
+  }, [hydrated, publicPosts]);
+
+  // 筛选条件变化时获取数据
+  useEffect(() => {
+    if (hydrated) {
+      fetchFilteredPosts(activeFilter, activeCategory);
+    }
+  }, [activeFilter, activeCategory, hydrated, fetchFilteredPosts]);
 
   return (
     <main className="page-shell">
@@ -79,12 +109,7 @@ export function HomeClient() {
         {/* 筛选标签 */}
         <div className="mobile-filter-row">
           <div className="mobile-filter-tabs">
-            {[
-              { tab: "all" as FilterTab, label: "全部" },
-              { tab: "latest" as FilterTab, label: "最新" },
-              { tab: "following" as FilterTab, label: "关注" },
-              { tab: "featured" as FilterTab, label: "精华" },
-            ].map((item) => (
+            {filterTabs.map((item) => (
               <button
                 key={item.tab}
                 type="button"
@@ -103,7 +128,7 @@ export function HomeClient() {
 
         {/* 帖子列表 */}
         <div className="mobile-post-list">
-          {!hydrated ? (
+          {!hydrated || loading ? (
             <div className="mobile-post-loading">加载中...</div>
           ) : filteredPosts.length > 0 ? (
             filteredPosts.slice(0, 10).map((post) => (
@@ -164,6 +189,52 @@ export function HomeClient() {
       {/* 桌面端布局 */}
       <section className="hidden md:grid gap-4 xl:grid-cols-[minmax(0,1.45fr)_360px]">
         <div className="space-y-4">
+          <div className="app-card p-4">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap gap-2">
+                {filterTabs.map((item) => (
+                  <button
+                    key={item.tab}
+                    type="button"
+                    onClick={() => setActiveFilter(item.tab)}
+                    className={`rounded-md border px-3 py-1.5 text-sm transition ${activeFilter === item.tab
+                      ? "border-[rgba(57,245,143,0.3)] bg-[rgba(57,245,143,0.12)] text-[var(--primary)]"
+                      : "border-[rgba(15,23,42,0.08)] bg-white text-slate-600 hover:border-[rgba(57,245,143,0.22)] hover:text-slate-950"}`}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveCategory("all")}
+                  className={`rounded-md border px-3 py-1.5 text-sm transition ${activeCategory === "all"
+                    ? "border-[rgba(57,245,143,0.3)] bg-[rgba(57,245,143,0.12)] text-[var(--primary)]"
+                    : "border-[rgba(15,23,42,0.08)] bg-white text-slate-600 hover:border-[rgba(57,245,143,0.22)] hover:text-slate-950"}`}
+                >
+                  全部分类
+                </button>
+                {postCategoryTabs.map((item) => (
+                  <button
+                    key={item.category}
+                    type="button"
+                    onClick={() => setActiveCategory(item.category)}
+                    className={`inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm transition ${activeCategory === item.category
+                      ? "border-[rgba(57,245,143,0.3)] bg-[rgba(57,245,143,0.12)] text-[var(--primary)]"
+                      : "border-[rgba(15,23,42,0.08)] bg-white text-slate-600 hover:border-[rgba(57,245,143,0.22)] hover:text-slate-950"}`}
+                  >
+                    <span className={`mobile-category-icon tone-${item.tone} !h-6 !w-6`}>
+                      <CategoryGlyph category={item.category} />
+                    </span>
+                    <span>{item.title}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {postCategoryTabs.map((item) => (
               <Link
@@ -185,7 +256,9 @@ export function HomeClient() {
           </div>
 
           <div className="grid gap-3">
-            {filteredPosts.length > 0 ? (
+            {!hydrated || loading ? (
+              <div className="app-card p-6 text-sm text-[var(--muted)]">加载中...</div>
+            ) : filteredPosts.length > 0 ? (
               filteredPosts.slice(0, 8).map((post) => (
                 <PostCard key={post.id} post={post} />
               ))

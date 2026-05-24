@@ -19,6 +19,7 @@ import {
   SettingsIcon,
   ShieldIcon,
   StarIcon,
+  WrenchIcon,
   VoteIcon,
 } from "./app-icons";
 import {
@@ -30,9 +31,12 @@ import {
 } from "./resident-shared";
 import { useCommunityPosts } from "./community-provider";
 import { getCommunityName } from "@/lib/community-brand";
+import { requestStatusMeta, type RequestStatus } from "@/lib/types";
+import { timeAgo } from "@/lib/utils";
 
 const functionItems = [
   { label: "我的帖子", href: "/posts?mode=mine", icon: <FileTextIcon /> },
+  { label: "我的需求", href: "/posts?mode=mine&category=request", icon: <WrenchIcon /> },
   { label: "我的收藏", href: "/posts?mode=favorites", icon: <StarIcon /> },
   { label: "我的投票", href: "/publish?kind=poll", icon: <VoteIcon /> },
   { label: "我的工单", href: "/services", icon: <ServiceIcon /> },
@@ -90,6 +94,12 @@ const mobileMenuItems = [
     icon: <FileTextIcon />,
   },
   {
+    label: "我的需求",
+    href: "/posts?mode=mine&category=request",
+    tone: "amber",
+    icon: <WrenchIcon />,
+  },
+  {
     label: "我的收藏",
     href: "/posts?mode=favorites",
     tone: "green",
@@ -102,7 +112,16 @@ const mobileMenuItems = [
 ] as const;
 
 export function MeClient() {
-  const { currentUser, posts, polls, serviceTickets, notifications, logout, updateProfile } =
+  const {
+    currentUser,
+    posts,
+    polls,
+    serviceTickets,
+    notifications,
+    logout,
+    updateProfile,
+    updateRequestStatus,
+  } =
     useCommunityPosts();
   const communityName = getCommunityName();
   const [loggingOut, setLoggingOut] = useState(false);
@@ -112,6 +131,7 @@ export function MeClient() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileDraft, setProfileDraft] = useState({ username: "", nickname: "", roomNumber: "" });
+  const [requestStatusBusyId, setRequestStatusBusyId] = useState<string | null>(null);
 
 
   const openProfileEditor = () => {
@@ -177,17 +197,41 @@ export function MeClient() {
 
   const stats = useMemo(() => {
     const myPosts = currentUser ? posts.filter((post) => post.isMine) : [];
+    const myRequests = myPosts.filter((post) => post.category === "request");
     const votedPolls = polls.filter((poll) => poll.hasVoted);
     const myTickets = serviceTickets.filter((ticket) => ticket.isMine);
     const favoritePosts = posts.filter((post) => post.favorited);
     return {
       myPosts: myPosts.length,
+      myRequests: myRequests.length,
       favoritePosts: favoritePosts.length,
       votedPolls: votedPolls.length,
       myTickets: myTickets.length,
       comments: notifications.filter((item) => item.type === "comment").length,
     };
   }, [currentUser, notifications, polls, posts, serviceTickets]);
+
+  const myRequests = useMemo(
+    () =>
+      posts
+        .filter((post) => post.isMine && post.category === "request")
+        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
+    [posts],
+  );
+
+  const handleRequestStatusChange = async (postId: string, status: RequestStatus) => {
+    setError("");
+    setMessage("");
+    setRequestStatusBusyId(postId);
+    try {
+      await updateRequestStatus(postId, status);
+      setMessage("需求状态已更新。");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "更新需求状态失败");
+    } finally {
+      setRequestStatusBusyId(null);
+    }
+  };
 
   if (!currentUser) {
     return (
@@ -289,6 +333,59 @@ export function MeClient() {
               {settingsOpen ? <ChevronUpIcon /> : <ChevronRightIcon />}
             </span>
           </button>
+        </section>
+
+        <section className="grid gap-3">
+          <div className="flex items-center justify-between px-1">
+            <h2 className="text-sm font-semibold text-slate-950">我的需求</h2>
+            <Link href="/publish?kind=request" className="text-xs font-semibold text-[var(--primary)]">
+              去发布
+            </Link>
+          </div>
+          {myRequests.length > 0 ? (
+            myRequests.slice(0, 3).map((post) => (
+              <article
+                key={post.id}
+                className="app-card-muted p-3"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <Link href={`/posts/${post.id}`} className="line-clamp-1 text-sm font-semibold text-slate-950">
+                      {post.title}
+                    </Link>
+                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--muted)]">
+                      {post.content}
+                    </p>
+                    <div className="mt-2 text-[11px] text-[var(--muted)]">
+                      {post.requestStatus ? requestStatusMeta[post.requestStatus].label : "待处理"} · {timeAgo(post.updatedAt)}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {(Object.entries(requestStatusMeta) as Array<[RequestStatus, (typeof requestStatusMeta)[RequestStatus]]>).map(
+                    ([status, meta]) => (
+                      <Button
+                        key={status}
+                        size="sm"
+                        variant={post.requestStatus === status ? undefined : "secondary"}
+                        isDisabled={requestStatusBusyId === post.id || post.requestStatus === status}
+                        onPress={() => void handleRequestStatusChange(post.id, status)}
+                      >
+                        {requestStatusBusyId === post.id ? "更新中..." : meta.label}
+                      </Button>
+                    ),
+                  )}
+                </div>
+              </article>
+            ))
+          ) : (
+            <EmptyState
+              title="还没有需求"
+              description="发布需求后，可在这里快速标记状态。"
+              actionHref="/publish?kind=request"
+              actionLabel="去提需求"
+            />
+          )}
         </section>
 
         {settingsOpen ? (
@@ -469,6 +566,7 @@ export function MeClient() {
               columns={4}
               items={[
                 { label: "我的帖子", value: stats.myPosts },
+                { label: "我的需求", value: stats.myRequests },
                 { label: "我的收藏", value: stats.favoritePosts },
                 { label: "我的参与", value: stats.votedPolls },
                 { label: "我的工单", value: stats.myTickets },
@@ -523,6 +621,7 @@ export function MeClient() {
           <DataList
             items={[
               { label: "我的评论提醒", value: stats.comments },
+              { label: "我的需求", value: stats.myRequests },
               { label: "我的收藏", value: stats.favoritePosts },
               { label: "我的工单", value: stats.myTickets },
             ]}
@@ -569,6 +668,94 @@ export function MeClient() {
               },
             ]}
           />
+        </CyberPanel>
+      </section>
+
+      <section className="grid gap-4">
+        <CyberPanel
+          title="我的需求"
+          kicker="Request Center"
+          action={
+            <Link href="/publish?kind=request" className="text-sm font-semibold text-[var(--primary)]">
+              新建需求
+            </Link>
+          }
+        >
+          {myRequests.length > 0 ? (
+            <div className="grid gap-3">
+              {myRequests.map((post) => (
+                <article
+                  key={post.id}
+                  className="rounded-[1rem] border border-[var(--border)] bg-[rgba(10,18,18,0.72)] px-4 py-4"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Link href={`/posts/${post.id}`} className="text-sm font-semibold text-slate-950 hover:text-[var(--primary)]">
+                          {post.title}
+                        </Link>
+                        {post.requestStatus ? (
+                          <span
+                            className="rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold"
+                            style={{
+                              borderColor:
+                                requestStatusMeta[post.requestStatus].tone === "green"
+                                  ? "rgba(57,245,143,0.24)"
+                                  : requestStatusMeta[post.requestStatus].tone === "amber"
+                                  ? "rgba(246,200,95,0.24)"
+                                  : "rgba(72,201,255,0.24)",
+                              color:
+                                requestStatusMeta[post.requestStatus].tone === "green"
+                                  ? "#39f58f"
+                                  : requestStatusMeta[post.requestStatus].tone === "amber"
+                                  ? "#f6c85f"
+                                  : "#48c9ff",
+                              background:
+                                requestStatusMeta[post.requestStatus].tone === "green"
+                                  ? "rgba(57,245,143,0.08)"
+                                  : requestStatusMeta[post.requestStatus].tone === "amber"
+                                  ? "rgba(246,200,95,0.08)"
+                                  : "rgba(72,201,255,0.08)",
+                            }}
+                          >
+                            {requestStatusMeta[post.requestStatus].label}
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--muted)]">
+                        {post.content}
+                      </p>
+                      <div className="mt-2 text-xs text-[var(--muted)]">
+                        更新时间 · {timeAgo(post.updatedAt)}
+                      </div>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      {(Object.entries(requestStatusMeta) as Array<[RequestStatus, (typeof requestStatusMeta)[RequestStatus]]>).map(
+                        ([status, meta]) => (
+                          <Button
+                            key={status}
+                            size="sm"
+                            variant={post.requestStatus === status ? undefined : "secondary"}
+                            isDisabled={requestStatusBusyId === post.id || post.requestStatus === status}
+                            onPress={() => void handleRequestStatusChange(post.id, status)}
+                          >
+                            {requestStatusBusyId === post.id ? "更新中..." : meta.label}
+                          </Button>
+                        ),
+                      )}
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          ) : (
+            <EmptyState
+              title="你还没有发布需求"
+              description="发布后可在这里统一查看并更新处理状态。"
+              actionHref="/publish?kind=request"
+              actionLabel="去提需求"
+            />
+          )}
         </CyberPanel>
       </section>
     </main>

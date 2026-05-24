@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getPostBadge, getVisibilityLabel, timeAgo } from "../lib/utils";
 import type { CommunityPost } from "../lib/types";
+import { requestStatusMeta } from "../lib/types";
 import { ResidentAvatar } from "./resident-shared";
 
 interface PostCardProps {
@@ -50,6 +51,33 @@ export function PostCard({ post, compact = false }: PostCardProps) {
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {post.pinned ? <span className="app-chip">置顶</span> : null}
         {post.featured ? <span className="app-chip app-chip-muted">精选</span> : null}
+        {post.category === "request" && post.requestStatus ? (
+          <span
+            className="rounded-full border px-2.5 py-1 text-[0.68rem] font-semibold"
+            style={{
+              borderColor:
+                requestStatusMeta[post.requestStatus].tone === "green"
+                  ? "rgba(57,245,143,0.24)"
+                  : requestStatusMeta[post.requestStatus].tone === "amber"
+                  ? "rgba(246,200,95,0.24)"
+                  : "rgba(72,201,255,0.24)",
+              color:
+                requestStatusMeta[post.requestStatus].tone === "green"
+                  ? "#39f58f"
+                  : requestStatusMeta[post.requestStatus].tone === "amber"
+                  ? "#f6c85f"
+                  : "#48c9ff",
+              background:
+                requestStatusMeta[post.requestStatus].tone === "green"
+                  ? "rgba(57,245,143,0.08)"
+                  : requestStatusMeta[post.requestStatus].tone === "amber"
+                  ? "rgba(246,200,95,0.08)"
+                  : "rgba(72,201,255,0.08)",
+            }}
+          >
+            {requestStatusMeta[post.requestStatus].label}
+          </span>
+        ) : null}
       </div>
 
       <h3 className={`mt-3 font-semibold tracking-[-0.04em] text-slate-950 ${compact ? "text-[1rem] line-clamp-2" : "text-[1.08rem] line-clamp-2"}`}>

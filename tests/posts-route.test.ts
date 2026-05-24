@@ -31,6 +31,10 @@ vi.mock("../src/lib/s3-storage", () => ({
   getUploadPrefix: getUploadPrefixMock,
 }));
 
+function buildRequest(url = "http://localhost/api/posts") {
+  return new Request(url, { method: "GET" });
+}
+
 describe("/api/posts route", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -47,7 +51,7 @@ describe("/api/posts route", () => {
     listNotificationsForViewerMock.mockResolvedValueOnce([{ id: "notice-1", title: "新提醒" }]);
     countUnreadNotificationsForViewerMock.mockResolvedValueOnce(2);
 
-    const response = await GET();
+    const response = await GET(buildRequest());
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -60,12 +64,31 @@ describe("/api/posts route", () => {
     });
   });
 
+  it("returns filtered posts when query params are provided", async () => {
+    const { GET } = await import("../src/app/api/posts/route");
+    getCurrentUserFromCookieMock.mockResolvedValueOnce({ id: "user-1", username: "alice", role: "user" });
+    listPostsForViewerMock.mockResolvedValueOnce([{ id: "post-2", title: "关注帖子" }]);
+
+    const response = await GET(buildRequest("http://localhost/api/posts?filter=following&category=discussion"));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      posts: [{ id: "post-2", title: "关注帖子" }],
+    });
+    expect(listPostsForViewerMock).toHaveBeenCalledWith("user-1", {
+      filter: "following",
+      category: "discussion",
+    });
+    expect(listPollsForViewerMock).not.toHaveBeenCalled();
+    expect(listServiceTicketsForViewerMock).not.toHaveBeenCalled();
+  });
+
   it("returns a safe empty payload when resident data loading fails", async () => {
     const { GET } = await import("../src/app/api/posts/route");
     getCurrentUserFromCookieMock.mockResolvedValueOnce({ id: "user-1", username: "alice", role: "user" });
     listPostsForViewerMock.mockRejectedValueOnce(new Error("DB_DOWN"));
 
-    const response = await GET();
+    const response = await GET(buildRequest());
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
@@ -82,7 +105,7 @@ describe("/api/posts route", () => {
     const { GET } = await import("../src/app/api/posts/route");
     getCurrentUserFromCookieMock.mockRejectedValueOnce(new Error("DB_DOWN"));
 
-    const response = await GET();
+    const response = await GET(buildRequest());
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({

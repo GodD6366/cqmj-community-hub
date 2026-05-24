@@ -1,7 +1,8 @@
 export type PostCategory = "request" | "secondhand" | "discussion" | "play";
 export type SortMode = "latest" | "popular" | "featured";
 export type VisibilityScope = "community" | "building" | "private";
-export type PostStatus = "published" | "pending" | "rejected";
+export type PostStatus = "published" | "pending" | "rejected" | "deleted";
+export type RequestStatus = "open" | "processing" | "resolved";
 export type PollStatus = "active" | "closed";
 export type ServiceTicketCategory = "repair" | "complaint" | "cleaning" | "facility" | "other";
 export type ServiceTicketStatus = "open" | "processing" | "resolved";
@@ -32,6 +33,10 @@ export function isPostCategory(value: unknown): value is PostCategory {
 
 export function parsePostCategoryFilter(value: string | null | undefined): PostCategory | "all" {
   return isPostCategory(value) ? value : "all";
+}
+
+export function isRequestStatus(value: unknown): value is RequestStatus {
+  return value === "open" || value === "processing" || value === "resolved";
 }
 
 export interface CommunityComment {
@@ -68,8 +73,10 @@ export interface CommunityPost {
   title: string;
   content: string;
   category: PostCategory;
+  requestStatus?: RequestStatus | null;
   tags: string[];
   authorName: string;
+  authorId?: string | null;
   createdAt: string;
   updatedAt: string;
   commentCount: number;
@@ -246,6 +253,15 @@ export const sortMeta: Record<
   latest: { label: "最新", description: "按发布时间排序" },
   popular: { label: "最热", description: "按互动热度排序" },
   featured: { label: "精选", description: "优先显示置顶和精选内容" },
+};
+
+export const requestStatusMeta: Record<
+  RequestStatus,
+  { label: string; tone: "green" | "amber" | "cyan"; description: string }
+> = {
+  open: { label: "待处理", tone: "green", description: "需求刚发布，等待响应。" },
+  processing: { label: "处理中", tone: "amber", description: "需求已有人跟进处理中。" },
+  resolved: { label: "已解决", tone: "cyan", description: "需求已完成或已解决。" },
 };
 
 export const pollStatusMeta: Record<PollStatus, { label: string; tone: "accent" | "success" }> = {

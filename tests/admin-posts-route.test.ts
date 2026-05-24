@@ -62,4 +62,27 @@ describe("/api/admin/posts/[id] route", () => {
       featured: false,
     });
   });
+
+  it("deletes a post for admins (logical delete)", async () => {
+    const { DELETE } = await import("../src/app/api/admin/posts/[id]/route");
+    getCurrentUserFromCookieMock.mockResolvedValueOnce({ id: "admin-1", role: "admin" });
+    isAdminUserMock.mockReturnValueOnce(true);
+    deletePostForAdminMock.mockResolvedValueOnce(true);
+
+    const response = await DELETE(new Request("http://localhost/api/admin/posts/post-1", { method: "DELETE" }), routeContext);
+
+    expect(response.status).toBe(200);
+    expect(deletePostForAdminMock).toHaveBeenCalledWith("post-1");
+  });
+
+  it("returns 404 when deleting non-existent post", async () => {
+    const { DELETE } = await import("../src/app/api/admin/posts/[id]/route");
+    getCurrentUserFromCookieMock.mockResolvedValueOnce({ id: "admin-1", role: "admin" });
+    isAdminUserMock.mockReturnValueOnce(true);
+    deletePostForAdminMock.mockResolvedValueOnce(false);
+
+    const response = await DELETE(new Request("http://localhost/api/admin/posts/post-1", { method: "DELETE" }), routeContext);
+
+    expect(response.status).toBe(404);
+  });
 });

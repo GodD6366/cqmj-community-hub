@@ -152,10 +152,33 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const [commentSort, setCommentSort] = useState<CommentSort>("hot");
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [showMoreMenu, setShowMoreMenu] = useState(false);
+  const [following, setFollowing] = useState(false);
+  const postListHref = "/posts";
 
   const post = useMemo(() => posts.find((item) => item.id === postId), [postId, posts]);
 
+  const navigateBackOrFallback = useCallback(() => {
+    if (typeof window !== "undefined" && window.history.length > 1) {
+      router.back();
+      return;
+    }
+    router.replace(postListHref);
+  }, [router]);
+
   useEffect(() => { setActiveImageIndex(0); }, [postId, post?.images.length]);
+
+  // 检查关注状态
+  useEffect(() => {
+    if (!currentUser || !post?.authorId || post.isMine) {
+      setFollowing(false);
+      return;
+    }
+    fetch(`/api/users/${post.authorId}/follow`)
+      .then((res) => res.json())
+      .then((data) => setFollowing(data.following))
+      .catch(() => setFollowing(false));
+  }, [currentUser, post?.authorId, post?.isMine]);
 
   // 排序后的评论
   const sortedComments = useMemo(() => {
@@ -168,7 +191,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
     return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [post, commentSort]);
 
-  if (!post) return <main className="page-shell"><EmptyState title="帖子不存在" actionHref="/neighbors" actionLabel="返回邻里" /></main>;
+  if (!post) return <main className="page-shell"><EmptyState title="帖子不存在" actionHref={postListHref} actionLabel="返回动态" /></main>;
 
   const meta = categoryMeta[post.category];
   const activeImage = post.images[activeImageIndex] ?? post.images[0] ?? null;
@@ -179,7 +202,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   async function handleDelete() {
     if (!window.confirm("确定删除这篇帖子？删除后评论、收藏和图片记录都会一并移除。")) return;
     setBusy(true); setMessage(""); setError("");
-    try { await deletePost(postIdValue); router.push("/neighbors"); } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "删除失败"); } finally { setBusy(false); }
+    try { await deletePost(postIdValue); navigateBackOrFallback(); } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "删除失败"); } finally { setBusy(false); }
   }
   async function handleFavorite() {
     if (!currentUser) { setError("先登录再收藏。"); return; }
@@ -190,6 +213,22 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
     if (!currentUser) { setError("先登录再举报。"); return; }
     setBusy(true); setMessage(""); setError("");
     try { await reportPost(postIdValue); setMessage("已提交举报。"); } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "举报失败"); } finally { setBusy(false); }
+  }
+  async function handleFollow() {
+    if (!currentUser || !post) { setError("先登录再关注。"); return; }
+    if (!post.authorId || post.isMine) return;
+    setBusy(true); setMessage(""); setError("");
+    try {
+      const response = await fetch(`/api/users/${post.authorId}/follow`, { method: "POST" });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "操作失败");
+      setFollowing(data.following);
+      setMessage(data.following ? "已关注。" : "已取消关注。");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "关注失败");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function handleCommentSubmit() {
@@ -225,19 +264,40 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
       <section className="mobile-post-detail md:!hidden">
         {/* 顶部标题栏 */}
         <div className="mobile-post-topbar">
-          <button type="button" className="mobile-post-back" onClick={() => router.back()} aria-label="返回">
+          <button type="button" className="mobile-post-back" onClick={navigateBackOrFallback} aria-label="返回">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <path d="M15 18l-6-6 6-6" />
             </svg>
           </button>
           <span className="mobile-post-topbar-title">帖子详情</span>
-          <button type="button" className="mobile-post-more-btn" aria-label="更多选项">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="5" r="1" />
-              <circle cx="12" cy="12" r="1" />
-              <circle cx="12" cy="19" r="1" />
-            </svg>
-          </button>
+          <div className="relative">
+            <button type="button" className="mobile-post-more-btn" aria-label="更多选项" onClick={() => setShowMoreMenu(!showMoreMenu)}>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="12" cy="5" r="1" />
+                <circle cx="12" cy="12" r="1" />
+                <circle cx="12" cy="19" r="1" />
+              </svg>
+            </button>
+            {showMoreMenu && canManagePost && (
+              <div className="absolute right-0 top-full mt-1 rounded-md border border-[rgba(76,255,177,0.15)] bg-[rgba(8,16,16,0.95)] py-1 min-w-[100px] z-50 shadow-lg backdrop-blur-sm">
+                <button
+                  type="button"
+                  className="w-full px-4 py-2.5 text-left text-sm text-[#f0fff6] hover:bg-[rgba(57,245,143,0.08)] transition-colors"
+                  onClick={() => { setShowMoreMenu(false); setEditing(true); }}
+                >
+                  编辑
+                </button>
+                <div className="mx-3 border-t border-[rgba(232,255,242,0.12)]" />
+                <button
+                  type="button"
+                  className="w-full px-4 py-2.5 text-left text-sm text-[#ff6b8a] hover:bg-[rgba(255,107,138,0.08)] transition-colors"
+                  onClick={() => { setShowMoreMenu(false); handleDelete(); }}
+                >
+                  删除
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {error && <div className="mobile-login-error">{error}</div>}
@@ -257,7 +317,16 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
                 {post.featured && <span className="mobile-post-author-badge mobile-post-author-badge--featured">精选</span>}
               </div>
             </div>
-            <button type="button" className="mobile-post-follow-btn" onClick={() => {}}>+ 关注</button>
+            {!post.isMine && post.authorId && (
+              <button
+                type="button"
+                className={`mobile-post-follow-btn ${following ? "is-following" : ""}`}
+                onClick={handleFollow}
+                disabled={busy}
+              >
+                {following ? "已关注" : "+ 关注"}
+              </button>
+            )}
           </div>
           <div className="mobile-post-publish-meta">
             <span>{timeAgo(post.createdAt)}</span>

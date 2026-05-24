@@ -2884,6 +2884,16 @@ body:has(.mobile-post-detail) .page-shell {
   background: rgba(57, 245, 143, 0.2);
   border-color: rgba(57, 245, 143, 0.35);
 }
+.mobile-post-follow-btn.is-following {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: rgba(255, 255, 255, 0.6);
+}
+.mobile-post-follow-btn.is-following:hover {
+  background: rgba(255, 93, 122, 0.1);
+  border-color: rgba(255, 93, 122, 0.3);
+  color: #ff6b8a;
+}
 
 .mobile-post-publish-meta {
   display: flex;

@@ -25,6 +25,13 @@ enum PostStatus {
   published
   pending
   rejected
+  deleted
+}
+
+enum RequestStatus {
+  open
+  processing
+  resolved
 }
 
 enum UserRole {
@@ -81,6 +88,8 @@ model User {
   pollVotes        PollVote[]
   serviceTickets   ServiceTicket[]
   notifications    Notification[]
+  followers        Follow[]          @relation("following")
+  following        Follow[]          @relation("follower")
 
   @@index([roomNumber])
 }
@@ -102,6 +111,7 @@ model Post {
   title         String
   content       String
   category      PostCategory
+  requestStatus RequestStatus?
   tags          String           @default("[]")
   authorName    String
   authorId      String?
@@ -120,6 +130,7 @@ model Post {
   reports       Report[]
 
   @@index([status, visibility])
+  @@index([category, requestStatus])
   @@index([createdAt])
   @@index([authorId])
 }
@@ -270,4 +281,17 @@ model InviteCode {
   expiresAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
 }

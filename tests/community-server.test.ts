@@ -1,14 +1,58 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { canViewPost, mapPost } from "../src/lib/community-server";
+import type { RequestStatus } from "../src/lib/types";
 
-function createPostRecord(): any {
+interface MockPostRecord {
+  id: string;
+  title: string;
+  content: string;
+  category: "request" | "secondhand" | "discussion" | "play";
+  requestStatus: RequestStatus | null;
+  tags: string;
+  authorId: string | null;
+  authorName: string;
+  author: { roomNumber: string | null } | null;
+  createdAt: Date;
+  updatedAt: Date;
+  commentCount: number;
+  favoriteCount: number;
+  visibility: "community" | "building" | "private";
+  status: "published" | "pending" | "rejected" | "deleted";
+  comments: Array<{
+    id: string;
+    authorName: string;
+    content: string;
+    createdAt: Date;
+    authorId: string | null;
+    postId: string;
+  }>;
+  favorites: Array<{ userId: string }>;
+  reports: Array<{ userId: string }>;
+  pinned: boolean;
+  featured: boolean;
+  images: Array<{
+    id: string;
+    postId: string;
+    objectKey: string;
+    url: string;
+    mimeType: string;
+    width: number;
+    height: number;
+    sizeBytes: number;
+    sortOrder: number;
+    createdAt: Date;
+  }>;
+}
+
+function createPostRecord(): MockPostRecord {
   const now = new Date("2026-04-29T00:00:00.000Z");
 
   return {
     id: "post-1",
     title: "闲置：餐椅转让",
     content: "九成新，可自提。",
-    category: "secondhand" as any,
+    category: "secondhand",
+    requestStatus: null,
     tags: JSON.stringify(["闲置"]),
     authorId: "user-1",
     authorName: "alice",

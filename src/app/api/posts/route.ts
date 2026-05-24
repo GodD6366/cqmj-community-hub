@@ -36,7 +36,7 @@ function buildResidentFallbackPayload(currentUser: CommunityUser | null = null) 
   };
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   let currentUser: CommunityUser | null = null;
 
   try {
@@ -46,6 +46,31 @@ export async function GET() {
     return NextResponse.json(buildResidentFallbackPayload());
   }
 
+  const { searchParams } = new URL(request.url);
+  const filter = searchParams.get("filter");
+  const category = searchParams.get("category");
+
+  // 如果有筛选参数，只返回筛选后的帖子
+  if (filter || category) {
+    try {
+      const viewerId = currentUser?.id ?? null;
+      const validFilters = ["all", "latest", "following", "featured"];
+      const filterParam = validFilters.includes(filter ?? "") ? filter as "all" | "latest" | "following" | "featured" : undefined;
+      const categoryParam = isPostCategory(category) ? category : undefined;
+
+      const posts = await listPostsForViewer(viewerId, {
+        filter: filterParam,
+        category: categoryParam,
+      });
+
+      return NextResponse.json({ posts });
+    } catch (error) {
+      console.error(error);
+      return NextResponse.json({ posts: [] });
+    }
+  }
+
+  // 否则返回完整的数据（初始化时使用）
   try {
     const viewerId = currentUser?.id ?? null;
     const [posts, polls, serviceTickets, notifications, unreadNotificationCount] = await Promise.all([

@@ -1,4 +1,4 @@
-import type { CommunityPost, PostCategory, SortMode, VisibilityScope } from "./types";
+import type { CommunityPost, PostCategory, RequestStatus, SortMode, VisibilityScope } from "./types";
 
 export function normalizeText(value: string) {
   return value.trim().replace(/\s+/g, " ");
@@ -111,5 +111,16 @@ export function getVisibilityLabel(scope: VisibilityScope) {
       return "楼栋可见";
     case "private":
       return "私密可见";
+  }
+}
+
+export function getRequestStatusLabel(status: RequestStatus) {
+  switch (status) {
+    case "open":
+      return "待处理";
+    case "processing":
+      return "处理中";
+    case "resolved":
+      return "已解决";
   }
 }
