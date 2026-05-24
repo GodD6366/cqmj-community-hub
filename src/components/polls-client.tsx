@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Alert, Button, Input } from "@heroui/react";
 import { PollEditor } from "./poll-editor";
@@ -17,6 +18,7 @@ const filters = [
 type FilterKey = (typeof filters)[number]["key"];
 
 export function PollsClient() {
+  const router = useRouter();
   const { polls, currentUser, hydrated, addPoll, votePoll } = useCommunityPosts();
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<FilterKey>("all");
@@ -164,7 +166,7 @@ export function PollsClient() {
                 {showComposer ? "收起发起器" : "发起投票"}
               </Button>
             ) : (
-              <Button as={Link} href={loginHref} size="sm" variant="secondary">
+              <Button onPress={() => router.push(loginHref)} size="sm" variant="secondary">
                 登录后发起
               </Button>
             )

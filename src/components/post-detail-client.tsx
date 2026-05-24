@@ -65,7 +65,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
     setError("");
 
     try {
-      await addComment(post.id, { content: commentContent.trim() });
+      await addComment(postId, { content: commentContent.trim() });
       setCommentContent("");
       setMessage("评论已发布。");
     } catch (submitError) {
