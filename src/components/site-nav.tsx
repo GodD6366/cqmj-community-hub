@@ -96,7 +96,7 @@ export function SiteNav() {
                       "rounded-[0.85rem] px-3 py-2 text-sm font-semibold transition",
                       active
                         ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[3px_3px_0_var(--signal)]"
-                        : "text-slate-700 hover:bg-[rgba(15,39,66,0.06)]",
+                        : "text-slate-700 hover:text-white hover:bg-[rgba(57,245,143,0.1)]",
                     )}
                   >
                     {item.label}
@@ -158,7 +158,7 @@ export function SiteNav() {
                         "rounded-[0.9rem] px-3 py-2.5 text-sm font-semibold transition",
                         active
                           ? "bg-[var(--primary)] text-[var(--primary-foreground)] shadow-[3px_3px_0_var(--signal)]"
-                          : "forum-panel text-slate-700",
+                          : "forum-panel text-slate-700 hover:text-white hover:border-[var(--primary)]",
                       )}
                     >
                       {item.label}

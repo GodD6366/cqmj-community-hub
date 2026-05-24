@@ -269,7 +269,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
       {/* 桌面端布局 */}
       <section className="hidden md:grid gap-4 space-y-4 md:space-y-5 xl:grid-cols-[minmax(0,1.3fr)_320px]">
         <div className="space-y-4">
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
+          <div className="glass-card p-4 md:p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
                 <div className="inline-flex w-12 h-12 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(57,245,143,0.2)] to-[rgba(72,201,255,0.15)] text-[var(--primary)] text-lg font-bold flex-shrink-0">
@@ -298,20 +298,20 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             </div>
           ) : null}
 
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
+          <div className="glass-card p-4 md:p-5">
             <div className="text-sm font-semibold text-slate-900">正文内容</div>
             <div className="mt-3 whitespace-pre-wrap text-[0.95rem] leading-8 text-[var(--foreground)]">{post.content}</div>
             {post.tags.length > 0 ? <div className="mt-4 flex flex-wrap gap-2">{post.tags.map((tag) => <span key={tag} className="rounded-full border border-[rgba(57,245,143,0.12)] bg-[rgba(57,245,143,0.05)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--primary)]">#{tag}</span>)}</div> : null}
           </div>
 
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
+          <div className="glass-card p-4 md:p-5">
             <div className="text-sm font-semibold text-slate-900">评论区</div>
             {post.comments.length === 0 ? (
               <div className="mt-3 text-sm text-[var(--muted)]">还没有评论，快来抢沙发吧</div>
             ) : (
               <div className="mt-3 grid gap-3">
                 {post.comments.map((comment) => (
-                  <div key={comment.id} className="flex gap-3 p-3 rounded-xl border border-[var(--border)] bg-[rgba(10,18,18,0.88)]">
+                  <div key={comment.id} className="flex gap-3 p-3.5 rounded-[1rem] border border-[var(--border)] bg-[rgba(6,12,12,0.6)] transition-all hover:bg-[rgba(10,18,18,0.88)] hover:border-[var(--border-strong)]">
                     <div className="inline-flex w-10 h-10 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(57,245,143,0.15)] to-[rgba(72,201,255,0.1)] text-[var(--primary)] text-sm font-bold flex-shrink-0">
                       {Array.from(comment.authorName)[0] ?? "邻"}
                     </div>
@@ -328,11 +328,11 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             )}
           </div>
 
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
+          <div className="glass-card p-4 md:p-5">
             <div className="text-sm font-semibold text-slate-900">发表评论</div>
             <div className="mt-3">
               <textarea
-                className="w-full p-3 rounded-xl border border-[var(--field-border)] bg-[var(--field-background)] text-[var(--field-foreground)] resize-none"
+                className="w-full p-4 rounded-2xl border border-[var(--border)] bg-[rgba(3,7,7,0.4)] text-[var(--field-foreground)] resize-none transition-colors focus:outline-none focus:border-[var(--primary)] focus:ring-1 focus:ring-[var(--primary)] focus:bg-[rgba(10,20,20,0.92)] shadow-[inset_0_2px_4px_rgba(0,0,0,0.2)]"
                 placeholder="写下你的评论..."
                 rows={4}
                 value={commentContent}
@@ -341,7 +341,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
               <div className="mt-3 flex justify-end">
                 <button
                   type="button"
-                  className={`px-4 py-2 rounded-full bg-gradient-to-r from-[var(--primary)] to-[#7affc6] text-[#032111] font-semibold ${isSubmittingComment ? "opacity-70 cursor-not-allowed" : ""}`}
+                  className={`px-5 py-2.5 rounded-full bg-gradient-to-r from-[var(--primary)] to-[#7affc6] text-[#032111] font-semibold shadow-[0_4px_16px_rgba(57,245,143,0.25)] transition-all hover:shadow-[0_6px_24px_rgba(57,245,143,0.4)] hover:-translate-y-[1px] ${isSubmittingComment ? "opacity-70 cursor-not-allowed" : ""}`}
                   onClick={handleCommentSubmit}
                   disabled={isSubmittingComment}
                 >
@@ -353,12 +353,12 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
         </div>
 
         <div className="space-y-4">
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4">
+          <div className="glass-card p-4">
             <div className="text-sm font-semibold text-slate-900">互动操作</div>
             <div className="mt-3 grid gap-2">
               <button
                 type="button"
-                className={`w-full py-2 px-4 rounded-full border ${post.favorited ? "border-[var(--primary)] bg-[var(--primary)] text-[#032111]" : "border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)]"} font-semibold transition-colors ${busy ? "opacity-70 cursor-not-allowed" : ""}`}
+                className={`w-full py-2.5 px-4 rounded-full border ${post.favorited ? "border-[var(--primary)] bg-[var(--primary)] text-[#032111] shadow-[0_0_16px_rgba(57,245,143,0.3)]" : "border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)] hover:border-[var(--primary)] hover:bg-[rgba(57,245,143,0.05)] hover:-translate-y-[1px] hover:shadow-[0_4px_12px_rgba(57,245,143,0.1)]"} font-semibold transition-all duration-200 ${busy ? "opacity-70 cursor-not-allowed" : ""}`}
                 onClick={handleFavorite}
                 disabled={busy}
               >
@@ -366,7 +366,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
               </button>
               <button
                 type="button"
-                className="w-full py-2 px-4 rounded-full border border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)] font-semibold transition-colors hover:border-[var(--border-strong)]"
+                className="w-full py-2.5 px-4 rounded-full border border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)] font-semibold transition-all duration-200 hover:border-[var(--primary)] hover:bg-[rgba(57,245,143,0.05)] hover:-translate-y-[1px] hover:shadow-[0_4px_12px_rgba(57,245,143,0.1)]"
                 onClick={handleReport}
                 disabled={busy}
               >
@@ -375,7 +375,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
               {canManagePost && (
                 <button
                   type="button"
-                  className="w-full py-2 px-4 rounded-full border border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)] font-semibold transition-colors hover:border-[var(--border-strong)]"
+                  className="w-full py-2.5 px-4 rounded-full border border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)] font-semibold transition-all duration-200 hover:border-[var(--primary)] hover:bg-[rgba(57,245,143,0.05)] hover:-translate-y-[1px] hover:shadow-[0_4px_12px_rgba(57,245,143,0.1)]"
                   onClick={() => { setMessage(""); setError(""); setEditing(true); }}
                 >
                   编辑帖子
@@ -384,7 +384,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
               {canManagePost && (
                 <button
                   type="button"
-                  className="w-full py-2 px-4 rounded-full border border-[rgba(255,93,122,0.2)] bg-[rgba(255,93,122,0.08)] text-[#ff8da4] font-semibold transition-colors hover:border-[rgba(255,93,122,0.3)]"
+                  className="w-full py-2.5 px-4 rounded-full border border-[rgba(255,93,122,0.2)] bg-[rgba(255,93,122,0.08)] text-[#ff8da4] font-semibold transition-all duration-200 hover:border-[rgba(255,93,122,0.3)] hover:bg-[rgba(255,93,122,0.15)] hover:-translate-y-[1px] hover:shadow-[0_4px_12px_rgba(255,93,122,0.2)]"
                   onClick={handleDelete}
                   disabled={busy}
                 >
@@ -394,7 +394,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             </div>
           </div>
 
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4">
+          <div className="glass-card p-4">
             <div className="text-sm font-semibold text-slate-900">数据概览</div>
             <div className="mt-3 grid gap-2 text-sm text-[var(--muted)]">
               <div className="flex justify-between">
@@ -412,7 +412,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             </div>
           </div>
 
-          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4">
+          <div className="glass-card p-4">
             <div className="text-sm font-semibold text-slate-900">帖子属性</div>
             <div className="mt-3 grid gap-2 text-sm text-[var(--muted)]">
               <div className="flex justify-between">

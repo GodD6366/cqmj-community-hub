@@ -119,7 +119,7 @@ export function MessagesClient() {
 function MessageRow({ notification, mobile = false }: { notification: NotificationItem; mobile?: boolean }) {
   const content = (
     <article className={mobile ? "terminal-list-row" : `rounded-[1.15rem] border p-4 ${notification.readAt ? "border-[var(--border)] bg-[rgba(8,16,16,0.82)] opacity-80" : "border-[rgba(57,245,143,0.22)] bg-[rgba(8,16,16,0.95)]"}`}>
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-3 min-w-0">
         <div className={`flex shrink-0 items-center justify-center ${mobile ? "terminal-message-icon" : "h-11 w-11 rounded-[1rem] border border-[var(--border)] bg-[rgba(57,245,143,0.06)] text-lg"}`}>
           <NotificationTypeIcon
             type={notification.type}
@@ -128,7 +128,7 @@ function MessageRow({ notification, mobile = false }: { notification: Notificati
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <div className="truncate text-sm font-semibold text-slate-950">{notification.title}</div>
               <div className="mt-1 text-xs text-[var(--muted)]">{notificationTypeMeta[notification.type].label}</div>
             </div>
@@ -141,7 +141,7 @@ function MessageRow({ notification, mobile = false }: { notification: Notificati
   );
 
   if (notification.href) {
-    return <Link href={notification.href}>{content}</Link>;
+    return <Link href={notification.href} className="block">{content}</Link>;
   }
   return content;
 }
