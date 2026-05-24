@@ -1,4 +1,112 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="100" fill="#2563eb" />
-  <path d="M128 256 L256 128 L384 256 L256 384 Z" fill="white" />
+  <defs>
+    <!-- Background Gradient -->
+    <radialGradient id="bg-glow" cx="50%" cy="50%" r="70%">
+      <stop offset="0%" stop-color="#0f2922"/>
+      <stop offset="50%" stop-color="#07110f"/>
+      <stop offset="100%" stop-color="#030807"/>
+    </radialGradient>
+    
+    <!-- Primary Green Gradient -->
+    <linearGradient id="grad-green" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#a3ffc9"/>
+      <stop offset="40%" stop-color="#39f58f"/>
+      <stop offset="100%" stop-color="#0eb35a"/>
+    </linearGradient>
+
+    <!-- Secondary Blue Gradient -->
+    <linearGradient id="grad-blue" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8ce0ff"/>
+      <stop offset="40%" stop-color="#48c9ff"/>
+      <stop offset="100%" stop-color="#0b95d9"/>
+    </linearGradient>
+
+    <!-- Glow Filters -->
+    <filter id="glow-core" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="20" result="blur1"/>
+      <feGaussianBlur stdDeviation="40" result="blur2"/>
+      <feMerge>
+        <feMergeNode in="blur2"/>
+        <feMergeNode in="blur1"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    
+    <filter id="glow-node-green" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="glow-node-blue" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bg-glow)"/>
+  
+  <!-- Subtle Grid/Pattern -->
+  <g stroke="rgba(255,255,255,0.02)" stroke-width="1">
+    <line x1="256" y1="0" x2="256" y2="512"/>
+    <line x1="0" y1="256" x2="512" y2="256"/>
+  </g>
+
+  <!-- Outer Rings -->
+  <circle cx="256" cy="256" r="180" fill="none" stroke="rgba(57,245,143,0.05)" stroke-width="1" stroke-dasharray="4 8"/>
+  <circle cx="256" cy="256" r="120" fill="none" stroke="rgba(72,201,255,0.08)" stroke-width="1.5" stroke-dasharray="10 10"/>
+
+  <!-- Network Lines -->
+  <!-- Inner connections to center -->
+  <g stroke="rgba(255,255,255,0.1)" stroke-width="2" stroke-linecap="round">
+    <line x1="256" y1="256" x2="256" y2="100" />
+    <line x1="256" y1="256" x2="391" y2="178" />
+    <line x1="256" y1="256" x2="391" y2="334" />
+    <line x1="256" y1="256" x2="256" y2="412" />
+    <line x1="256" y1="256" x2="121" y2="334" />
+    <line x1="256" y1="256" x2="121" y2="178" />
+  </g>
+  
+  <!-- Outer perimeter polygon -->
+  <polygon points="256,100 391,178 391,334 256,412 121,334 121,178" fill="none" stroke="rgba(57,245,143,0.15)" stroke-width="2" stroke-linejoin="round"/>
+
+  <!-- Nodes (Blue, Bottom Half) -->
+  <g filter="url(#glow-node-blue)">
+    <circle cx="391" cy="334" r="14" fill="url(#grad-blue)" />
+    <circle cx="256" cy="412" r="14" fill="url(#grad-blue)" />
+    <circle cx="121" cy="334" r="14" fill="url(#grad-blue)" />
+  </g>
+  <circle cx="391" cy="334" r="5" fill="#ffffff" />
+  <circle cx="256" cy="412" r="5" fill="#ffffff" />
+  <circle cx="121" cy="334" r="5" fill="#ffffff" />
+
+  <!-- Nodes (Green, Top Half) -->
+  <g filter="url(#glow-node-green)">
+    <circle cx="256" cy="100" r="18" fill="url(#grad-green)" />
+    <circle cx="391" cy="178" r="18" fill="url(#grad-green)" />
+    <circle cx="121" cy="178" r="18" fill="url(#grad-green)" />
+  </g>
+  <circle cx="256" cy="100" r="7" fill="#ffffff" />
+  <circle cx="391" cy="178" r="7" fill="#ffffff" />
+  <circle cx="121" cy="178" r="7" fill="#ffffff" />
+
+  <!-- Core Hub -->
+  <circle cx="256" cy="256" r="64" fill="rgba(57,245,143,0.05)" stroke="rgba(57,245,143,0.2)" stroke-width="1.5"/>
+  <circle cx="256" cy="256" r="48" fill="url(#grad-green)" filter="url(#glow-core)"/>
+  
+  <!-- Inner rings of the hub -->
+  <circle cx="256" cy="256" r="32" fill="#ffffff" />
+  <circle cx="256" cy="256" r="16" fill="url(#bg-glow)" />
+  
+  <!-- Highlight on Core -->
+  <ellipse cx="256" cy="240" rx="14" ry="6" fill="rgba(255,255,255,0.8)" transform="rotate(-15 256 240)"/>
+
+  <!-- Border Overlay -->
+  <rect width="508" height="508" x="2" y="2" rx="110" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="4"/>
 </svg>
