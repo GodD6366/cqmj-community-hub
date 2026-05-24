@@ -14,7 +14,7 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
 
   return (
     <form
-      className="glass-card space-y-3.5 rounded-[1.2rem] p-4"
+      className="terminal-comment-form"
       onSubmit={async (event) => {
         event.preventDefault();
         const value = content.trim();
@@ -34,30 +34,11 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
         }
       }}
     >
-      <div className="space-y-1">
-        <label className="block text-sm font-semibold text-slate-800" htmlFor="comment-content">
-          发表评论
-        </label>
-      </div>
-      <TextArea
-        id="comment-content"
-        fullWidth
-        value={content}
-        onChange={(event) => setContent(event.target.value)}
-        rows={3}
-        placeholder="写回复"
-      />
-      {error ? (
-        <Alert status="danger">
-          <Alert.Content>
-            <Alert.Description>{error}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <Button className="sm:w-auto" fullWidth isPending={submitting} type="submit">
-          {submitting ? "发送中..." : "发送"}
-        </Button>
+      <TextArea id="comment-content" fullWidth value={content} onChange={(event) => setContent(event.target.value)} rows={3} placeholder="写下你的评论..." />
+      {error ? <Alert status="danger"><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert> : null}
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-xs text-[var(--muted)]">支持换行，提交后会实时同步。</div>
+        <Button className="sm:w-auto" fullWidth isPending={submitting} type="submit">{submitting ? "发送中..." : "发送"}</Button>
       </div>
     </form>
   );

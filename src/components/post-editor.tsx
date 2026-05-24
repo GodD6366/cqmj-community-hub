@@ -179,7 +179,7 @@ async function loadImageElement(file: File) {
     const image = await new Promise<HTMLImageElement>((resolve, reject) => {
       const element = new window.Image();
       element.onload = () => resolve(element);
-      element.onerror = () => reject(new Error("图片读取失败"));
+      element.onerror = () => reject(new Error("图片读取失败，请检查文件是否损坏或格式不支持"));
       element.src = blobUrl;
     });
     return image;
@@ -321,8 +321,9 @@ export function PostEditor({
   const uploadingCount = images.filter((item) => item.status === "uploading").length;
   const failedCount = images.filter((item) => item.status === "error").length;
   const currentCategoryCopy = categoryEditorCopy[category];
-  const resolvedEditorTitle = visibleCategories.length > 1 && !categoryLocked ? categoryMeta[category].label : editorTitle;
-  const resolvedEditorDescription = editorDescription ?? categoryMeta[category].description;
+  const showCategoryInHeader = visibleCategories.length > 1 && !categoryLocked;
+  const resolvedEditorTitle = showCategoryInHeader ? categoryMeta[category].label : editorTitle;
+  const resolvedEditorDescription = showCategoryInHeader ? categoryMeta[category].description : editorDescription;
 
   useEffect(() => {
     imagesRef.current = images;
@@ -647,62 +648,74 @@ export function PostEditor({
           <div>
             <p className="section-kicker">发布</p>
             <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950 sm:text-3xl">{resolvedEditorTitle}</h1>
-            {resolvedEditorDescription ? <p className="mt-2 text-sm leading-6 text-slate-600">{resolvedEditorDescription}</p> : null}
+            {showCategoryInHeader && resolvedEditorDescription ? (
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)] hidden sm:block">{resolvedEditorDescription}</p>
+            ) : null}
           </div>
         </Card.Header>
 
-        <Card.Content className="space-y-5 p-4 sm:p-5">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <h2 className="text-sm font-semibold tracking-[0.06em] text-slate-700 uppercase">1. 类型</h2>
-              <Chip size="sm" variant="soft">{categoryMeta[category].label}</Chip>
+        <Card.Content className="space-y-5 bg-[rgba(8,16,16,0.9)] p-4 sm:p-5">
+          {!categoryLocked && visibleCategories.length > 1 ? (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold tracking-[0.06em] text-[var(--muted)] uppercase">1. 类型</h2>
+                <Chip size="sm" variant="soft">{categoryMeta[category].label}</Chip>
+              </div>
+              <div className="sm:hidden">
+                <ScrollShadow className="w-full max-w-full" hideScrollBar orientation="horizontal" size={42}>
+                  <div className="flex min-w-max gap-3 pb-1 pr-3">
+                    {categoryOptions.map(([value, meta]) => (
+                      <Button
+                        key={value}
+                        className={`h-auto min-h-[6.5rem] w-[14rem] shrink-0 snap-start justify-start px-4 py-3.5 text-left rounded-[1.1rem] transition-all ${
+                          category === value
+                            ? "border border-[rgba(57,245,143,0.32)] bg-[rgba(57,245,143,0.12)]"
+                            : "border border-[var(--border)] bg-[rgba(8,16,16,0.85)]"
+                        }`}
+                        isDisabled={categoryLocked}
+                        onPress={() => setCategory(value)}
+                        type="button"
+                        variant="secondary"
+                      >
+                        <span className="flex flex-col items-start gap-1">
+                          <span className={`text-lg font-semibold ${category === value ? "text-white" : "text-slate-800"}`}>{meta.label}</span>
+                          <span className={`text-xs leading-5 ${category === value ? "text-white/80" : "text-[var(--muted)]"}`}>{meta.description}</span>
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+                </ScrollShadow>
+              </div>
+              <div className="hidden gap-2.5 sm:flex sm:flex-row sm:flex-wrap">
+                {categoryOptions.map(([value, meta]) => (
+                  <Button
+                    key={value}
+                    className={`h-auto justify-start px-4 py-3 text-left rounded-[1rem] transition-all ${
+                      category === value
+                        ? "border border-[rgba(57,245,143,0.32)] bg-[rgba(57,245,143,0.12)]"
+                        : "border border-[var(--border)] bg-[rgba(8,16,16,0.85)]"
+                    }`}
+                    isDisabled={categoryLocked}
+                    onPress={() => setCategory(value)}
+                    type="button"
+                    variant="secondary"
+                  >
+                    <span className="flex flex-col items-start gap-1">
+                      <span className={`text-base font-semibold ${category === value ? "text-white" : "text-slate-800"}`}>{meta.label}</span>
+                      <span className={`text-sm leading-5 ${category === value ? "text-white/80" : "text-[var(--muted)]"}`}>{meta.description}</span>
+                    </span>
+                  </Button>
+                ))}
+              </div>
             </div>
-            <div className="sm:hidden">
-              <ScrollShadow className="w-full max-w-full" hideScrollBar orientation="horizontal" size={42}>
-                <div className="flex min-w-max gap-2 pb-1 pr-3">
-                  {categoryOptions.map(([value, meta]) => (
-                    <Button
-                      key={value}
-                      className="h-auto min-h-[6.25rem] w-[15rem] shrink-0 snap-start justify-start px-4 py-3 text-left"
-                      isDisabled={categoryLocked}
-                      onPress={() => setCategory(value)}
-                      type="button"
-                      variant={category === value ? "primary" : "secondary"}
-                    >
-                      <span className="flex flex-col items-start">
-                        <span className="text-base font-semibold">{meta.label}</span>
-                        <span className={`mt-1 text-sm leading-5 ${category === value ? "text-slate-200" : "text-slate-500"}`}>{meta.description}</span>
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </ScrollShadow>
-            </div>
-            <div className="hidden gap-2 sm:flex sm:flex-row sm:flex-wrap">
-              {categoryOptions.map(([value, meta]) => (
-                <Button
-                  key={value}
-                  className="h-auto justify-start px-4 py-3 text-left"
-                  isDisabled={categoryLocked}
-                  onPress={() => setCategory(value)}
-                  type="button"
-                  variant={category === value ? "primary" : "secondary"}
-                >
-                  <span className="flex flex-col items-start">
-                    <span className="text-base font-semibold">{meta.label}</span>
-                    <span className={`mt-1 text-sm leading-5 ${category === value ? "text-slate-200" : "text-slate-500"}`}>{meta.description}</span>
-                  </span>
-                </Button>
-              ))}
-            </div>
-          </div>
+          ) : null}
 
           <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_17rem]">
             <div className="space-y-5">
-              <label className="space-y-2 text-sm font-semibold text-slate-800">
+              <label className="space-y-2 text-sm font-semibold text-slate-950">
                 <span className="flex items-center justify-between gap-3">
-                  <span>2. 标题</span>
-                  <span className={`text-xs ${titleLength > TITLE_MAX ? "text-[var(--danger)]" : "text-slate-400"}`}>{titleLength}/{TITLE_MAX}</span>
+                  <span>{categoryLocked && visibleCategories.length <= 1 ? "1" : "2"}. 标题</span>
+                  <span className={`text-xs ${titleLength > TITLE_MAX ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>{titleLength}/{TITLE_MAX}</span>
                 </span>
                 <Input
                   aria-label="帖子标题"
@@ -710,13 +723,14 @@ export function PostEditor({
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder={currentCategoryCopy.titlePlaceholder}
+                  className="rounded-[1rem] bg-[rgba(8,16,16,0.85)] border border-[var(--border)]"
                 />
               </label>
 
-              <label className="space-y-2 text-sm font-semibold text-slate-800">
+              <label className="space-y-2 text-sm font-semibold text-slate-950">
                 <span className="flex items-center justify-between gap-3">
-                  <span>3. 内容</span>
-                  <span className={`text-xs ${contentLength > CONTENT_MAX ? "text-[var(--danger)]" : "text-slate-400"}`}>{contentLength}/{CONTENT_MAX}</span>
+                  <span>{categoryLocked && visibleCategories.length <= 1 ? "2" : "3"}. 内容</span>
+                  <span className={`text-xs ${contentLength > CONTENT_MAX ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>{contentLength}/{CONTENT_MAX}</span>
                 </span>
                 <TextArea
                   aria-label="帖子内容"
@@ -725,22 +739,23 @@ export function PostEditor({
                   onChange={(event) => setContent(event.target.value)}
                   rows={12}
                   placeholder={currentCategoryCopy.contentPlaceholder}
+                  className="rounded-[1rem] bg-[rgba(8,16,16,0.85)] border border-[var(--border)]"
                 />
               </label>
 
               <div className="space-y-3">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm font-semibold text-slate-800">4. 图片</p>
-                    <p className="mt-1 text-xs leading-5 text-slate-500">
+                    <p className="text-sm font-semibold text-slate-950">{categoryLocked && visibleCategories.length <= 1 ? "3" : "4"}. 图片</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
                       最多 {MAX_POST_IMAGES} 张 · 自动压缩 · 单图 ≤ 2MB
                     </p>
-                    <p className="mt-1 text-xs leading-5 text-slate-400">
+                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
                       {currentCategoryCopy.imageHint}
                     </p>
                   </div>
                   <Button
-                    className="min-h-11 w-full sm:w-auto"
+                    className="min-h-11 w-full sm:w-auto rounded-[1rem] bg-[rgba(57,245,143,0.12)] border border-[rgba(57,245,143,0.32)] text-[var(--primary)] hover:bg-[rgba(57,245,143,0.18)] transition-colors"
                     onPress={() => fileInputRef.current?.click()}
                     size="sm"
                     type="button"
@@ -761,8 +776,8 @@ export function PostEditor({
                 {images.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {images.map((image, index) => (
-                      <div key={image.clientId} className="overflow-hidden rounded-[1rem] border border-[var(--separator)] bg-white">
-                        <div className="aspect-[16/10] bg-[var(--surface-muted)] sm:aspect-[4/3]">
+                      <div key={image.clientId} className="overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.96)]">
+                        <div className="aspect-[16/10] bg-[rgba(6,14,12,0.96)] sm:aspect-[4/3]">
                           {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured CDN URLs are not a fit for static remotePatterns here. */}
                           <img
                             alt={`已选图片 ${index + 1}`}
@@ -783,7 +798,7 @@ export function PostEditor({
                               {image.status === "uploaded" ? "已上传" : image.status === "uploading" ? "上传中" : "失败"}
                             </Chip>
                           </div>
-                          <p className={`text-xs leading-5 ${image.status === "error" ? "text-[var(--danger)]" : "text-slate-500"}`}>
+                          <p className={`text-xs leading-5 ${image.status === "error" ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>
                             {image.status === "uploaded"
                               ? `${image.width}×${image.height} · ${(image.sizeBytes / 1024).toFixed(0)}KB`
                               : image.error ?? "正在处理图片"}
@@ -824,35 +839,36 @@ export function PostEditor({
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-[1rem] border border-dashed border-[var(--separator)] px-4 py-5 text-sm leading-6 text-slate-500">
+                  <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[rgba(8,16,16,0.72)] px-4 py-5 text-sm leading-6 text-[var(--muted)]">
                     {currentCategoryCopy.emptyImageHint}
                   </div>
                 )}
               </div>
 
               <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
-                <label className="space-y-2 text-sm font-semibold text-slate-800">
-                  <span>5. 标签</span>
+                <label className="space-y-2 text-sm font-semibold text-slate-950">
+                  <span>{categoryLocked && visibleCategories.length <= 1 ? "4" : "5"}. 标签</span>
                   <Input
                     aria-label="帖子标签"
                     fullWidth
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
                     placeholder={currentCategoryCopy.tagsPlaceholder}
+                    className="rounded-[1rem] bg-[rgba(8,16,16,0.85)] border border-[var(--border)]"
                   />
                 </label>
 
                 <div className="space-y-2">
-                  <span className="block text-sm font-semibold text-slate-800">身份展示</span>
+                  <span className="block text-sm font-semibold text-slate-950">身份展示</span>
                   <Button
-                    className="w-full justify-start"
+                    className="w-full min-h-11 justify-start"
                     onPress={() => setAnonymous((value) => !value)}
                     type="button"
                     variant={anonymous ? "primary" : "secondary"}
                   >
                     {anonymous ? "匿名发布" : "实名发布"}
                   </Button>
-                  <p className="text-xs leading-5 text-slate-500">
+                  <p className="text-xs leading-5 text-[var(--muted)]">
                     {anonymous ? "显示为匿名居民。" : "显示账号名。"}
                   </p>
                 </div>
@@ -860,13 +876,13 @@ export function PostEditor({
             </div>
 
             <div className="forum-sidebar">
-              <div className="forum-panel rounded-[1rem] p-4">
-                <p className="text-sm font-semibold text-slate-900">6. 可见范围</p>
+              <div className="rounded-[1.1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.92)] p-4">
+                <p className="text-sm font-semibold text-slate-950">{categoryLocked && visibleCategories.length <= 1 ? "5" : "6"}. 可见范围</p>
                 <div className="mt-3 grid gap-2">
                   {visibilityOptions.map(([value, meta]) => (
                     <Button
                       key={value}
-                      className="justify-start"
+                      className="min-h-11 justify-start"
                       onPress={() => setVisibility(value as VisibilityScope)}
                       size="sm"
                       type="button"
@@ -876,7 +892,7 @@ export function PostEditor({
                     </Button>
                   ))}
                 </div>
-                <p className="mt-3 text-xs leading-5 text-slate-500">{visibilityMeta[visibility].description}</p>
+                <p className="mt-3 text-xs leading-5 text-[var(--muted)]">{visibilityMeta[visibility].description}</p>
               </div>
             </div>
           </div>
@@ -898,10 +914,21 @@ export function PostEditor({
               ))}
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-              <Button onPress={clearDraft} size="sm" type="button" variant="secondary">
+              <Button
+                onPress={clearDraft}
+                size="sm"
+                type="button"
+                variant="secondary"
+                className="rounded-[1rem] bg-[rgba(8,16,16,0.85)] border border-[var(--border)]"
+              >
                 {clearLabel}
               </Button>
-              <Button isPending={submitting} size="sm" type="submit">
+              <Button
+                isPending={submitting}
+                size="sm"
+                type="submit"
+                className="rounded-[1rem] bg-[rgba(57,245,143,0.12)] border border-[rgba(57,245,143,0.32)] text-[var(--primary)]"
+              >
                 {submitting ? submittingLabel : submitLabel}
               </Button>
             </div>
@@ -917,9 +944,9 @@ export function PostEditor({
             </div>
           </Card.Header>
           <Card.Content className="space-y-4 p-4">
-            <div className="rounded-[1rem] bg-[var(--surface-muted)] p-4">
+            <div className="rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.92)] p-4">
               {uploadedImages[0] ? (
-                <div className="mb-4 aspect-[4/3] overflow-hidden rounded-[0.9rem] bg-white">
+                <div className="mb-4 aspect-[4/3] overflow-hidden rounded-[0.9rem] bg-[rgba(6,14,12,0.96)]">
                   {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured CDN URLs are not a fit for static remotePatterns here. */}
                   <img
                     alt="首图预览"
@@ -928,16 +955,16 @@ export function PostEditor({
                   />
                 </div>
               ) : null}
-              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-slate-500">
+              <div className="flex flex-wrap items-center gap-2 text-xs font-medium text-[var(--muted)]">
                 <Chip color="accent" size="sm" variant="primary">{categoryMeta[category].badge}</Chip>
                 <Chip size="sm" variant="soft">{visibilityMeta[visibility].label}</Chip>
                 {anonymous ? <Chip size="sm" variant="soft">匿名</Chip> : null}
                 {uploadedImages.length > 0 ? <Chip size="sm" variant="soft">{uploadedImages.length} 张图</Chip> : null}
               </div>
-              <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-900">
+              <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-950">
                 {title.trim() || currentCategoryCopy.previewTitlePlaceholder}
               </h2>
-              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-slate-600">
+              <p className="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--muted)]">
                 {content.trim() || currentCategoryCopy.previewContentPlaceholder}
               </p>
               <div className="mt-4 flex flex-wrap gap-2">
@@ -948,14 +975,14 @@ export function PostEditor({
                     </Chip>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-400">{currentCategoryCopy.emptyTagsHint}</span>
+                  <span className="text-xs text-[var(--muted)]">{currentCategoryCopy.emptyTagsHint}</span>
                 )}
               </div>
             </div>
 
-            <div className="forum-panel rounded-[1rem] border-dashed px-4 py-3 text-xs leading-6 text-slate-500">
+            <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[rgba(8,16,16,0.78)] px-4 py-3 text-xs leading-6 text-[var(--muted)]">
               当前状态：
-              <span className="ml-2 font-semibold text-slate-700">
+              <span className="ml-2 font-semibold text-slate-950">
                 {title.trim() && content.trim() && parsedTags.length > 0 && uploadingCount === 0 && failedCount === 0
                   ? "可发布"
                   : "继续补全"}

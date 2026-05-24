@@ -20,107 +20,45 @@ export function ResidentAvatar({
   size?: "sm" | "md" | "lg";
   tone?: "default" | "inverse";
 }) {
-  const sizeClass = size === "sm" ? "h-11 w-11 text-sm" : size === "lg" ? "h-14 w-14 text-lg" : "h-12 w-12 text-base";
+  const sizeClass = size === "sm" ? "h-10 w-10 text-sm" : size === "lg" ? "h-14 w-14 text-lg" : "h-12 w-12 text-base";
   const toneClass =
     tone === "inverse"
-      ? "bg-white/14 text-white ring-1 ring-white/12"
-      : "bg-[linear-gradient(135deg,rgba(79,99,255,0.16),rgba(126,109,248,0.14))] text-[var(--primary)] ring-1 ring-white/80";
-  const innerClass = tone === "inverse" ? "bg-white/8" : "bg-white/72";
+      ? "bg-white/10 text-white ring-1 ring-white/12"
+      : "bg-[linear-gradient(135deg,rgba(57,245,143,0.18),rgba(72,201,255,0.14))] text-[var(--primary)] ring-1 ring-[rgba(57,245,143,0.16)]";
 
   return (
-    <div
-      aria-hidden="true"
-      className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-[1.25rem] font-semibold shadow-[0_16px_30px_rgba(79,99,255,0.12)] ${sizeClass} ${toneClass}`}
-    >
-      <span className={`absolute inset-[1px] rounded-[calc(1.25rem-1px)] ${innerClass}`} />
-      {tone === "inverse" ? null : <span className="absolute inset-auto left-1.5 top-1.5 h-2.5 w-2.5 rounded-full bg-white/70" />}
+    <div className={`relative inline-flex shrink-0 items-center justify-center overflow-hidden rounded-[1rem] font-semibold ${sizeClass} ${toneClass}`}>
+      <span className="absolute inset-[1px] rounded-[calc(1rem-1px)] bg-[rgba(6,14,12,0.88)]" />
       <span className="relative">{getResidentAvatarInitial(name)}</span>
     </div>
   );
 }
 
-export function ResidentMobileHero({
-  children,
-  background,
-  className,
-  delay = "40ms",
-}: {
-  children: ReactNode;
-  background: string;
-  className?: string;
-  delay?: string;
-}) {
-  return (
-    <section
-      className={cn("mobile-resident-hero mobile-resident-enter text-white", className)}
-      style={{ animationDelay: delay, background }}
-    >
-      {children}
-    </section>
-  );
+export function ResidentMobileHero({ children, background, className, delay = "40ms" }: { children: ReactNode; background: string; className?: string; delay?: string; }) {
+  return <section className={cn("mobile-resident-hero mobile-resident-enter text-white", className)} style={{ animationDelay: delay, background }}>{children}</section>;
 }
 
-export function ResidentMobilePanel({
-  children,
-  className,
-  delay = "120ms",
-}: {
-  children: ReactNode;
-  className?: string;
-  delay?: string;
-}) {
-  return (
-    <section className={cn("mobile-resident-panel mobile-resident-enter", className)} style={{ animationDelay: delay }}>
-      {children}
-    </section>
-  );
+export function ResidentMobilePanel({ children, className, delay = "120ms" }: { children: ReactNode; className?: string; delay?: string; }) {
+  return <section className={cn("mobile-resident-panel mobile-resident-enter", className)} style={{ animationDelay: delay }}>{children}</section>;
 }
 
-export function SectionHeader({
-  title,
-  caption,
-  href,
-  actionLabel,
-}: {
-  title: string;
-  caption?: string;
-  href?: string;
-  actionLabel?: string;
-}) {
+export function SectionHeader({ title, caption, href, actionLabel }: { title: string; caption?: string; href?: string; actionLabel?: string; }) {
   return (
     <div className="app-section-title">
       <div>
         {caption ? <div className="section-kicker">{caption}</div> : null}
         <h2 className={caption ? "mt-2" : ""}>{title}</h2>
       </div>
-      {href && actionLabel ? (
-        <Link className="app-section-link" href={href}>
-          {actionLabel}
-        </Link>
-      ) : null}
+      {href && actionLabel ? <Link className="app-section-link" href={href}>{actionLabel}</Link> : null}
     </div>
   );
 }
 
-export function QuickActionTile({
-  label,
-  description,
-  icon,
-  href,
-  gradient,
-}: {
-  label: string;
-  description?: string;
-  icon: string;
-  href: string;
-  gradient: string;
-}) {
+export function QuickActionTile({ label, description, icon, href, gradient }: { label: string; description?: string; icon: string; href: string; gradient: string; }) {
   return (
     <Link href={href} className="app-card-muted h-full p-3 md:p-4">
       <div className="flex items-center gap-3">
-        <span className="app-icon-bubble shrink-0" style={{ background: gradient }}>
-          <span className="text-lg">{icon}</span>
-        </span>
+        <span className="app-icon-bubble shrink-0" style={{ background: gradient }}><span className="text-lg font-bold">{icon}</span></span>
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold text-slate-900">{label}</div>
           {description ? <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{description}</div> : null}
@@ -130,22 +68,9 @@ export function QuickActionTile({
   );
 }
 
-export function ResidentMetricGrid({
-  items,
-  columns = 2,
-  tone = "inverse",
-  className,
-}: {
-  items: ReadonlyArray<{ label: string; value: ReactNode }>;
-  columns?: 2 | 3 | 4;
-  tone?: "default" | "inverse";
-  className?: string;
-}) {
+export function ResidentMetricGrid({ items, columns = 2, tone = "inverse", className }: { items: ReadonlyArray<{ label: string; value: ReactNode }>; columns?: 2 | 3 | 4; tone?: "default" | "inverse"; className?: string; }) {
   const columnClass = columns === 4 ? "grid-cols-4" : columns === 3 ? "grid-cols-3" : "grid-cols-2";
-  const cardClass =
-    tone === "inverse"
-      ? "bg-white/10 ring-1 ring-white/10 backdrop-blur-sm"
-      : "bg-white/84 ring-1 ring-[rgba(95,116,176,0.08)]";
+  const cardClass = tone === "inverse" ? "bg-white/10 ring-1 ring-white/10 backdrop-blur-sm" : "bg-[rgba(10,20,18,0.9)] ring-1 ring-[rgba(57,245,143,0.1)]";
   const labelClass = tone === "inverse" ? "text-white/58" : "text-[var(--muted)]";
   const valueClass = tone === "inverse" ? "text-white" : "text-slate-950";
 
@@ -161,24 +86,60 @@ export function ResidentMetricGrid({
   );
 }
 
-export function PollCard({
-  poll,
-  onVote,
-  pending,
-  allowVote = true,
-}: {
-  poll: PollSummary;
-  onVote?: (optionId: string) => void | Promise<void>;
-  pending?: boolean;
-  allowVote?: boolean;
-}) {
+export function CyberPanel({ title, kicker, action, children, className }: { title: string; kicker?: string; action?: ReactNode; children: ReactNode; className?: string; }) {
   return (
-    <article className="app-card p-3.5 md:p-4">
+    <section className={cn("app-card p-4 md:p-5", className)}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          {kicker ? <div className="section-kicker">{kicker}</div> : null}
+          <h2 className={kicker ? "mt-2 text-[1.05rem] font-semibold text-slate-950" : "text-[1.05rem] font-semibold text-slate-950"}>{title}</h2>
+        </div>
+        {action}
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+export function CyberStatGrid({ items, columns = 4 }: { items: Array<{ label: string; value: ReactNode; delta?: ReactNode }>; columns?: 2 | 3 | 4; }) {
+  const gridClass = columns === 4 ? "md:grid-cols-4" : columns === 3 ? "md:grid-cols-3" : "md:grid-cols-2";
+  return (
+    <div className={`grid gap-3 ${gridClass}`}>
+      {items.map((item) => (
+        <div key={item.label} className="app-card-muted p-4">
+          <div className="text-[0.76rem] font-medium text-[var(--muted)]">{item.label}</div>
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <div className="cyber-number text-[1.75rem] font-bold tracking-[-0.05em] text-slate-950">{item.value}</div>
+            {item.delta ? <div className="text-xs font-semibold text-[var(--primary)]">{item.delta}</div> : null}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function DataList({ items }: { items: Array<{ label: string; value?: ReactNode; hint?: ReactNode }> }) {
+  return (
+    <div className="grid gap-2.5">
+      {items.map((item) => (
+        <div key={item.label} className="flex items-start justify-between gap-3 rounded-[1rem] border border-[var(--border)] bg-[rgba(10,18,18,0.72)] px-3.5 py-3">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-950">{item.label}</div>
+            {item.hint ? <div className="mt-1 text-xs text-[var(--muted)]">{item.hint}</div> : null}
+          </div>
+          {item.value ? <div className="shrink-0 text-sm font-semibold text-[var(--primary)]">{item.value}</div> : null}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function PollCard({ poll, onVote, pending, allowVote = true }: { poll: PollSummary; onVote?: (optionId: string) => void | Promise<void>; pending?: boolean; allowVote?: boolean; }) {
+  return (
+    <article className="app-card-muted p-4">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className={`app-chip ${poll.status === "active" ? "app-chip-muted" : ""}`}>
-            {pollStatusMeta[poll.status].label}
-          </div>
+          <div className={`app-chip ${poll.status === "active" ? "" : "app-chip-muted"}`}>{pollStatusMeta[poll.status].label}</div>
           <h3 className="mt-3 text-base font-semibold text-slate-950">{poll.title}</h3>
           <p className="mt-1.5 text-[0.82rem] leading-5 text-[var(--muted)] line-clamp-2">{poll.description}</p>
         </div>
@@ -187,56 +148,33 @@ export function PollCard({
           <div className="mt-1">{poll.endsAt ? `截止 ${formatDateTime(poll.endsAt)}` : "长期开放"}</div>
         </div>
       </div>
-
-      <div className="mt-3 grid gap-1.5">
+      <div className="mt-3 grid gap-2">
         {poll.options.map((option) => {
           const isSelected = poll.selectedOptionId === option.id;
           const percentage = poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 100) : 0;
-
           return (
-            <button
-              key={option.id}
-              type="button"
-              className={`relative overflow-hidden rounded-[0.9rem] border px-3 py-2.5 text-left transition ${
-                isSelected
-                  ? "border-[rgba(79,99,255,0.24)] bg-[rgba(79,99,255,0.1)]"
-                  : "border-[rgba(88,109,175,0.12)] bg-white"
-              }`}
-              disabled={!allowVote || pending || poll.hasVoted || poll.status !== "active"}
-              onClick={() => onVote?.(option.id)}
-            >
-              <span
-                className="absolute inset-y-0 left-0 rounded-r-full bg-[rgba(126,109,248,0.12)]"
-                style={{ width: `${Math.max(percentage, isSelected ? 20 : 0)}%` }}
-              />
+            <button key={option.id} type="button" className={`relative overflow-hidden rounded-[0.95rem] border px-3 py-2.5 text-left ${isSelected ? "border-[rgba(57,245,143,0.24)] bg-[rgba(57,245,143,0.08)]" : "border-[var(--border)] bg-[rgba(8,16,16,0.82)]"}`} disabled={!allowVote || pending || poll.hasVoted || poll.status !== "active"} onClick={() => onVote?.(option.id)}>
+              <span className="absolute inset-y-0 left-0 bg-[rgba(57,245,143,0.08)]" style={{ width: `${Math.max(percentage, isSelected ? 20 : 0)}%` }} />
               <span className="relative flex items-center justify-between gap-3">
                 <span className="text-[0.82rem] font-semibold text-slate-900">{option.label}</span>
-                <span className="text-xs text-[var(--muted)]">
-                  {option.voteCount} 票 · {percentage}%
-                </span>
+                <span className="text-xs text-[var(--muted)]">{option.voteCount} · {percentage}%</span>
               </span>
             </button>
           );
         })}
       </div>
-
-      {poll.hasVoted ? (
-        <div className="mt-3 text-xs font-semibold text-[var(--primary)]">你已参与该投票</div>
-      ) : null}
     </article>
   );
 }
 
 export function ServiceTicketCard({ ticket }: { ticket: ServiceTicketSummary }) {
   return (
-    <article className="app-card p-4 md:p-5">
+    <article className="app-card-muted p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="app-chip app-chip-muted">{serviceTicketCategoryMeta[ticket.category].label}</span>
-            <span className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[0.72rem] font-semibold text-[var(--primary)]">
-              {serviceTicketStatusMeta[ticket.status].label}
-            </span>
+            <span className="app-chip">{serviceTicketCategoryMeta[ticket.category].label}</span>
+            <span className="app-chip app-chip-muted">{serviceTicketStatusMeta[ticket.status].label}</span>
           </div>
           <h3 className="mt-3 text-base font-semibold text-slate-950">{ticket.title}</h3>
           <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{ticket.description}</p>
@@ -246,36 +184,17 @@ export function ServiceTicketCard({ ticket }: { ticket: ServiceTicketSummary }) 
           <div className="mt-1">{timeAgo(ticket.updatedAt)}</div>
         </div>
       </div>
-
-      {ticket.assigneeNote ? (
-        <div className="mt-3 rounded-[1rem] bg-[var(--surface-muted)] px-3 py-2 text-xs leading-5 text-[var(--muted)]">
-          处理备注：{ticket.assigneeNote}
-        </div>
-      ) : null}
+      {ticket.assigneeNote ? <div className="mt-3 rounded-[1rem] bg-[rgba(57,245,143,0.06)] px-3 py-2 text-xs leading-5 text-[var(--muted)]">处理备注：{ticket.assigneeNote}</div> : null}
     </article>
   );
 }
 
-export function EmptyState({
-  title,
-  description,
-  actionHref,
-  actionLabel,
-}: {
-  title: string;
-  description?: string;
-  actionHref?: string;
-  actionLabel?: string;
-}) {
+export function EmptyState({ title, description, actionHref, actionLabel }: { title: string; description?: string; actionHref?: string; actionLabel?: string; }) {
   return (
     <div className="paper-panel rounded-[1.4rem] px-4 py-5 text-center md:px-5 md:py-6">
       <div className="text-sm font-semibold text-slate-900">{title}</div>
       {description ? <p className="mt-2 text-sm leading-6 text-[var(--muted)]">{description}</p> : null}
-      {actionHref && actionLabel ? (
-        <Link className="mt-4 inline-flex rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white" href={actionHref}>
-          {actionLabel}
-        </Link>
-      ) : null}
+      {actionHref && actionLabel ? <Link className="mt-4 inline-flex rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)]" href={actionHref}>{actionLabel}</Link> : null}
     </div>
   );
 }

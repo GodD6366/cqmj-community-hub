@@ -1,24 +1,111 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Alert, Button } from "@heroui/react";
-import { EmptyState, ResidentAvatar, ResidentMetricGrid, ResidentMobileHero, ResidentMobilePanel, SectionHeader } from "./resident-shared";
-import { SystemLogo } from "./system-logo";
+import {
+  CyberPanel,
+  CyberStatGrid,
+  DataList,
+  EmptyState,
+  ResidentAvatar,
+} from "./resident-shared";
 import { useCommunityPosts } from "./community-provider";
+import { getCommunityName } from "@/lib/community-brand";
 
-const menuItems = [
-  { label: "我的服务", href: "/services", mark: "务" },
+const functionItems = [
   { label: "我的帖子", href: "/posts?mode=mine", mark: "帖" },
   { label: "我的收藏", href: "/posts?mode=favorites", mark: "藏" },
-  { label: "项目介绍", href: "/about", mark: "问" },
+  { label: "我的投票", href: "/publish?kind=poll", mark: "票" },
+  { label: "我的工单", href: "/services", mark: "单" },
+] as const;
+
+const extraItems = [
+  { label: "MCP / AI 配置", href: "/mcp/connect", mark: "AI" },
+  { label: "浏览历史", href: "/posts", mark: "史" },
+  { label: "邀请邻居", href: "/about", mark: "邀" },
   { label: "社区规则", href: "/rules", mark: "规" },
 ] as const;
 
+const mobileStats = [
+  {
+    label: "我的帖子",
+    key: "myPosts",
+    href: "/posts?mode=mine",
+    tone: "green",
+    icon: <PostIcon />,
+  },
+  {
+    label: "我的收藏",
+    key: "favoritePosts",
+    href: "/posts?mode=favorites",
+    tone: "amber",
+    icon: <StarIcon />,
+  },
+  {
+    label: "我的参与",
+    key: "votedPolls",
+    href: "/neighbors",
+    tone: "green",
+    icon: <MessageIcon />,
+  },
+  {
+    label: "我的工单",
+    key: "myTickets",
+    href: "/services",
+    tone: "amber",
+    icon: <TicketIcon />,
+  },
+] as const;
+
+const mobileMenuItems = [
+  {
+    label: "MCP / AI 配置",
+    href: "/mcp/connect",
+    tone: "cyan",
+    icon: <BrainCircuitIcon />,
+  },
+  {
+    label: "我的帖子",
+    href: "/posts?mode=mine",
+    tone: "green",
+    icon: <PostIcon />,
+  },
+  {
+    label: "我的收藏",
+    href: "/posts?mode=favorites",
+    tone: "green",
+    icon: <StarIcon />,
+  },
+  { label: "我的投票", href: "/neighbors", tone: "cyan", icon: <PollIcon /> },
+  { label: "浏览记录", href: "/posts", tone: "green", icon: <ClockIcon /> },
+  { label: "社区规则", href: "/rules", tone: "green", icon: <ShieldIcon /> },
+  { label: "项目介绍", href: "/about", tone: "green", icon: <InfoIcon /> },
+] as const;
+
 export function MeClient() {
-  const { currentUser, posts, polls, serviceTickets, notifications, logout } = useCommunityPosts();
+  const { currentUser, posts, polls, serviceTickets, notifications, logout } =
+    useCommunityPosts();
+  const communityName = getCommunityName();
   const [loggingOut, setLoggingOut] = useState(false);
   const [error, setError] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+
+  const toggleSettings = () => {
+    setSettingsOpen((isOpen) => !isOpen);
+  };
+  const closeSettings = () => {
+    setSettingsOpen(false);
+  };
+
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [settingsOpen]);
 
   const handleLogout = async () => {
     setError("");
@@ -37,126 +124,29 @@ export function MeClient() {
     const votedPolls = polls.filter((poll) => poll.hasVoted);
     const myTickets = serviceTickets.filter((ticket) => ticket.isMine);
     const favoritePosts = posts.filter((post) => post.favorited);
-
     return {
       myPosts: myPosts.length,
+      favoritePosts: favoritePosts.length,
       votedPolls: votedPolls.length,
       myTickets: myTickets.length,
-      favoritePosts: favoritePosts.length,
-      notifications: notifications.length,
+      comments: notifications.filter((item) => item.type === "comment").length,
     };
   }, [currentUser, notifications, polls, posts, serviceTickets]);
 
   if (!currentUser) {
-    const lockedFeatures = [
-      { title: "我的帖子" },
-      { title: "我的工单" },
-      { title: "我的消息" },
-    ] as const;
-
     return (
-      <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
-        <div className="mobile-resident-only mobile-resident-stack">
-          <ResidentMobileHero
-            background="radial-gradient(circle at 16% 18%, rgba(237,170,92,0.34), transparent 25%), radial-gradient(circle at 84% 14%, rgba(97,172,167,0.24), transparent 22%), linear-gradient(160deg, #241b16 0%, #473223 46%, #6b4a32 100%)"
-          >
-            <div className="flex items-center gap-3">
-              <SystemLogo className="gap-0" markClassName="h-11 w-11" showLabel={false} />
-              <div className="mobile-resident-kicker text-white/72">个人中心</div>
-            </div>
-
-            <h1 className="mobile-resident-title mt-5 max-w-[9ch]">个人中心</h1>
-
-            <Link
-              href="/login?next=/me"
-              className="mt-5 inline-flex h-11 items-center justify-center gap-2 rounded-full bg-white px-5 text-sm font-semibold shadow-[0_16px_28px_rgba(26,18,13,0.18)]"
-              style={{ color: "#4f3526" }}
-            >
-              <span>去登录</span>
-              <span aria-hidden="true">→</span>
-            </Link>
-          </ResidentMobileHero>
-
-          <ResidentMobilePanel delay="120ms">
-            <div className="mobile-resident-kicker text-[#8a5d39]">入口</div>
-            <h2 className="mobile-resident-panel-title">登录后可用</h2>
-
-            <div className="mt-4 grid gap-2.5">
-              {lockedFeatures.map((item) => (
-                <div key={item.title} className="rounded-[1.2rem] bg-white/78 px-4 py-3 shadow-[0_12px_26px_rgba(58,75,124,0.06)]">
-                  <div className="text-sm font-semibold text-slate-900">{item.title}</div>
-                </div>
-              ))}
-            </div>
-          </ResidentMobilePanel>
-        </div>
-
-        <div className="hidden md:block pt-4 md:pt-6">
-          <EmptyState
-            title="登录后查看个人中心"
-            actionHref="/login?next=/me"
-            actionLabel="去登录"
-          />
-        </div>
+      <main className="page-shell">
+        <EmptyState
+          title="登录后查看个人中心"
+          actionHref="/login?next=/me"
+          actionLabel="去登录"
+        />
       </main>
     );
   }
 
-  const shortcutItems = [
-    {
-      label: "我的工单",
-      href: "/services",
-      value: stats.myTickets,
-      hint: "工单",
-      icon: "工",
-      accent: "linear-gradient(135deg,#c97c45,#e4ab6a)",
-    },
-    {
-      label: "我的消息",
-      href: "/messages",
-      value: stats.notifications,
-      hint: "消息",
-      icon: "信",
-      accent: "linear-gradient(135deg,#2f7d8a,#59afb5)",
-    },
-    {
-      label: "我的帖子",
-      href: "/posts?mode=mine",
-      value: stats.myPosts,
-      hint: "帖子",
-      icon: "帖",
-      accent: "linear-gradient(135deg,#3a5d86,#638dc1)",
-    },
-    {
-      label: "我的收藏",
-      href: "/posts?mode=favorites",
-      value: stats.favoritePosts,
-      hint: "收藏",
-      icon: "藏",
-      accent: "linear-gradient(135deg,#7b6151,#b08469)",
-    },
-  ] as const;
-
-  const activityItems = [
-    {
-      label: "投票参与",
-      value: stats.votedPolls,
-      tag: stats.votedPolls > 0 ? "已参与" : "未参与",
-    },
-    {
-      label: "提醒箱",
-      value: stats.notifications,
-      tag: stats.notifications > 0 ? "有消息" : "暂无",
-    },
-    {
-      label: "房号状态",
-      value: currentUser.roomNumber || "未绑定",
-      tag: "身份",
-    },
-  ] as const;
-
   return (
-    <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
+    <main className="page-shell space-y-4 md:space-y-5">
       {error ? (
         <Alert status="danger">
           <Alert.Content>
@@ -165,183 +155,487 @@ export function MeClient() {
         </Alert>
       ) : null}
 
-      <div className="mobile-resident-only mobile-resident-stack">
-        <ResidentMobileHero
-          background="radial-gradient(circle at 14% 20%, rgba(231,162,84,0.34), transparent 26%), radial-gradient(circle at 85% 14%, rgba(95,178,150,0.26), transparent 22%), linear-gradient(160deg, #221812 0%, #38271f 46%, #5f4638 100%)"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex min-w-0 items-start gap-3">
-              <ResidentAvatar name={currentUser.username} size="lg" tone="inverse" />
-              <div className="min-w-0">
-                <div className="mobile-resident-kicker text-white/72">个人中心</div>
-                <h1 className="mt-3 text-[1.5rem] font-semibold tracking-[-0.05em] text-white">{currentUser.username}</h1>
-                <p className="mt-1 text-sm text-white/72">{currentUser.roomNumber || "未绑定房号"}</p>
-              </div>
-            </div>
-
-            <span className="shrink-0 rounded-full bg-white/10 px-3 py-1 text-[0.72rem] font-semibold text-white/80 ring-1 ring-white/10">
-              我的
-            </span>
-          </div>
-
-          <ResidentMetricGrid
-            className="mt-5"
-            items={[
-              { label: "发布", value: String(stats.myPosts).padStart(2, "0") },
-              { label: "参与", value: String(stats.votedPolls).padStart(2, "0") },
-              { label: "收藏", value: String(stats.favoritePosts).padStart(2, "0") },
-              { label: "工单", value: String(stats.myTickets).padStart(2, "0") },
-            ]}
-            tone="inverse"
-          />
-        </ResidentMobileHero>
-
-        <ResidentMobilePanel delay="120ms">
-          <div className="mobile-resident-kicker text-[#8a5d39]">我的</div>
-          <h2 className="mobile-resident-panel-title">快捷入口</h2>
-
-          <div className="mt-4 grid grid-cols-2 gap-2.5">
-            {shortcutItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="rounded-[1.28rem] border border-[rgba(95,116,176,0.08)] bg-white/78 px-3.5 py-3 shadow-[0_14px_28px_rgba(58,75,124,0.06)]"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.95rem] text-sm font-semibold text-white shadow-[0_12px_24px_rgba(58,75,124,0.14)]"
-                    style={{ background: item.accent }}
-                  >
-                    {item.icon}
-                  </span>
-                  <div className="min-w-0">
-                    <div className="text-sm font-semibold text-slate-900">{item.label}</div>
-                  </div>
-                </div>
-                <div className="mt-4 text-[1.65rem] font-semibold tracking-[-0.05em] text-[#17263f]">{String(item.value).padStart(2, "0")}</div>
-              </Link>
-            ))}
-          </div>
-        </ResidentMobilePanel>
-
-        <ResidentMobilePanel delay="200ms">
-          <div className="mobile-resident-kicker text-[#2f7d8a]">状态</div>
-          <h2 className="mobile-resident-panel-title">当前状态</h2>
-
-          <div className="mt-4 grid gap-2.5">
-            {activityItems.map((item) => (
-              <div key={item.label} className="rounded-[1.2rem] bg-white/78 px-4 py-3 shadow-[0_12px_26px_rgba(58,75,124,0.06)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="text-sm font-semibold text-slate-900">{item.label}</div>
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-full bg-[rgba(49,93,143,0.08)] px-2.5 py-1 text-[0.68rem] font-semibold text-[#315d8f]">
-                      {item.tag}
-                    </span>
-                    <div className="text-sm font-semibold text-[#2b435e]">{item.value}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </ResidentMobilePanel>
-
-        <ResidentMobilePanel delay="280ms">
-          <div className="mobile-resident-kicker text-[#315d8f]">更多</div>
-          <h2 className="mobile-resident-panel-title">更多入口</h2>
-
-          <div className="mt-4 grid gap-2.5">
-            {menuItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="flex items-center gap-3 rounded-[1.22rem] bg-white/82 px-3.5 py-3 shadow-[0_12px_26px_rgba(58,75,124,0.06)]"
-              >
-                <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-[0.95rem] bg-[rgba(49,93,143,0.1)] text-sm font-semibold text-[#315d8f]">
-                  {item.mark}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <div className="text-sm font-semibold text-slate-900">{item.label}</div>
-                </div>
-                <span className="text-sm text-[var(--muted)]">›</span>
-              </Link>
-            ))}
-            <Button isPending={loggingOut} onPress={handleLogout} variant="secondary">
-              {loggingOut ? "退出中..." : "退出登录"}
-            </Button>
-          </div>
-        </ResidentMobilePanel>
-      </div>
-
-      <div className="hidden md:block">
-        <section className="app-gradient-card px-4 py-5 text-white md:px-5 md:py-6">
-          <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_minmax(18rem,24rem)] md:items-end">
-            <div>
-              <div className="flex items-start gap-3">
-                <ResidentAvatar name={currentUser.username} size="lg" tone="inverse" />
-                <div className="min-w-0">
-                  <h1 className="text-[1.55rem] font-semibold tracking-[-0.05em] md:text-[2.05rem]">{currentUser.username}</h1>
-                  <p className="mt-1 text-sm text-white/72">{currentUser.roomNumber || "未绑定房号"}</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-2 text-center">
-              <div className="rounded-[1rem] bg-white/10 px-3 py-3">
-                <div className="text-xl font-semibold">{stats.myPosts}</div>
-                <div className="mt-1 text-[0.72rem] text-white/72">发布</div>
-              </div>
-              <div className="rounded-[1rem] bg-white/10 px-3 py-3">
-                <div className="text-xl font-semibold">{stats.votedPolls}</div>
-                <div className="mt-1 text-[0.72rem] text-white/72">参与</div>
-              </div>
-              <div className="rounded-[1rem] bg-white/10 px-3 py-3">
-                <div className="text-xl font-semibold">{stats.favoritePosts}</div>
-                <div className="mt-1 text-[0.72rem] text-white/72">收藏</div>
-              </div>
-              <div className="rounded-[1rem] bg-white/10 px-3 py-3">
-                <div className="text-xl font-semibold">{stats.myTickets}</div>
-                <div className="mt-1 text-[0.72rem] text-white/72">工单</div>
-              </div>
+      <section className="mobile-me md:hidden">
+        <section className="mobile-me-profile-card">
+          <div className="mobile-me-profile-glitch" />
+          <div className="mobile-me-avatar-ring">
+            <div className="mobile-me-avatar">
+              {Array.from(currentUser.username)[0] ?? "我"}
             </div>
           </div>
+          <div className="mobile-me-profile-copy">
+            <div className="mobile-me-name-row">
+              <h1 className="mobile-me-name">{currentUser.username}</h1>
+              <span className="mobile-me-level">LV.6 探索者</span>
+            </div>
+            <div className="mobile-me-room">
+              {communityName} · {currentUser.roomNumber || "未绑定房号"}
+              <CopyIcon />
+            </div>
+            <span className="mobile-me-status">SYS:ONLINE</span>
+            <p>探索 · 连接 · 共建未来社区</p>
+          </div>
+          <Link href="/me" className="mobile-me-edit">
+            <EditIcon /> 编辑资料
+          </Link>
         </section>
 
-        <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] xl:items-start">
-          <section className="app-card px-4 py-4 md:px-5 md:py-5">
-            <SectionHeader title="快捷入口" />
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {shortcutItems.map((item) => (
-                <Link key={item.label} href={item.href} className="app-card-muted rounded-[1.2rem] px-4 py-4">
-                  <div className="text-sm font-semibold text-slate-900">{item.label}</div>
-                  <div className="mt-2 text-[1.9rem] font-semibold tracking-[-0.05em] text-[var(--primary)]">{item.value}</div>
-                  <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{item.hint}</div>
-                </Link>
-              ))}
-            </div>
-          </section>
+        <section className="mobile-me-stats" aria-label="个人统计">
+          {mobileStats.map((item) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              className="mobile-me-stat-item"
+            >
+              <span className={`mobile-me-stat-icon is-${item.tone}`}>
+                {item.icon}
+              </span>
+              <strong>{stats[item.key]}</strong>
+              <span>{item.label}</span>
+            </Link>
+          ))}
+        </section>
 
-          <section className="app-card px-4 py-4 md:px-5 md:py-5">
-            <SectionHeader title="更多" />
-            <div className="mt-4 grid gap-1">
-              {menuItems.map((item, index) => (
+        <section className="mobile-me-list" aria-label="个人功能列表">
+          {mobileMenuItems.map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="mobile-me-menu-item"
+            >
+              <span className={`mobile-me-menu-icon is-${item.tone}`}>
+                {item.icon}
+              </span>
+              <span>{item.label}</span>
+              <span className="mobile-me-menu-arrow">›</span>
+            </Link>
+          ))}
+          <button
+            type="button"
+            className="mobile-me-menu-item"
+            aria-controls="mobile-me-settings"
+            aria-expanded={settingsOpen}
+            onClick={toggleSettings}
+          >
+            <span className="mobile-me-menu-icon is-green">
+              <SettingsIcon />
+            </span>
+            <span>设置</span>
+            <span className="mobile-me-menu-arrow" aria-hidden="true">
+              {settingsOpen ? "⌃" : "›"}
+            </span>
+          </button>
+        </section>
+
+        {settingsOpen ? (
+          <div
+            className="mobile-me-settings-modal"
+            onClick={closeSettings}
+            role="presentation"
+          >
+            <section
+              id="mobile-me-settings"
+              className="mobile-me-settings-panel"
+              aria-label="账户设置"
+              aria-modal="true"
+              role="dialog"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="mobile-me-settings-toolbar">
+                <div className="mobile-me-settings-head">
+                  <span className="mobile-me-settings-icon">
+                    <SettingsIcon />
+                  </span>
+                  <div>
+                    <h2>账户设置</h2>
+                    <p>管理当前登录账号与系统连接状态</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="mobile-me-settings-close"
+                  aria-label="关闭设置"
+                  onClick={closeSettings}
+                >
+                  <CloseIcon />
+                </button>
+              </div>
+              <div className="mobile-me-settings-meta">
+                <span>当前账号</span>
+                <strong>{currentUser.username}</strong>
+              </div>
+              <div className="mobile-me-settings-meta">
+                <span>房号状态</span>
+                <strong>{currentUser.roomNumber || "未绑定房号"}</strong>
+              </div>
+              <button
+                type="button"
+                className="mobile-me-logout"
+                onClick={handleLogout}
+                disabled={loggingOut}
+              >
+                <LogoutIcon />
+                {loggingOut ? "退出中..." : "退出登录"}
+              </button>
+            </section>
+          </div>
+        ) : null}
+      </section>
+
+      <section className="hidden gap-4 xl:grid-cols-[280px_minmax(0,1fr)] md:grid">
+        <CyberPanel title="个人中心" kicker="Profile">
+          <div className="flex items-start gap-4">
+            <ResidentAvatar name={currentUser.username} size="lg" />
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="text-[1.3rem] font-semibold text-slate-950">
+                  {currentUser.username}
+                </div>
+                <span className="app-chip">
+                  {currentUser.role === "admin" ? "管理员" : "已认证业主"}
+                </span>
+              </div>
+              <div className="mt-2 text-sm text-[var(--muted)]">
+                {currentUser.roomNumber}
+              </div>
+            </div>
+            <Button size="sm" variant="secondary">
+              编辑资料
+            </Button>
+          </div>
+          <div className="mt-4">
+            <CyberStatGrid
+              columns={4}
+              items={[
+                { label: "我的帖子", value: stats.myPosts },
+                { label: "我的收藏", value: stats.favoritePosts },
+                { label: "我的参与", value: stats.votedPolls },
+                { label: "我的工单", value: stats.myTickets },
+              ]}
+            />
+          </div>
+        </CyberPanel>
+
+        <CyberPanel title="功能中心" kicker="Function Center">
+          <div className="grid gap-4 xl:grid-cols-2">
+            <div className="grid gap-3">
+              {functionItems.map((item) => (
                 <Link
                   key={item.label}
                   href={item.href}
-                  className={`flex items-center justify-between gap-3 rounded-[1rem] px-3 py-3 transition hover:bg-[var(--surface-muted)] ${index > 0 ? "border-t border-[var(--separator)]" : ""}`}
+                  className="app-shell-link !p-3"
                 >
-                  <span className="text-sm font-semibold text-slate-900">{item.label}</span>
-                  <span className="text-sm text-[var(--muted)]">›</span>
+                  <span className="app-shell-link-icon">{item.mark}</span>
+                  <span className="app-shell-link-copy">
+                    <span className="app-shell-link-title">{item.label}</span>
+                    <span className="app-shell-link-meta">进入模块</span>
+                  </span>
                 </Link>
               ))}
             </div>
-            <div className="mt-4">
-              <Button isPending={loggingOut} onPress={handleLogout} variant="secondary">
+            <div className="grid gap-3">
+              {extraItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="app-shell-link !p-3"
+                >
+                  <span className="app-shell-link-icon">{item.mark}</span>
+                  <span className="app-shell-link-copy">
+                    <span className="app-shell-link-title">{item.label}</span>
+                    <span className="app-shell-link-meta">更多信息</span>
+                  </span>
+                </Link>
+              ))}
+              <Button
+                isPending={loggingOut}
+                onPress={handleLogout}
+                variant="secondary"
+              >
                 {loggingOut ? "退出中..." : "退出登录"}
               </Button>
             </div>
-          </section>
-        </div>
-      </div>
+          </div>
+        </CyberPanel>
+      </section>
+
+      <section className="hidden gap-4 xl:grid-cols-3 md:grid">
+        <CyberPanel title="账户统计" kicker="Summary">
+          <DataList
+            items={[
+              { label: "我的评论提醒", value: stats.comments },
+              { label: "我的收藏", value: stats.favoritePosts },
+              { label: "我的工单", value: stats.myTickets },
+            ]}
+          />
+        </CyberPanel>
+        <CyberPanel title="参与记录" kicker="Activity">
+          <DataList
+            items={[
+              { label: "投票参与", value: stats.votedPolls },
+              { label: "房号状态", value: currentUser.roomNumber },
+              {
+                label: "账号角色",
+                value: currentUser.role === "admin" ? "管理员" : "居民",
+              },
+            ]}
+          />
+        </CyberPanel>
+        <CyberPanel title="快捷跳转" kicker="Links">
+          <DataList
+            items={[
+              {
+                label: "返回首页",
+                value: (
+                  <Link href="/" className="text-[var(--primary)]">
+                    前往
+                  </Link>
+                ),
+              },
+              {
+                label: "查看邻里",
+                value: (
+                  <Link href="/neighbors" className="text-[var(--primary)]">
+                    前往
+                  </Link>
+                ),
+              },
+              {
+                label: "发布内容",
+                value: (
+                  <Link href="/publish" className="text-[var(--primary)]">
+                    前往
+                  </Link>
+                ),
+              },
+            ]}
+          />
+        </CyberPanel>
+      </section>
     </main>
+  );
+}
+
+function PostIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M7 5h10M7 9h10M7 13h6" />
+      <path d="M5 3h14v18H5z" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
+    </svg>
+  );
+}
+
+function MessageIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M5 6h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-5 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
+      <path d="M8 11h3M14 11h2" />
+    </svg>
+  );
+}
+
+function TicketIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M7 5h10v3h2v11H5V8h2V5Z" />
+      <path d="M9 5V3h6v2M8 12h8M8 16h5" />
+    </svg>
+  );
+}
+
+function PollIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M5 20V10M12 20V4M19 20v-7" />
+      <path d="M3 20h18" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+      <path d="M12 7v5l3 2" />
+    </svg>
+  );
+}
+
+function ShieldIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M12 3 20 6v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6l8-3Z" />
+      <path d="m8.5 12 2.2 2.2 4.8-5" />
+    </svg>
+  );
+}
+
+function InfoIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
+      <path d="M12 11v6M12 7h.01" />
+    </svg>
+  );
+}
+
+function SettingsIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M4 7h10" />
+      <path d="M18 7h2" />
+      <path d="M4 17h2" />
+      <path d="M10 17h10" />
+      <path d="M14 5v4" />
+      <path d="M8 15v4" />
+      <path d="M13 7a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z" />
+      <path d="M6.5 17a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z" />
+    </svg>
+  );
+}
+
+function CloseIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M6 6 18 18" />
+      <path d="M18 6 6 18" />
+    </svg>
+  );
+}
+
+function LogoutIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" />
+      <path d="M14 8l4 4-4 4" />
+      <path d="M18 12H9" />
+    </svg>
+  );
+}
+
+
+function BrainCircuitIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
+      <path d="M9 13a4.5 4.5 0 0 0 3-4" />
+      <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" />
+      <path d="M3.477 10.896a4 4 0 0 1 .585-.396" />
+      <path d="M6 18a4 4 0 0 1-1.967-.516" />
+      <path d="M12 13h4" />
+      <path d="M12 18h6a2 2 0 0 1 2 2v1" />
+      <path d="M12 8h8" />
+      <path d="M16 8V5a2 2 0 0 1 2-2" />
+      <circle cx="16" cy="13" r=".5" />
+      <circle cx="18" cy="3" r=".5" />
+      <circle cx="20" cy="21" r=".5" />
+      <circle cx="20" cy="8" r=".5" />
+    </svg>
+  );
+}
+
+function CopyIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M8 8h10v10H8z" />
+      <path d="M6 16H4V4h12v2" />
+    </svg>
+  );
+}
+
+function EditIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+    >
+      <path d="M4 20h4l11-11-4-4L4 16v4Z" />
+      <path d="m13 7 4 4" />
+    </svg>
   );
 }

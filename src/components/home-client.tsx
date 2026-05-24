@@ -5,260 +5,246 @@ import { useMemo, useState } from "react";
 import { useCommunityPosts } from "./community-provider";
 import { filterPublicPosts } from "@/lib/community-store";
 import { PostCard } from "./post-card";
-import { EmptyState, ResidentMetricGrid, ResidentMobileHero, ResidentMobilePanel, SectionHeader } from "./resident-shared";
-import { timeAgo, uniquePosts } from "@/lib/utils";
+import { EmptyState } from "./resident-shared";
+import { CategoryGlyph } from "./category-glyph";
+import { PostCategoryTabs } from "./post-category-tabs";
+import { getCommunityName } from "@/lib/community-brand";
+import { uniquePosts } from "@/lib/utils";
+import { postCategoryTabMeta, postCategoryTabs, type PostCategory } from "@/lib/types";
 
-const quickActions = [
-  { label: "发需求", href: "/publish?kind=request", icon: "需", gradient: "linear-gradient(135deg,#66a8ff,#4f63ff)" },
-  { label: "发闲置", href: "/publish?kind=secondhand", icon: "闲", gradient: "linear-gradient(135deg,#5be2c4,#35b7a0)" },
-  { label: "发帖子", href: "/publish?kind=discussion", icon: "帖", gradient: "linear-gradient(135deg,#8c7dff,#7a6df8)" },
-  { label: "报修", href: "/publish?kind=ticket", icon: "修", gradient: "linear-gradient(135deg,#ffbb72,#ff8b58)" },
-] as const;
+type FilterTab = "all" | "latest" | "following" | "featured";
 
 export function HomeClient() {
-  const { posts, currentUser, unreadNotificationCount, hydrated } = useCommunityPosts();
-  const [activeTab, setActiveTab] = useState<"latest" | "following">("latest");
-
+  const { currentUser, posts, unreadNotificationCount, hydrated } = useCommunityPosts();
   const publicPosts = useMemo(() => uniquePosts(filterPublicPosts(posts)), [posts]);
-  const announcementPost = publicPosts.find((post) => post.pinned && post.category === "discussion") ?? null;
-  const latestPosts = publicPosts.filter((post) => post.id !== announcementPost?.id).slice(0, 8);
-  const followingPosts = publicPosts.filter((post) => post.favorited).slice(0, 8);
-  const feed = activeTab === "following" ? followingPosts : latestPosts;
-  const metricValue = (value: string) => (hydrated ? value : "··");
+  const communityName = getCommunityName();
+  const buildingLabel = currentUser?.roomNumber?.split("-")[0]?.trim();
+  const [activeFilter, setActiveFilter] = useState<FilterTab>("all");
+  const [activeCategory, setActiveCategory] = useState<PostCategory | "all">("all");
+
+  const filteredPosts = useMemo(() => {
+    let result = publicPosts;
+
+    // 按分类筛选
+    if (activeCategory !== "all") {
+      result = result.filter((post) => post.category === activeCategory);
+    }
+
+    // 按筛选标签排序/筛选
+    switch (activeFilter) {
+      case "latest":
+        return [...result].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      case "featured":
+        return result.filter((post) => post.pinned || post.featured);
+      case "following":
+        return result.filter((post) => post.isMine || post.pinned);
+      default:
+        return result;
+    }
+  }, [publicPosts, activeFilter, activeCategory]);
 
   return (
-    <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
-      <div className="mobile-resident-only mobile-resident-stack">
-        <ResidentMobileHero
-          className="mobile-resident-hero-compact"
-          background="radial-gradient(circle at 16% 18%, rgba(237,170,92,0.3), transparent 25%), radial-gradient(circle at 84% 12%, rgba(96,188,255,0.24), transparent 22%), linear-gradient(160deg, #101a33 0%, #16365b 48%, #254e83 100%)"
-        >
-          <div className="flex items-center justify-between gap-3">
-            <div className="min-w-0">
-              <div className="mobile-resident-kicker text-white/72">社区首页</div>
-              <div className="mt-1 text-base font-semibold tracking-[-0.04em] text-white">才栖名居</div>
-            </div>
-
-            <Link
-              href="/messages"
-              className="relative inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white/12 text-lg text-white ring-1 ring-white/14 backdrop-blur"
-              aria-label="消息中心"
-            >
-              🔔
-              {unreadNotificationCount > 0 ? (
-                <span className="absolute right-0 top-0 min-w-4 rounded-full bg-[#ff4f71] px-1 text-center text-[0.62rem] font-bold leading-4 text-white">
-                  {Math.min(unreadNotificationCount, 9)}
-                </span>
-              ) : null}
+    <main className="page-shell">
+      {/* 移动端首页 */}
+      <section className="mobile-home md:hidden">
+        {/* 顶部标题栏 */}
+        <div className="mobile-home-header">
+          <div>
+            <h1 className="mobile-home-title">社区终端</h1>
+            <p className="mobile-home-subtitle">{communityName}{buildingLabel ? ` · ${buildingLabel}栋` : ""} <span className="mobile-home-status">SYS:ONLINE</span></p>
+          </div>
+          <div className="mobile-home-header-actions">
+            <Link href="/posts" className="mobile-home-header-btn" aria-label="搜索">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+            </Link>
+            <Link href="/messages" className="mobile-home-header-btn" aria-label="通知">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+              </svg>
+              {unreadNotificationCount > 0 && (
+                <span className="mobile-home-badge">{unreadNotificationCount}</span>
+              )}
             </Link>
           </div>
+        </div>
 
-          <h1 className="mobile-resident-title mt-3 max-w-[8ch]">社区动态</h1>
+        {/* 分类标签 */}
+        <PostCategoryTabs
+          ariaLabel="首页帖子分类"
+          allowDeselect
+          className="mobile-category-grid"
+          onChange={(category) => setActiveCategory(category ?? "all")}
+          value={activeCategory === "all" ? null : activeCategory}
+        />
 
-          <ResidentMetricGrid
-            className="mt-3"
-            items={[
-              { label: "公开动态", value: metricValue(String(publicPosts.length).padStart(2, "0")) },
-              { label: "公告", value: hydrated ? (announcementPost ? "01" : "00") : "··" },
-            ]}
-            tone="inverse"
-          />
-
-          <div className="mt-3 line-clamp-1 rounded-[1rem] bg-white/8 px-3 py-2 ring-1 ring-white/10 backdrop-blur-sm text-xs font-semibold text-white">
-            {announcementPost ? announcementPost.title : currentUser ? `${currentUser.username} · ${currentUser.roomNumber}` : "发需求 / 发闲置 / 报修"}
+        {/* 筛选标签 */}
+        <div className="mobile-filter-row">
+          <div className="mobile-filter-tabs">
+            {[
+              { tab: "all" as FilterTab, label: "全部" },
+              { tab: "latest" as FilterTab, label: "最新" },
+              { tab: "following" as FilterTab, label: "关注" },
+              { tab: "featured" as FilterTab, label: "精华" },
+            ].map((item) => (
+              <button
+                key={item.tab}
+                type="button"
+                className={`mobile-filter-tab ${activeFilter === item.tab ? "is-active" : ""}`}
+                onClick={() => setActiveFilter(item.tab)}
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
-        </ResidentMobileHero>
+          <button type="button" className="mobile-filter-more">
+            <span>筛选</span>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+            </svg>
+          </button>
+        </div>
 
-        <ResidentMobilePanel className="mobile-resident-panel-compact" delay="120ms">
-          <div className="flex items-center justify-between gap-3">
-            <div className="mobile-resident-kicker text-[var(--primary)]">入口</div>
-            <h2 className="sr-only">快捷入口</h2>
-          </div>
+        {/* 帖子列表 */}
+        <div className="mobile-post-list">
+          {!hydrated ? (
+            <div className="mobile-post-loading">加载中...</div>
+          ) : filteredPosts.length > 0 ? (
+            filteredPosts.slice(0, 10).map((post) => (
+              <Link
+                key={post.id}
+                href={`/posts/${post.id}`}
+                className="mobile-post-card"
+              >
+                <div className="mobile-post-card-header">
+                  <div className="mobile-post-card-author">
+                    <span className="mobile-post-card-avatar">
+                      {Array.from(post.authorName)[0] ?? "邻"}
+                    </span>
+                    <div>
+                      <span className="mobile-post-card-name">{post.authorName}</span>
+                      <span className="mobile-post-card-location">2栋-1502</span>
+                    </div>
+                  </div>
+                  <span className={`mobile-post-card-badge mobile-post-card-badge--${post.category}`}>
+                    {postCategoryTabMeta[post.category].title}
+                  </span>
+                </div>
 
-          <div className="mt-2 grid grid-cols-4 gap-1.5">
-            {quickActions.map((item) => (
-              <Link key={item.label} href={item.href} className="app-icon-tile rounded-[0.9rem] px-0.5 py-0.5">
-                <span className="app-icon-bubble" style={{ background: item.gradient }}>
-                  <span className="text-sm font-bold">{item.icon}</span>
-                </span>
-                <span className="text-[0.66rem] font-semibold leading-4 text-slate-800">{item.label}</span>
+                <h3 className="mobile-post-card-title">{post.title}</h3>
+                <p className="mobile-post-card-content">{post.content}</p>
+
+                {post.tags.length > 0 && (
+                  <div className="mobile-post-card-tags">
+                    {post.tags.slice(0, 3).map((tag) => (
+                      <span key={tag} className="mobile-post-tag">#{tag}</span>
+                    ))}
+                  </div>
+                )}
+
+                {post.images.length > 0 && (
+                  <div className="mobile-post-card-images">
+                    {post.images.slice(0, 3).map((image, index) => (
+                      <div key={image.id} className="mobile-post-card-image">
+                        <img src={image.url} alt={`${post.title} ${index + 1}`} />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="mobile-post-card-stats">
+                  <span>👍 {post.favoriteCount}</span>
+                  <span>💬 {post.commentCount}</span>
+                  <span>⭐ {post.favoriteCount}</span>
+                </div>
+              </Link>
+            ))
+          ) : (
+            <EmptyState title="还没有帖子" actionHref="/publish" actionLabel="去发布" />
+          )}
+        </div>
+      </section>
+
+      {/* 桌面端布局 */}
+      <section className="hidden gap-4 md:grid xl:grid-cols-[minmax(0,1.45fr)_360px]">
+        <div className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            {postCategoryTabs.map((item) => (
+              <Link
+                key={item.category}
+                href={`/publish?kind=${item.category}`}
+                className="app-card p-4 transition hover:border-[rgba(57,245,143,0.28)]"
+              >
+                <div className="flex items-start gap-3">
+                  <span className={`mobile-category-icon tone-${item.tone}`}>
+                    <CategoryGlyph category={item.category} />
+                  </span>
+                  <div>
+                    <div className="text-sm font-semibold text-slate-950">{item.title}</div>
+                    <div className="text-[0.72rem] text-[var(--muted)]">{item.description}</div>
+                  </div>
+                </div>
               </Link>
             ))}
           </div>
-        </ResidentMobilePanel>
 
-        <ResidentMobilePanel className="mobile-resident-panel-compact" delay="200ms">
-          <div className="flex items-start justify-between gap-3">
-            <div className="min-w-0">
-              <div className="mobile-resident-kicker text-[#2d8e94]">社区</div>
-              <h2 className="mobile-resident-panel-title mt-1">公告</h2>
-            </div>
-            <Link href="/neighbors" className="shrink-0 rounded-full bg-[rgba(45,142,148,0.09)] px-3 py-1 text-[0.72rem] font-semibold text-[#1d6f73]">
-              更多
-            </Link>
-          </div>
-
-          {!hydrated ? (
-            <EmptyState
-              title="公告加载中"
-              actionHref="/neighbors"
-              actionLabel="查看邻里"
-            />
-          ) : announcementPost ? (
-            <div className="mt-3 rounded-[1rem] bg-white/82 px-3 py-3 shadow-[0_10px_20px_rgba(58,75,124,0.05)]">
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0 text-sm font-semibold text-slate-900">{announcementPost.title}</div>
-                <span className="shrink-0 text-xs text-[var(--muted)]">{timeAgo(announcementPost.createdAt)}</span>
-              </div>
-              <div className="mt-1.5 text-xs leading-5 text-[var(--muted)] line-clamp-2">{announcementPost.content}</div>
-            </div>
-          ) : (
-            <EmptyState
-              title="当前没有置顶公告"
-              actionHref="/neighbors"
-              actionLabel="查看邻里"
-            />
-          )}
-        </ResidentMobilePanel>
-
-        <ResidentMobilePanel className="mobile-resident-panel-feed" delay="280ms">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                className={`pb-1.5 text-[0.95rem] font-semibold ${activeTab === "latest" ? "border-b-2 border-[var(--primary)] text-[var(--primary)]" : "text-[var(--muted)]"}`}
-                onClick={() => setActiveTab("latest")}
-              >
-                最新动态
-              </button>
-              <button
-                type="button"
-                className={`pb-1.5 text-[0.95rem] font-semibold ${activeTab === "following" ? "border-b-2 border-[var(--primary)] text-[var(--primary)]" : "text-[var(--muted)]"}`}
-                onClick={() => setActiveTab("following")}
-              >
-                关注
-              </button>
-            </div>
-            <Link href="/neighbors" className="text-sm font-semibold text-[var(--primary)]">
-              全部
-            </Link>
-          </div>
-
-          <div className="mt-3 grid gap-2">
-            {!hydrated ? (
-              <EmptyState
-                title="动态加载中"
-                actionHref="/neighbors"
-                actionLabel="查看邻里"
-              />
-            ) : feed.length > 0 ? (
-              feed.map((post) => <PostCard key={post.id} post={post} compact={activeTab === "latest"} />)
+          <div className="grid gap-3">
+            {filteredPosts.length > 0 ? (
+              filteredPosts.slice(0, 8).map((post) => (
+                <PostCard key={post.id} post={post} />
+              ))
             ) : (
-              <EmptyState
-                title={activeTab === "following" ? "还没有关注内容" : "还没有社区动态"}
-                actionHref="/publish"
-                actionLabel="去发布"
-              />
+              <EmptyState title="还没有帖子" actionHref="/publish" actionLabel="去发布" />
             )}
           </div>
-        </ResidentMobilePanel>
-      </div>
-
-      <div className="hidden md:block">
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.88fr)] xl:items-start">
-          <section className={`app-card px-4 py-4 md:px-4 md:py-4 ${announcementPost ? "" : "xl:col-span-2"}`}>
-            <SectionHeader title="快捷入口" />
-            <div className="mt-4 grid grid-cols-5 gap-1.5 sm:gap-2.5">
-              {quickActions.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="app-icon-tile rounded-[1rem] px-0.5 py-1 md:gap-2 md:rounded-[1rem] md:px-2 md:py-1.5"
-                >
-                  <span className="app-icon-bubble h-12 w-12 rounded-[1rem] md:h-10 md:w-10 md:rounded-[0.9rem]" style={{ background: item.gradient }}>
-                    <span className="text-sm font-bold">{item.icon}</span>
-                  </span>
-                  <span className="text-[0.66rem] font-semibold leading-4 text-slate-800 md:text-[0.68rem]">{item.label}</span>
-                </Link>
-              ))}
-            </div>
-          </section>
-
-          {!hydrated ? (
-            <section className="app-card px-4 py-4 md:px-5 md:py-5">
-              <SectionHeader title="公告" />
-              <div className="mt-4">
-                <EmptyState
-                  title="公告加载中"
-                  actionHref="/neighbors"
-                  actionLabel="查看邻里"
-                />
-              </div>
-            </section>
-          ) : announcementPost ? (
-            <section className="app-card px-4 py-4 md:px-5 md:py-5">
-              <SectionHeader title="公告" href="/neighbors" actionLabel="更多" />
-              <div className="mt-4 rounded-[1.2rem] bg-[var(--surface-muted)] px-4 py-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="min-w-0 text-sm font-semibold text-slate-900">
-                    {announcementPost.title}
-                  </div>
-                  <span className="shrink-0 text-xs text-[var(--muted)]">
-                    {timeAgo(announcementPost.createdAt)}
-                  </span>
-                </div>
-                <div className="mt-2 text-sm leading-6 text-[var(--muted)] line-clamp-4">
-                  {announcementPost.content}
-                </div>
-              </div>
-            </section>
-          ) : null}
         </div>
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between gap-3 px-1 md:px-0">
-            <div className="flex items-center gap-4">
-              <button
-                type="button"
-                className={`pb-2 text-base font-semibold ${activeTab === "latest" ? "border-b-2 border-[var(--primary)] text-[var(--primary)]" : "text-[var(--muted)]"}`}
-                onClick={() => setActiveTab("latest")}
-              >
-                最新动态
-              </button>
-              <button
-                type="button"
-                className={`pb-2 text-base font-semibold ${activeTab === "following" ? "border-b-2 border-[var(--primary)] text-[var(--primary)]" : "text-[var(--muted)]"}`}
-                onClick={() => setActiveTab("following")}
-              >
-                关注
-              </button>
+        <div className="space-y-4">
+          <div className="app-card p-4">
+            <div className="section-kicker">Community Stats</div>
+            <h2 className="mt-2 text-[1.1rem] font-semibold text-slate-950">社区概况</h2>
+            <div className="mt-4 grid gap-2 text-sm text-[var(--muted)]">
+              <div>住户状态：{currentUser ? "已登录" : "访客模式"}</div>
+              <div>帖子总数：{hydrated ? publicPosts.length : "--"}</div>
+              <div>未读消息：{unreadNotificationCount}</div>
             </div>
-            <Link href="/neighbors" className="text-sm font-semibold text-[var(--primary)]">
-              全部
-            </Link>
           </div>
 
-          {!hydrated ? (
-            <EmptyState
-              title="动态加载中"
-              actionHref="/neighbors"
-              actionLabel="查看邻里"
-            />
-          ) : feed.length > 0 ? (
-            <div className="grid gap-3">
-              {feed.map((post) => (
-                <PostCard key={post.id} post={post} compact={activeTab === "latest"} />
+          <div className="app-card p-4">
+            <div className="text-sm font-semibold text-slate-900">热门标签</div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {publicPosts.slice(0, 5).flatMap((item) => item.tags).slice(0, 6).map((tag, index) => (
+                <span key={`${tag}-${index}`} className="rounded-full border border-[rgba(57,245,143,0.12)] px-2.5 py-1 text-[0.72rem] text-[var(--primary)]">
+                  #{tag}
+                </span>
               ))}
             </div>
-          ) : (
-            <EmptyState
-              title={activeTab === "following" ? "还没有关注内容" : "还没有社区动态"}
-              actionHref="/publish"
-              actionLabel="去发布"
-            />
-          )}
-        </section>
-      </div>
+          </div>
+
+          <div className="app-card p-4">
+            <div className="text-sm font-semibold text-slate-900">快捷操作</div>
+            <div className="mt-3 grid gap-2">
+              <Link href="/publish" className="app-shell-link !p-3">
+                <span className="app-shell-link-icon">+</span>
+                <span className="app-shell-link-copy">
+                  <span className="app-shell-link-title">发布内容</span>
+                  <span className="app-shell-link-meta">分享你的想法</span>
+                </span>
+              </Link>
+              <Link href="/neighbors" className="app-shell-link !p-3">
+                <span className="app-shell-link-icon">👥</span>
+                <span className="app-shell-link-copy">
+                  <span className="app-shell-link-title">投票</span>
+                  <span className="app-shell-link-meta">参与社区投票</span>
+                </span>
+              </Link>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

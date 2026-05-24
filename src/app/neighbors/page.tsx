@@ -1,5 +1,5 @@
-import { NeighborsClient } from "@/components/neighbors-client";
+import { PollsClient } from "@/components/polls-client";
 
 export default function NeighborsPage() {
-  return <NeighborsClient />;
+  return <PollsClient />;
 }

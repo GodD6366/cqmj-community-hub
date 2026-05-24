@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { Chip } from "@heroui/react";
-import { formatDateTime, getPostBadge, timeAgo } from "../lib/utils";
+import { getPostBadge, getVisibilityLabel, timeAgo } from "../lib/utils";
 import type { CommunityPost } from "../lib/types";
 import { ResidentAvatar } from "./resident-shared";
 
@@ -9,219 +8,83 @@ interface PostCardProps {
   compact?: boolean;
 }
 
-export function PostCard({ post, compact = false }: PostCardProps) {
-  const mobileVisibleImages = post.images.slice(0, compact ? 0 : 3);
-  const mobilePreviewImage = compact ? post.images[0] ?? null : null;
-  const mobileVisibleTags = post.tags.slice(0, compact ? 2 : 4);
-  const desktopPreviewImage = post.images[0] ?? null;
-  const desktopImageCount = Math.max(post.images.length - 1, 0);
-  const desktopVisibleTags = post.tags.slice(0, compact ? 2 : 3);
-
-  if (compact) {
-    return (
-      <Link href={`/posts/${post.id}`} className="app-card app-card-dense block p-3 transition hover:-translate-y-[1px]">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <ResidentAvatar name={post.authorName} size="sm" />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-slate-900">{post.authorName}</div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[0.7rem] text-[var(--muted)]">
-                <span>{timeAgo(post.createdAt)}</span>
-              </div>
-            </div>
-          </div>
-
-          <Chip color="accent" size="sm" variant="soft">
-            {getPostBadge(post.category)}
-          </Chip>
-        </div>
-
-        <div className={mobilePreviewImage ? "mt-2 flex items-start gap-2.5" : "mt-2"}>
-          <div className="min-w-0 flex-1">
-            <div className="text-[0.95rem] font-semibold tracking-tight text-slate-950 line-clamp-1">{post.title}</div>
-            <p className="mt-1 line-clamp-2 whitespace-pre-wrap text-[0.82rem] leading-5 text-slate-600">
-              {post.content}
-            </p>
-          </div>
-          {mobilePreviewImage ? (
-            <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-[0.85rem] bg-[var(--surface-muted)]">
-              {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
-              <img alt={post.title} className="h-full w-full object-cover" src={mobilePreviewImage.url} />
-            </div>
-          ) : null}
-        </div>
-
-        {mobileVisibleTags.length > 0 ? (
-          <div className="mt-2 flex flex-wrap gap-1.5">
-            {mobileVisibleTags.map((tag) => (
-              <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--primary)]">
-                #{tag}
-              </span>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="mt-2.5 flex items-center justify-between gap-3 text-[0.72rem] text-[var(--muted)]">
-          <div className="flex items-center gap-3">
-            <span>评论 {post.commentCount}</span>
-            <span>收藏 {post.favoriteCount}</span>
-          </div>
-          <span>{post.visibility === "community" ? "全小区可见" : post.visibility === "building" ? "楼栋可见" : "私密可见"}</span>
-        </div>
-      </Link>
-    );
+function getCategoryTone(category: CommunityPost["category"]) {
+  switch (category) {
+    case "request":
+      return "#39f58f";
+    case "secondhand":
+      return "#48c9ff";
+    case "discussion":
+      return "#f6c85f";
+    case "play":
+      return "#ffb74d";
   }
+}
+
+export function PostCard({ post, compact = false }: PostCardProps) {
+  const images = post.images.slice(0, compact ? 1 : 3);
+  const tags = post.tags.slice(0, compact ? 2 : 3);
+  const tone = getCategoryTone(post.category);
 
   return (
-    <>
-      <Link href={`/posts/${post.id}`} className="app-card app-card-dense block p-3 transition hover:-translate-y-[1px] md:!hidden">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <ResidentAvatar name={post.authorName} size="sm" />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-semibold text-slate-900">{post.authorName}</div>
-              <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[0.7rem] text-[var(--muted)]">
-                <span>{timeAgo(post.createdAt)}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap justify-end gap-1.5">
-            <Chip color="accent" size="sm" variant="soft">
-              {getPostBadge(post.category)}
-            </Chip>
-            {post.pinned ? (
-              <Chip color="danger" size="sm" variant="soft">
-                置顶
-              </Chip>
-            ) : null}
-            {post.featured ? (
-              <Chip color="warning" size="sm" variant="soft">
-                精选
-              </Chip>
-            ) : null}
-          </div>
-        </div>
-
-        <div className={compact && mobilePreviewImage ? "mt-2 flex items-start gap-2.5" : "mt-2"}>
-          <div className="min-w-0 flex-1">
-            <div className={`font-semibold tracking-tight text-slate-950 line-clamp-1 ${compact ? "text-[0.95rem]" : "text-base"}`}>{post.title}</div>
-            <p className={`mt-1 whitespace-pre-wrap text-slate-600 ${compact ? "line-clamp-2 text-[0.82rem] leading-5" : "line-clamp-2 text-sm leading-6"}`}>
-              {post.content}
-            </p>
-          </div>
-          {mobilePreviewImage ? (
-            <div className="h-[4.5rem] w-[4.5rem] shrink-0 overflow-hidden rounded-[0.85rem] bg-[var(--surface-muted)]">
-              {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
-              <img alt={post.title} className="h-full w-full object-cover" src={mobilePreviewImage.url} />
-            </div>
-          ) : null}
-        </div>
-
-        {mobileVisibleImages.length > 0 ? (
-          <div className={`mt-2 grid gap-1.5 ${mobileVisibleImages.length === 1 ? "grid-cols-1" : "grid-cols-3"}`}>
-            {mobileVisibleImages.map((image) => (
-              <div
-                key={image.id}
-                className={`overflow-hidden rounded-[0.95rem] bg-[var(--surface-muted)] ${mobileVisibleImages.length === 1 ? "aspect-[16/9]" : "aspect-square"}`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
-                <img alt={post.title} className="h-full w-full object-cover" src={image.url} />
-              </div>
-            ))}
-          </div>
-        ) : null}
-
-        <div className="mt-2 flex flex-wrap gap-1.5">
-          {mobileVisibleTags.map((tag) => (
-            <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-[0.68rem] font-semibold text-[var(--primary)]">
-              #{tag}
-            </span>
-          ))}
-        </div>
-
-        <div className="mt-2.5 flex items-center justify-between gap-3 text-[0.72rem] text-[var(--muted)]">
-          <div className="flex items-center gap-3">
-            <span>评论 {post.commentCount}</span>
-            <span>收藏 {post.favoriteCount}</span>
-          </div>
-          <span>{post.visibility === "community" ? "全小区可见" : post.visibility === "building" ? "楼栋可见" : "私密可见"}</span>
-        </div>
-      </Link>
-
-      <Link href={`/posts/${post.id}`} className="app-card !hidden transition hover:-translate-y-[1px] md:!block md:px-4 md:py-3">
-        <div className="flex items-start gap-4">
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <ResidentAvatar name={post.authorName} size="sm" />
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-slate-900">{post.authorName}</div>
-                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[0.72rem] text-[var(--muted)]">
-                    <span>{timeAgo(post.createdAt)}</span>
-                    <span>{formatDateTime(post.createdAt)}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex max-w-[38%] flex-wrap justify-end gap-1.5">
-                <Chip color="accent" size="sm" variant="soft">
-                  {getPostBadge(post.category)}
-                </Chip>
-                {post.pinned ? (
-                  <Chip color="danger" size="sm" variant="soft">
-                    置顶
-                  </Chip>
-                ) : null}
-                {post.featured ? (
-                  <Chip color="warning" size="sm" variant="soft">
-                    精选
-                  </Chip>
-                ) : null}
-              </div>
-            </div>
-
-            <div className="mt-3">
-              <div className={`font-semibold tracking-tight text-slate-950 ${compact ? "text-[1rem]" : "text-[1rem]"}`}>{post.title}</div>
-              <p className={`mt-1.5 whitespace-pre-wrap text-[0.9rem] leading-6 text-slate-600 ${compact ? "line-clamp-2" : "line-clamp-2"}`}>
-                {post.content}
-              </p>
-            </div>
-
-            {desktopVisibleTags.length > 0 ? (
-              <div className="mt-2 flex flex-wrap gap-2">
-                {desktopVisibleTags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-2.5 py-1 text-[0.7rem] font-semibold text-[var(--primary)]">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-
-            <div className="mt-3 flex items-center justify-between gap-3 text-[0.8rem] text-[var(--muted)]">
-              <div className="flex items-center gap-4">
-                <span>评论 {post.commentCount}</span>
-                <span>收藏 {post.favoriteCount}</span>
-              </div>
-              <span className="truncate text-right">
-                {post.visibility === "community" ? "全小区可见" : post.visibility === "building" ? "楼栋可见" : "私密可见"}
+    <Link
+      href={`/posts/${post.id}`}
+      className="group block rounded-[1.45rem] border border-[rgba(76,255,177,0.12)] bg-[linear-gradient(180deg,rgba(9,18,18,0.95),rgba(7,12,12,0.98))] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.25)] transition duration-150 hover:border-[rgba(76,255,177,0.26)]"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <ResidentAvatar name={post.authorName} size="sm" />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="truncate text-sm font-semibold text-slate-950">{post.authorName}</span>
+              <span className="rounded-full border px-2 py-0.5 text-[0.65rem] font-semibold" style={{ borderColor: `${tone}44`, color: tone, background: `${tone}12` }}>
+                {getPostBadge(post.category)}
               </span>
             </div>
+            <div className="mt-1 text-[0.72rem] text-[var(--muted)]">{timeAgo(post.createdAt)}</div>
           </div>
-
-          {desktopPreviewImage ? (
-            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[1rem] bg-[var(--surface-muted)]">
-              {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
-              <img alt={post.title} className="h-full w-full object-cover" src={desktopPreviewImage.url} />
-              {desktopImageCount > 0 ? (
-                <span className="absolute right-1.5 top-1.5 rounded-full bg-slate-950/70 px-1.5 py-0.5 text-[0.64rem] font-semibold text-white">
-                  +{desktopImageCount}
-                </span>
-              ) : null}
-            </div>
-          ) : null}
         </div>
-      </Link>
-    </>
+        <span className="shrink-0 rounded-full border border-[rgba(76,255,177,0.12)] px-2.5 py-1 text-[0.65rem] text-[var(--muted)]">{getVisibilityLabel(post.visibility)}</span>
+      </div>
+
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        {post.pinned ? <span className="app-chip">置顶</span> : null}
+        {post.featured ? <span className="app-chip app-chip-muted">精选</span> : null}
+      </div>
+
+      <h3 className={`mt-3 font-semibold tracking-[-0.04em] text-slate-950 ${compact ? "text-[1rem] line-clamp-2" : "text-[1.08rem] line-clamp-2"}`}>
+        {post.title}
+      </h3>
+      <p className={`mt-2 whitespace-pre-wrap text-[var(--muted)] ${compact ? "line-clamp-3 text-[0.84rem] leading-6" : "line-clamp-3 text-[0.9rem] leading-6"}`}>
+        {post.content}
+      </p>
+
+      {images.length > 0 ? (
+        <div className={`mt-3 grid gap-2 ${images.length === 1 ? "grid-cols-1" : "grid-cols-3"}`}>
+          {images.map((image, index) => (
+            <div key={image.id} className={`overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[rgba(10,18,18,0.88)] ${images.length === 1 ? "aspect-[16/10]" : "aspect-square"}`}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img alt={`${post.title} ${index + 1}`} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" src={image.url} />
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {tags.length > 0 ? (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <span key={tag} className="rounded-full border border-[rgba(57,245,143,0.12)] bg-[rgba(57,245,143,0.05)] px-2.5 py-1 text-[0.68rem] font-semibold text-[var(--primary)]">#{tag}</span>
+          ))}
+        </div>
+      ) : null}
+
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-[rgba(76,255,177,0.08)] pt-3 text-[0.76rem] text-[var(--muted)]">
+        <div className="flex items-center gap-4">
+          <span>☆ 收藏 {post.favoriteCount}</span>
+          <span>💬 评论 {post.commentCount}</span>
+        </div>
+        <span>{compact ? "查看详情" : "进入帖子"}</span>
+      </div>
+    </Link>
   );
 }

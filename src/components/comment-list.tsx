@@ -1,6 +1,6 @@
-import { Avatar, Card, Chip } from "@heroui/react";
 import { formatDateTime } from "../lib/utils";
 import type { CommunityComment } from "../lib/types";
+import { EmptyState, ResidentAvatar } from "./resident-shared";
 
 interface CommentListProps {
   comments: CommunityComment[];
@@ -8,34 +8,25 @@ interface CommentListProps {
 
 export function CommentList({ comments }: CommentListProps) {
   if (comments.length === 0) {
-    return (
-      <div className="paper-panel rounded-[1.3rem] border border-dashed p-6 text-sm leading-6 text-slate-500">
-        还没有评论，先发第一条吧。
-      </div>
-    );
+    return <EmptyState title="还没有评论" description="先发第一条回复，帮楼主把讨论带起来。" />;
   }
 
   return (
-    <div className="space-y-2">
-      {comments.map((comment) => (
-        <Card key={comment.id} className="glass-card p-3.5 sm:p-4">
-          <Card.Header className="flex flex-row items-center justify-between gap-3 p-0">
-            <div className="flex min-w-0 items-center gap-3">
-              <Avatar className="bg-[var(--primary-soft)] text-[var(--primary)]" size="sm">
-                <Avatar.Fallback>{comment.authorName.slice(0, 1).toUpperCase()}</Avatar.Fallback>
-              </Avatar>
-              <div className="min-w-0">
-                <div className="truncate text-sm font-semibold text-slate-900">{comment.authorName}</div>
+    <div className="space-y-3">
+      {comments.map((comment, index) => (
+        <article key={comment.id} className="terminal-comment-item">
+          <div className="flex items-start gap-3">
+            <ResidentAvatar name={comment.authorName} size="sm" />
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-3">
+                <div className="truncate text-sm font-semibold text-slate-950">{comment.authorName}</div>
+                <div className="text-xs text-[var(--muted)]">#{String(index + 1).padStart(2, "0")}</div>
               </div>
+              <div className="mt-1 text-xs text-[var(--muted)]">{formatDateTime(comment.createdAt)}</div>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[var(--foreground)]">{comment.content}</p>
             </div>
-            <Chip size="sm" variant="soft">
-              {formatDateTime(comment.createdAt)}
-            </Chip>
-          </Card.Header>
-          <Card.Content className="p-0 pt-3">
-            <p className="whitespace-pre-wrap text-sm leading-6 text-slate-700">{comment.content}</p>
-          </Card.Content>
-        </Card>
+          </div>
+        </article>
       ))}
     </div>
   );

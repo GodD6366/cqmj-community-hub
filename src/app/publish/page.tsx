@@ -11,5 +11,5 @@ function parseSingle(value: string | string[] | undefined) {
 
 export default async function PublishPage({ searchParams }: PublishPageProps) {
   const params = (await searchParams) ?? {};
-  return <PublishClient initialKind={parseSingle(params.kind)} initialTicketCategory={parseSingle(params.category)} />;
+  return <PublishClient initialKind={parseSingle(params.kind)} />;
 }

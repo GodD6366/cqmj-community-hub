@@ -1,58 +1,63 @@
 "use client";
 
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCommunityPosts } from "./community-provider";
 import { SystemLogo } from "./system-logo";
+import { getCommunityName } from "@/lib/community-brand";
 
-const navigationItems = [
+const communityName = getCommunityName();
+
+const desktopNavigationItems = [
+  { key: "home", href: "/", label: "社区首页", meta: "Feed", icon: HomeIcon },
+  { key: "neighbors", href: "/neighbors", label: "投票", meta: "Voting", icon: NeighborsIcon },
+  { key: "services", href: "/services", label: "工单服务", meta: "Service Desk", icon: ServicesIcon },
+  { key: "messages", href: "/messages", label: "消息中心", meta: "Inbox", icon: MessagesIcon },
+  { key: "me", href: "/me", label: "个人中心", meta: "Profile", icon: MeIcon },
+] as const;
+
+const mobileNavigationItems = [
   { key: "home", href: "/", label: "首页", icon: HomeIcon },
-  { key: "neighbors", href: "/neighbors", label: "邻里", icon: NeighborsIcon },
-  { key: "services", href: "/services", label: "服务", icon: ServicesIcon },
+  { key: "neighbors", href: "/neighbors", label: "投票", icon: NeighborsIcon },
+  { key: "publish", href: "/publish", label: "发布", icon: PublishIcon, isPublish: true },
   { key: "messages", href: "/messages", label: "消息", icon: MessagesIcon },
   { key: "me", href: "/me", label: "我的", icon: MeIcon },
 ] as const;
 
 function isResidentExperience(pathname: string) {
-  if (pathname.startsWith("/admin") || pathname.startsWith("/login")) {
-    return false;
-  }
-
-  if (pathname === "/mcp") {
-    return false;
-  }
-
+  if (pathname.startsWith("/admin") || pathname.startsWith("/login")) return false;
+  if (pathname === "/mcp") return false;
   return true;
 }
 
 function getActiveKey(pathname: string) {
-  if (pathname === "/") return "home";
-  if (pathname.startsWith("/neighbors") || pathname === "/posts") return "neighbors";
+  if (pathname === "/" || pathname.startsWith("/posts") || pathname.startsWith("/publish")) return "home";
+  if (pathname.startsWith("/neighbors") || pathname.startsWith("/polls")) return "neighbors";
   if (pathname.startsWith("/services")) return "services";
   if (pathname.startsWith("/messages")) return "messages";
-  if (pathname.startsWith("/mcp/connect")) return "me";
-  if (pathname.startsWith("/me") || pathname.startsWith("/about") || pathname.startsWith("/rules")) return "me";
-  if (pathname.startsWith("/posts/") || pathname.startsWith("/publish")) return "neighbors";
+  if (pathname.startsWith("/me") || pathname.startsWith("/about") || pathname.startsWith("/rules") || pathname.startsWith("/mcp/connect") || pathname.startsWith("/login")) return "me";
   return null;
 }
 
-function shouldShowComposer(pathname: string) {
-  if (pathname.startsWith("/publish")) return false;
-  if (pathname.startsWith("/messages")) return false;
-  if (pathname.startsWith("/me")) return false;
-  if (pathname.startsWith("/about")) return false;
-  if (pathname.startsWith("/rules")) return false;
-  if (pathname.startsWith("/mcp/connect")) return false;
-  return true;
+function getPageMeta(pathname: string) {
+  if (pathname === "/") return { title: "社区终端", description: "社区动态与邻里互助" };
+  if (pathname.startsWith("/posts")) return { title: "社区动态", description: "需求、闲置、交流、约玩" };
+  if (pathname.startsWith("/neighbors")) return { title: "投票", description: "社区投票与意见征集" };
+  if (pathname.startsWith("/polls")) return { title: "投票详情", description: "社区治理与意见征集" };
+  if (pathname.startsWith("/services")) return { title: "工单服务", description: "物业报修与处理进度" };
+  if (pathname.startsWith("/messages")) return { title: "消息中心", description: "评论、收藏、投票与系统提醒" };
+  if (pathname.startsWith("/publish")) return { title: "发布内容", description: "发帖、报修、投票、活动" };
+  if (pathname.startsWith("/me")) return { title: "个人中心", description: "我的互动、工单与账户信息" };
+  return { title: communityName, description: "让社区投票更直接" };
 }
 
-export function AppFrame({ children }: { children: React.ReactNode }) {
+export function AppFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { currentUser, unreadNotificationCount } = useCommunityPosts();
   const residentExperience = isResidentExperience(pathname);
   const activeKey = getActiveKey(pathname);
-  const showComposer = residentExperience && shouldShowComposer(pathname);
-  const hideMessageBadge = pathname.startsWith("/messages");
+  const pageMeta = getPageMeta(pathname);
 
   if (!residentExperience) {
     return <div className="min-h-screen">{children}</div>;
@@ -60,87 +65,123 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-stage">
-      <header className="app-topbar hidden md:block">
-        <div className="app-topbar-shell">
-          <div className="app-topbar-brand">
-            <Link href="/" className="app-brand-link" aria-label="返回邻里圈首页">
-              <SystemLogo className="gap-3" markClassName="h-10 w-10 md:h-11 md:w-11" showLabel={false} />
-              <div className="min-w-0">
-                <div className="text-[0.68rem] font-semibold uppercase tracking-[0.22em] text-[rgba(19,33,61,0.46)]">Residents</div>
-                <div className="mt-1 truncate text-base font-semibold tracking-[-0.04em] text-slate-950">邻里圈居民端</div>
+      <div className="app-shell">
+        <aside className="app-shell-sidebar">
+          <div className="app-shell-sidebar-inner">
+            <div className="app-shell-brand">
+              <SystemLogo className="items-start gap-0" markClassName="h-12 w-12" showLabel={false} />
+              <div className="app-shell-brand-title">
+                社区终端 · <span className="app-shell-brand-highlight">Community Terminal</span>
               </div>
-            </Link>
-          </div>
+              <div className="app-shell-brand-subtitle">居民互助 · 公开透明 · Mobile-first</div>
+              <div className="app-shell-brand-kicker" style={{ marginTop: "0.85rem" }}>
+                动态 · 投票 · 消息 · 我的
+              </div>
+            </div>
 
-          <nav className="app-topnav" aria-label="桌面主导航">
-            {navigationItems.map((item) => {
-              const isActive = activeKey === item.key;
-              const showBadge = item.key === "messages" && unreadNotificationCount > 0 && !hideMessageBadge;
+            <section className="cyber-terminal">
+              <div className="cyber-terminal-title">Community_Terminal v1.0.0</div>
+              <pre>{`> CONNECTING TO NEIGHBORHOOD... OK\n> AUTH SESSION............... ${currentUser ? "RESIDENT" : "GUEST"}\n> CURRENT ROOM............... ${currentUser?.roomNumber ?? "UNBOUND"}\n> UNREAD MESSAGES............ ${unreadNotificationCount}\n\n{ TERMINAL ONLINE }`}</pre>
+            </section>
 
-              return (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  className={`app-topnav-link ${isActive ? "is-active" : ""}`}
-                  aria-current={isActive ? "page" : undefined}
-                >
-                  <span>{item.label}</span>
-                  {showBadge ? <span className="app-topnav-badge">{Math.min(unreadNotificationCount, 99)}</span> : null}
-                </Link>
-              );
-            })}
-          </nav>
+            <nav className="app-shell-nav" aria-label="桌面主导航">
+              {desktopNavigationItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = activeKey === item.key || (item.key === "services" && pathname.startsWith("/services"));
+                const showBadge = item.key === "messages" && unreadNotificationCount > 0;
+                return (
+                  <Link
+                    key={item.key}
+                    href={item.href}
+                    className={`app-shell-link ${isActive ? "is-active" : ""}`}
+                    aria-current={isActive ? "page" : undefined}
+                  >
+                    <span className="app-shell-link-icon"><Icon /></span>
+                    <span className="app-shell-link-copy">
+                      <span className="app-shell-link-title">{item.label}</span>
+                      <span className="app-shell-link-meta">{item.meta}</span>
+                    </span>
+                    {showBadge ? <span className="app-shell-badge">{Math.min(unreadNotificationCount, 99)}</span> : null}
+                  </Link>
+                );
+              })}
+            </nav>
 
-          <div className="app-topbar-actions">
-            <Link href="/publish" className="app-topbar-cta">
-              <PlusIcon />
-              <span>发布内容</span>
-            </Link>
-
-            {currentUser ? (
-              <Link href="/me" className="app-topbar-profile">
-                <span className="app-topbar-profile-mark">{Array.from(currentUser.username)[0] ?? "我"}</span>
-                <span className="app-topbar-profile-copy">
-                  <span className="app-topbar-profile-name">{currentUser.username}</span>
-                  <span className="app-topbar-profile-meta">
-                    {currentUser.roomNumber}
-                    {currentUser.role === "admin" ? " · 管理员" : ""}
+            <div className="app-shell-footer">
+              <Link href="/publish" className="app-chip" style={{ justifyContent: "center", padding: "0.85rem 1rem" }}>
+                <PublishIcon />
+                <span style={{ marginLeft: 8 }}>快速发布</span>
+              </Link>
+              {currentUser ? (
+                <Link href="/me" className="app-shell-user">
+                  <span className="app-shell-user-mark">{Array.from(currentUser.username)[0] ?? "我"}</span>
+                  <span>
+                    <span className="app-shell-user-name">{currentUser.username}</span>
+                    <span className="app-shell-user-meta">{currentUser.roomNumber}{currentUser.role === "admin" ? " · 管理员" : ""}</span>
                   </span>
-                </span>
-              </Link>
-            ) : (
-              <Link href="/login" className="app-topbar-login">
-                登录
-              </Link>
-            )}
+                </Link>
+              ) : (
+                <Link href="/login" className="app-shell-user">
+                  <span className="app-shell-user-mark">登</span>
+                  <span>
+                    <span className="app-shell-user-name">访客模式</span>
+                    <span className="app-shell-user-meta">登录后解锁完整社区功能</span>
+                  </span>
+                </Link>
+              )}
+            </div>
+          </div>
+        </aside>
+
+        <div className="app-shell-main">
+          <div className="app-shell-content">
+            <header className="app-shell-topbar">
+              <div>
+                <div className="app-shell-brand-kicker">{pageMeta.description}</div>
+                <div className="app-shell-topbar-title">{pageMeta.title}</div>
+              </div>
+              <div className="app-shell-topbar-meta">
+                {currentUser ? `${currentUser.username} · ${currentUser.roomNumber}` : "Guest Session"}
+              </div>
+            </header>
+            {children}
           </div>
         </div>
-      </header>
+      </div>
 
-      <div className="app-content">{children}</div>
-
-      {showComposer ? (
-        <Link aria-label="发布内容" className="app-fab md:hidden" href="/publish">
-          <PlusIcon />
-        </Link>
-      ) : null}
-
-      <nav className="app-tabbar md:hidden" aria-label="主导航">
-        {navigationItems.map((item) => {
+      <nav className="mobile-tabbar md:hidden" aria-label="移动主导航">
+        {mobileNavigationItems.map((item) => {
           const Icon = item.icon;
           const isActive = activeKey === item.key;
-          const showBadge = item.key === "messages" && unreadNotificationCount > 0 && !hideMessageBadge;
+          const showBadge = item.key === "messages" && unreadNotificationCount > 0;
+          const isPublish = "isPublish" in item && item.isPublish;
+
+          if (isPublish) {
+            return (
+              <Link
+                key={item.key}
+                href={item.href}
+                className="mobile-tab-link mobile-tab-link--publish"
+                aria-current={isActive ? "page" : undefined}
+              >
+                <span className="mobile-tab-icon mobile-tab-icon--publish">
+                  <Icon />
+                </span>
+                <span>{item.label}</span>
+              </Link>
+            );
+          }
 
           return (
             <Link
               key={item.key}
               href={item.href}
-              className={`app-tab ${isActive ? "is-active" : ""}`}
+              className={`mobile-tab-link ${isActive ? "is-active" : ""}`}
               aria-current={isActive ? "page" : undefined}
             >
-              <span className="app-tab-icon">
+              <span className="mobile-tab-icon">
                 <Icon />
-                {showBadge ? <span className="app-badge">{Math.min(unreadNotificationCount, 99)}</span> : null}
+                {showBadge ? <span className="mobile-tab-badge">{Math.min(unreadNotificationCount, 9)}</span> : null}
               </span>
               <span>{item.label}</span>
             </Link>
@@ -152,51 +193,25 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
 }
 
 function HomeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M4.5 10.5 12 4l7.5 6.5v8a1 1 0 0 1-1 1h-4.5v-5H10v5H5.5a1 1 0 0 1-1-1v-8Z" />
-    </svg>
-  );
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4.5 10.5 12 4l7.5 6.5v8a1 1 0 0 1-1 1h-4.5v-5H10v5H5.5a1 1 0 0 1-1-1v-8Z" /></svg>;
 }
 
 function NeighborsIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M7.5 12.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" />
-      <path d="M3.5 19a4 4 0 0 1 8 0M13 19a3.5 3.5 0 0 1 7 0" />
-    </svg>
-  );
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M7.5 12.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" /><path d="M3.5 19a4 4 0 0 1 8 0M13 19a3.5 3.5 0 0 1 7 0" /></svg>;
 }
 
 function ServicesIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="m14.5 5 4.5 4.5-9 9L5.5 19l.5-4.5 8.5-9Z" />
-      <path d="m13 6.5 4.5 4.5" />
-    </svg>
-  );
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 6.5h14M5 12h9M5 17.5h7" /><path d="m15 14 2 2 4-4" /></svg>;
 }
 
 function MessagesIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M6 7.5h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 3v-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z" />
-    </svg>
-  );
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 7.5h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 3v-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z" /></svg>;
 }
 
 function MeIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-      <path d="M12 12.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM5 20a7 7 0 0 1 14 0" />
-    </svg>
-  );
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 12.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM5 20a7 7 0 0 1 14 0" /></svg>;
 }
 
-function PlusIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.1">
-      <path d="M12 5v14M5 12h14" />
-    </svg>
-  );
+function PublishIcon() {
+  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3.6 19 7.7v8.6L12 20.4 5 16.3V7.7L12 3.6Z" /><path d="M12 8.1v7.8M8.1 12h7.8" /></svg>;
 }

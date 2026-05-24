@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alert, Button, Card, Input, TextArea } from "@heroui/react";
+import { Alert, Button, Input, TextArea } from "@heroui/react";
 import type { ServiceTicketCategory, ServiceTicketDraft } from "@/lib/types";
 import { serviceTicketCategoryMeta } from "@/lib/types";
-import { SectionCard } from "./ui";
+import { CyberPanel, CyberStatGrid } from "./resident-shared";
 
 const categories = Object.entries(serviceTicketCategoryMeta) as Array<
   [ServiceTicketCategory, (typeof serviceTicketCategoryMeta)[ServiceTicketCategory]]
@@ -50,87 +50,105 @@ export function ServiceTicketEditor({
   }, [initialDescription]);
 
   return (
-    <SectionCard className="overflow-hidden">
-      <Card.Header className="border-b border-[var(--separator)] bg-[var(--surface-muted)] px-4 py-3 sm:px-5 sm:py-4">
-        <div>
-          <p className="section-kicker">服务工单</p>
-          <h1 className="mt-3 text-xl font-semibold tracking-tight text-slate-950 sm:text-2xl">{editorTitle}</h1>
-          {editorDescription ? <p className="mt-2 text-sm leading-6 text-slate-600">{editorDescription}</p> : null}
-        </div>
-      </Card.Header>
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px] xl:items-start">
+      <CyberPanel title={editorTitle} kicker="Ticket Editor">
+        {editorDescription ? <p className="mb-4 text-sm leading-6 text-[var(--muted)]">{editorDescription}</p> : null}
 
-      <Card.Content className="space-y-4 p-4">
-        <div className="grid gap-2">
-          {categories.map(([value, meta]) => (
-            <button
-              key={value}
-              type="button"
-              className={`rounded-[1rem] border px-4 py-3 text-left ${
-                category === value ? "border-[rgba(79,99,255,0.24)] bg-[rgba(79,99,255,0.08)]" : "border-[var(--separator)] bg-white"
-              }`}
-              onClick={() => setCategory(value)}
-            >
-              <div className="text-sm font-semibold text-slate-900">{meta.label}</div>
-              <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{meta.description}</div>
-            </button>
-          ))}
-        </div>
+        <div className="grid gap-4">
+          <div className="grid gap-2">
+            {categories.map(([value, meta]) => (
+              <button
+                key={value}
+                type="button"
+                className={`rounded-[1rem] border px-4 py-3 text-left ${
+                  category === value
+                    ? "border-[rgba(57,245,143,0.24)] bg-[rgba(57,245,143,0.08)]"
+                    : "border-[var(--border)] bg-[rgba(8,16,16,0.82)]"
+                }`}
+                onClick={() => setCategory(value)}
+              >
+                <div className="text-sm font-semibold text-slate-900">{meta.label}</div>
+                <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{meta.description}</div>
+              </button>
+            ))}
+          </div>
 
-        <Input
-          aria-label="工单标题"
-          fullWidth
-          value={title}
-          onChange={(event) => setTitle(event.target.value)}
-          placeholder="例如：2 单元门禁失灵"
-        />
+          <label className="grid gap-2 text-sm font-semibold text-slate-900">
+            <span>工单标题</span>
+            <Input
+              aria-label="工单标题"
+              fullWidth
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="例如：2 单元门禁失灵"
+            />
+          </label>
 
-        <TextArea
-          aria-label="工单说明"
-          fullWidth
-          value={description}
-          onChange={(event) => setDescription(event.target.value)}
-          rows={6}
-          placeholder="位置、问题、时间"
-        />
+          <label className="grid gap-2 text-sm font-semibold text-slate-900">
+            <span>工单说明</span>
+            <TextArea
+              aria-label="工单说明"
+              fullWidth
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              rows={7}
+              placeholder="位置、问题、时间、影响范围"
+            />
+          </label>
 
-        {error ? (
-          <Alert status="danger">
-            <Alert.Content>
-              <Alert.Description>{error}</Alert.Description>
-            </Alert.Content>
-          </Alert>
-        ) : null}
-
-        <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-          <Button
-            className="w-full sm:w-auto"
-            isPending={submitting}
-            onPress={async () => {
-              setError("");
-              setSubmitting(true);
-              try {
-                await onSubmit({ title, description, category });
-                if (!onCancel) {
-                  setTitle("");
-                  setDescription("");
-                  setCategory(initialCategory);
-                }
-              } catch (submitError) {
-                setError(submitError instanceof Error ? submitError.message : "提交工单失败");
-              } finally {
-                setSubmitting(false);
-              }
-            }}
-          >
-            {submitting ? submittingLabel : submitLabel}
-          </Button>
-          {onCancel ? (
-            <Button className="w-full sm:w-auto" onPress={onCancel} type="button" variant="secondary">
-              取消编辑
-            </Button>
+          {error ? (
+            <Alert status="danger">
+              <Alert.Content>
+                <Alert.Description>{error}</Alert.Description>
+              </Alert.Content>
+            </Alert>
           ) : null}
+
+          <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              className="w-full sm:w-auto"
+              isPending={submitting}
+              onPress={async () => {
+                setError("");
+                setSubmitting(true);
+                try {
+                  await onSubmit({ title, description, category });
+                  if (!onCancel) {
+                    setTitle("");
+                    setDescription("");
+                    setCategory(initialCategory);
+                  }
+                } catch (submitError) {
+                  setError(submitError instanceof Error ? submitError.message : "提交工单失败");
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {submitting ? submittingLabel : submitLabel}
+            </Button>
+            {onCancel ? (
+              <Button className="w-full sm:w-auto" onPress={onCancel} type="button" variant="secondary">
+                取消编辑
+              </Button>
+            ) : null}
+          </div>
         </div>
-      </Card.Content>
-    </SectionCard>
+      </CyberPanel>
+
+      <CyberPanel title="工单摘要" kicker="Preview">
+        <CyberStatGrid columns={2} items={[
+          { label: "当前分类", value: serviceTicketCategoryMeta[category].label },
+          { label: "标题长度", value: title.trim().length },
+        ]} />
+        <div className="mt-4 rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.82)] p-4">
+          <div className="text-sm font-semibold text-slate-900">{title || "工单标题预览"}</div>
+          <div className="mt-2 text-xs leading-6 text-[var(--muted)]">{description || "这里显示问题位置、故障现象与诉求说明。"}</div>
+          <div className="mt-3 inline-flex rounded-full border border-[rgba(57,245,143,0.16)] bg-[rgba(57,245,143,0.08)] px-3 py-1 text-xs font-semibold text-[var(--primary)]">
+            {serviceTicketCategoryMeta[category].label}
+          </div>
+        </div>
+      </CyberPanel>
+    </div>
   );
 }

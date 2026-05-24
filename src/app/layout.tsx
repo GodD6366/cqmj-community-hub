@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { CommunityProvider } from "../components/community-provider";
 import { AppFrame } from "../components/app-frame";
+import { getCommunityName } from "@/lib/community-brand";
 import "./globals.css";
 
+const communityName = getCommunityName();
+
 export const metadata: Metadata = {
-  title: "邻里圈",
+  title: communityName,
   description: "面向小区住户的社区协作平台。",
 };
 

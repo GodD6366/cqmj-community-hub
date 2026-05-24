@@ -1,21 +1,17 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Chip } from "@heroui/react";
-import { CommentForm } from "./comment-form";
-import { CommentList } from "./comment-list";
 import { useCommunityPosts } from "./community-provider";
 import { PostEditor } from "./post-editor";
-import { EmptyState, ResidentAvatar, ResidentMetricGrid, ResidentMobileHero, ResidentMobilePanel } from "./resident-shared";
+import { EmptyState } from "./resident-shared";
 import { categoryMeta, visibilityMeta } from "../lib/types";
 import type { PostDraft } from "../lib/types";
 import { formatDateTime, timeAgo } from "../lib/utils";
 
-interface PostDetailClientProps {
-  postId: string;
-}
+interface PostDetailClientProps { postId: string; }
 
 export function PostDetailClient({ postId }: PostDetailClientProps) {
   const router = useRouter();
@@ -25,402 +21,416 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [commentContent, setCommentContent] = useState("");
+  const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   const post = useMemo(() => posts.find((item) => item.id === postId), [postId, posts]);
 
-  useEffect(() => {
-    setActiveImageIndex(0);
-  }, [postId, post?.images.length]);
+  useEffect(() => { setActiveImageIndex(0); }, [postId, post?.images.length]);
 
-  if (!post) {
-    return (
-      <main className="page-shell pt-4 md:pt-6">
-        <EmptyState
-          title="帖子不存在"
-          actionHref="/neighbors"
-          actionLabel="返回邻里"
-        />
-      </main>
-    );
-  }
+  if (!post) return <main className="page-shell"><EmptyState title="帖子不存在" actionHref="/neighbors" actionLabel="返回邻里" /></main>;
 
   const meta = categoryMeta[post.category];
   const activeImage = post.images[activeImageIndex] ?? post.images[0] ?? null;
   const canManagePost = Boolean(currentUser && (post.isMine || currentUser.role === "admin"));
   const postIdValue = post.id;
-  const editDraft: PostDraft = {
-    title: post.title,
-    content: post.content,
-    category: post.category,
-    tags: post.tags,
-    visibility: post.visibility,
-    anonymous: post.authorName === "匿名居民",
-    images: post.images,
-  };
+  const editDraft: PostDraft = { title: post.title, content: post.content, category: post.category, tags: post.tags, visibility: post.visibility, anonymous: post.authorName === "匿名居民", images: post.images };
 
   async function handleDelete() {
-    if (!window.confirm("确定删除这篇帖子？删除后评论、收藏和图片记录都会一并移除。")) {
-      return;
-    }
-
-    setBusy(true);
-    setMessage("");
-    setError("");
-    try {
-      await deletePost(postIdValue);
-      router.push("/neighbors");
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "删除失败");
-    } finally {
-      setBusy(false);
-    }
+    if (!window.confirm("确定删除这篇帖子？删除后评论、收藏和图片记录都会一并移除。")) return;
+    setBusy(true); setMessage(""); setError("");
+    try { await deletePost(postIdValue); router.push("/neighbors"); } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "删除失败"); } finally { setBusy(false); }
   }
-
   async function handleFavorite() {
-    if (!currentUser) {
-      setError("先登录再收藏。");
-      return;
-    }
-
-    setBusy(true);
-    setMessage("");
-    setError("");
-    try {
-      const favorited = await toggleFavorite(postIdValue);
-      setMessage(favorited ? "已收藏。" : "已取消收藏。");
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "收藏失败");
-    } finally {
-      setBusy(false);
-    }
+    if (!currentUser) { setError("先登录再收藏。"); return; }
+    setBusy(true); setMessage(""); setError("");
+    try { const favorited = await toggleFavorite(postIdValue); setMessage(favorited ? "已收藏。" : "已取消收藏。"); } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "收藏失败"); } finally { setBusy(false); }
+  }
+  async function handleReport() {
+    if (!currentUser) { setError("先登录再举报。"); return; }
+    setBusy(true); setMessage(""); setError("");
+    try { await reportPost(postIdValue); setMessage("已提交举报。"); } catch (submitError) { setError(submitError instanceof Error ? submitError.message : "举报失败"); } finally { setBusy(false); }
   }
 
-  async function handleReport() {
+  async function handleCommentSubmit() {
     if (!currentUser) {
-      setError("先登录再举报。");
+      setError("请先登录");
+      return;
+    }
+    if (!commentContent.trim()) {
+      setError("请填写评论内容");
       return;
     }
 
-    setBusy(true);
-    setMessage("");
+    setIsSubmittingComment(true);
     setError("");
+
     try {
-      await reportPost(postIdValue);
-      setMessage("已提交举报。");
+      await addComment(post.id, { content: commentContent.trim() });
+      setCommentContent("");
+      setMessage("评论已发布。");
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "举报失败");
+      setError(submitError instanceof Error ? submitError.message : "评论发布失败");
     } finally {
-      setBusy(false);
+      setIsSubmittingComment(false);
     }
   }
 
   if (editing) {
-    return (
-      <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
-        <div className="mobile-resident-only mobile-resident-stack">
-          <ResidentMobilePanel delay="40ms">
-            <button
-              type="button"
-              className="text-sm font-semibold text-[var(--primary)]"
-              onClick={() => setEditing(false)}
-            >
-              ← 返回帖子详情
-            </button>
-          </ResidentMobilePanel>
-        </div>
-
-        <section className="hidden md:flex flex-wrap items-center justify-between gap-3 px-1 md:px-0">
-          <button
-            type="button"
-            className="text-sm font-semibold text-[var(--primary)]"
-            onClick={() => setEditing(false)}
-          >
-            ← 返回帖子详情
-          </button>
-        </section>
-
-        <PostEditor
-          clearLabel="恢复原内容"
-          editorTitle="编辑帖子"
-          initialCategory={post.category}
-          initialDraft={editDraft}
-          persistDraft={false}
-          submitLabel="保存修改"
-          submittingLabel="保存中..."
-          visibleCategories={["request", "secondhand", "discussion", "play"]}
-          onSubmit={async (draft) => {
-            await updatePost(postIdValue, draft);
-            setEditing(false);
-            setError("");
-            setMessage("帖子已更新。");
-          }}
-        />
-      </main>
-    );
+    return <main className="page-shell space-y-4"><Link href="#" onClick={(e) => { e.preventDefault(); setEditing(false); }} className="app-section-link">← 返回帖子详情</Link><PostEditor clearLabel="恢复原内容" editorTitle="编辑帖子" initialCategory={post.category} initialDraft={editDraft} persistDraft={false} submitLabel="保存修改" submittingLabel="保存中..." visibleCategories={["request", "secondhand", "discussion", "play"]} onSubmit={async (draft) => { await updatePost(postIdValue, draft); setEditing(false); setError(""); setMessage("帖子已更新。"); }} /></main>;
   }
 
   return (
-    <main className="page-shell space-y-4 pt-2 md:space-y-6 md:pt-4">
-      <div className="mobile-resident-only mobile-resident-stack">
-        <ResidentMobileHero
-          background="radial-gradient(circle at 16% 18%, rgba(237,170,92,0.3), transparent 24%), radial-gradient(circle at 84% 12%, rgba(96,188,255,0.22), transparent 22%), linear-gradient(160deg, #1a2034 0%, #24405f 46%, #315f88 100%)"
-        >
-          <Link href="/neighbors" className="inline-flex text-sm font-semibold text-white/82">
-            ← 返回邻里
-          </Link>
+    <main className="page-shell">
+      {/* 移动端布局 */}
+      <section className="mobile-post-detail md:hidden">
+        {/* 顶部标题栏 */}
+        <div className="mobile-post-topbar">
+          <button type="button" className="mobile-post-back" onClick={() => router.back()} aria-label="返回">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+              <path d="M15 18l-6-6 6-6" />
+            </svg>
+          </button>
+          <span className="mobile-post-topbar-title">帖子详情</span>
+          <button type="button" className="mobile-post-more-btn" aria-label="更多选项">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="5" r="1" />
+              <circle cx="12" cy="12" r="1" />
+              <circle cx="12" cy="19" r="1" />
+            </svg>
+          </button>
+        </div>
 
-          <div className="mt-5 flex items-start justify-between gap-3">
-            <div className="flex min-w-0 items-start gap-3">
-              <ResidentAvatar name={post.authorName} size="lg" tone="inverse" />
-              <div className="min-w-0">
-                <div className="mobile-resident-kicker text-white/72">帖子详情</div>
-                <div className="mt-3 text-lg font-semibold text-white">{post.authorName}</div>
-                <div className="mt-1 text-sm text-white/70">{formatDateTime(post.createdAt)}</div>
+        {/* 错误和成功消息 */}
+        {error && <div className="mobile-login-error">{error}</div>}
+        {message && <div className="mobile-login-success">{message}</div>}
+
+        {/* 作者信息 */}
+        <div className="mobile-post-author-section">
+          <div className="mobile-post-author-row">
+            <span className="mobile-post-author-avatar">
+              {Array.from(post.authorName)[0] ?? "邻"}
+            </span>
+            <div className="mobile-post-author-info">
+              <div className="mobile-post-author-name">{post.authorName}</div>
+              <div className="mobile-post-author-meta">
+                <span className="mobile-post-author-room">2栋-1502</span>
+                {post.pinned && <span className="mobile-post-author-badge mobile-post-author-badge--pinned">置顶</span>}
+                {post.featured && <span className="mobile-post-author-badge mobile-post-author-badge--featured">精选</span>}
               </div>
             </div>
-            <div className="flex flex-wrap justify-end gap-2">
-              <Chip color="accent" size="sm" variant="soft">
-                {meta.label}
-              </Chip>
-              <Chip size="sm" variant="soft">
-                {visibilityMeta[post.visibility].label}
-              </Chip>
+            <button
+              type="button"
+              className="mobile-post-follow-btn"
+              onClick={() => {}}
+            >
+              + 关注
+            </button>
+          </div>
+          <div className="mobile-post-publish-meta">
+            <span>{timeAgo(post.createdAt)}</span>
+            <span>·</span>
+            <span>发布于</span>
+            <span>{meta.label}</span>
+          </div>
+        </div>
+
+        {/* 帖子标题 */}
+        <h1 className="mobile-post-title">{post.title}</h1>
+
+        {/* 帖子内容 */}
+        <div className="mobile-post-content">{post.content}</div>
+
+        {/* 标签 */}
+        {post.tags.length > 0 && (
+          <div className="mobile-post-tags">
+            {post.tags.map((tag) => (
+              <span key={tag} className="mobile-post-tag">#{tag}</span>
+            ))}
+          </div>
+        )}
+
+        {/* 图片展示 */}
+        {post.images.length > 0 && (
+          <div className="mobile-post-images-section">
+            <div className="mobile-post-images-grid">
+              {post.images.slice(0, 9).map((image, index) => (
+                <button
+                  key={image.id}
+                  type="button"
+                  className={`mobile-post-image-thumb ${index === activeImageIndex ? "is-active" : ""}`}
+                  onClick={() => setActiveImageIndex(index)}
+                >
+                  <img src={image.url} alt={`${post.title} ${index + 1}`} />
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 互动按钮 */}
+        <div className="mobile-post-interactions">
+          <button
+            type="button"
+            className={`mobile-post-interact-btn ${post.favorited ? "is-active" : ""}`}
+            onClick={handleFavorite}
+            disabled={busy}
+          >
+            <svg viewBox="0 0 24 24" fill={post.favorited ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+            </svg>
+            <span>{post.favoriteCount}</span>
+          </button>
+          <button type="button" className="mobile-post-interact-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span>{post.commentCount}</span>
+          </button>
+          <button type="button" className="mobile-post-interact-btn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" />
+            </svg>
+            <span>分享</span>
+          </button>
+        </div>
+
+        {/* 评论列表 */}
+        <div className="mobile-post-comments-section">
+          <div className="mobile-post-comments-header">
+            全部评论 ({post.comments.length})
+            <div className="mobile-post-comments-sort">
+              <button type="button" className="mobile-post-sort-btn is-active">最热</button>
+              <button type="button" className="mobile-post-sort-btn">最新</button>
             </div>
           </div>
 
-          <h1 className="mobile-resident-title mt-5 max-w-[10ch]">{post.title}</h1>
-
-          <ResidentMetricGrid
-            className="mt-5"
-            columns={3}
-            items={[
-              { label: "评论", value: String(post.commentCount).padStart(2, "0") },
-              { label: "收藏", value: String(post.favoriteCount).padStart(2, "0") },
-              { label: "图片", value: String(post.images.length).padStart(2, "0") },
-            ]}
-            tone="inverse"
-          />
-
-          {canManagePost ? (
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Button
-                size="sm"
-                type="button"
-                variant="secondary"
-                onPress={() => {
-                  setMessage("");
-                  setError("");
-                  setEditing(true);
-                }}
-              >
-                编辑
-              </Button>
-              <Button isPending={busy} size="sm" type="button" variant="ghost" onPress={handleDelete}>
-                删除
-              </Button>
-            </div>
-          ) : null}
-        </ResidentMobileHero>
-
-        <ResidentMobilePanel delay="120ms">
-          <div className="mobile-resident-kicker text-[#315d8f]">正文</div>
-          <h2 className="mobile-resident-panel-title">内容</h2>
-
-          <div className="mt-4 space-y-4">
-            {activeImage ? (
-              <div className="space-y-3">
-                <div className="overflow-hidden rounded-[1.3rem] bg-[var(--surface-muted)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
-                  <img alt={post.title} className="max-h-[26rem] w-full object-cover" src={activeImage.url} />
-                </div>
-                {post.images.length > 1 ? (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {post.images.map((image, index) => (
-                      <button
-                        key={image.id}
-                        type="button"
-                        className={`overflow-hidden rounded-[1rem] border ${index === activeImageIndex ? "border-[var(--primary)]" : "border-[var(--separator)]"}`}
-                        onClick={() => setActiveImageIndex(index)}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
-                        <img alt={`${post.title} 缩略图 ${index + 1}`} className="h-20 w-20 object-cover" src={image.url} />
-                      </button>
-                    ))}
+          {post.comments.length === 0 ? (
+            <div className="mobile-post-no-comments">还没有评论，快来抢沙发吧</div>
+          ) : (
+            post.comments.map((comment) => (
+              <div key={comment.id} className="mobile-post-comment">
+                <span className="mobile-post-comment-avatar">
+                  {Array.from(comment.authorName)[0] ?? "邻"}
+                </span>
+                <div className="mobile-post-comment-body">
+                  <div className="mobile-post-comment-header">
+                    <span className="mobile-post-comment-name">{comment.authorName}</span>
+                    <span className="mobile-post-comment-time">{timeAgo(comment.createdAt)}</span>
                   </div>
-                ) : null}
+                  <p className="mobile-post-comment-text">{comment.content}</p>
+                  <div className="mobile-post-comment-actions">
+                    <button type="button" className="mobile-post-comment-reply">回复</button>
+                    <div className="mobile-post-comment-stats">
+                      <button type="button" className="mobile-post-comment-like">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M14 9V5a3 3 0 0 0-3-3l-4 9v11h11.28a2 2 0 0 0 2-1.7l1.38-9a2 2 0 0 0-2-2.3zM7 22H4a2 2 0 0 1-2-2v-7a2 2 0 0 1 2-2h3" />
+                        </svg>
+                        <span>5</span>
+                      </button>
+                      <button type="button" className="mobile-post-comment-fav">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" />
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-            ) : null}
+            ))
+          )}
+        </div>
 
-            <div className="whitespace-pre-wrap text-[0.97rem] leading-8 text-slate-700">{post.content}</div>
+        {/* 底部评论输入框 */}
+        <div className="mobile-post-comment-input-bar">
+          <input
+            name="mobileComment"
+            className="mobile-post-comment-input"
+            placeholder="写下你的回复..."
+            value={commentContent}
+            onChange={(e) => setCommentContent(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleCommentSubmit();
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="mobile-post-comment-send"
+            onClick={handleCommentSubmit}
+            disabled={isSubmittingComment}
+          >
+            发送
+          </button>
+        </div>
+      </section>
 
-            {post.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--primary)]">
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            ) : null}
-
-            <div className="grid grid-cols-2 gap-2">
-              <Button isPending={busy} onPress={handleFavorite}>
-                {post.favorited ? "已收藏" : "收藏"} · {post.favoriteCount}
-              </Button>
-              <Button isPending={busy} onPress={handleReport} variant="secondary">
-                举报
-              </Button>
-            </div>
-          </div>
-        </ResidentMobilePanel>
-
-        <ResidentMobilePanel delay="200ms">
-          <div className="mobile-resident-kicker text-[#2d8e94]">评论</div>
-          <h2 className="mobile-resident-panel-title">评论</h2>
-
-          <div className="mt-4 space-y-3">
-            <CommentList comments={post.comments} />
-          </div>
-        </ResidentMobilePanel>
-      </div>
-
-      <div className="hidden md:block">
-        <section className="px-1 md:px-0">
-          <Link href="/neighbors" className="text-sm font-semibold text-[var(--primary)]">
-            ← 返回邻里
-          </Link>
-        </section>
-
-        <article className="app-card overflow-hidden">
-          <div className="app-gradient-card rounded-none px-4 py-5 text-white">
+      {/* 桌面端布局 */}
+      <section className="hidden gap-4 space-y-4 md:grid md:space-y-5 xl:grid-cols-[minmax(0,1.3fr)_320px]">
+        <div className="space-y-4">
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-start gap-3">
-                <ResidentAvatar name={post.authorName} size="lg" tone="inverse" />
+                <div className="inline-flex w-12 h-12 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(57,245,143,0.2)] to-[rgba(72,201,255,0.15)] text-[var(--primary)] text-lg font-bold flex-shrink-0">
+                  {Array.from(post.authorName)[0] ?? "邻"}
+                </div>
                 <div>
-                  <div className="text-lg font-semibold">{post.authorName}</div>
-                  <div className="mt-1 text-sm text-white/70">{formatDateTime(post.createdAt)}</div>
+                  <div className="text-lg font-semibold text-slate-950">{post.authorName}</div>
+                  <div className="mt-1 text-sm text-[var(--muted)]">{formatDateTime(post.createdAt)}</div>
                 </div>
               </div>
               <div className="flex flex-wrap justify-end gap-2">
-                <Chip color="accent" size="sm" variant="soft">
-                  {meta.label}
-                </Chip>
-                <Chip size="sm" variant="soft">
-                  {visibilityMeta[post.visibility].label}
-                </Chip>
+                <span className="app-chip">{meta.label}</span>
+                <span className="app-chip app-chip-muted">{visibilityMeta[post.visibility].label}</span>
               </div>
             </div>
-
-            {canManagePost ? (
-              <div className="mt-5 flex flex-wrap gap-2">
-                <Button
-                  size="sm"
-                  type="button"
-                  variant="secondary"
-                  onPress={() => {
-                    setMessage("");
-                    setError("");
-                    setEditing(true);
-                  }}
-                >
-                  编辑
-                </Button>
-                <Button isPending={busy} size="sm" type="button" variant="ghost" onPress={handleDelete}>
-                  删除
-                </Button>
-              </div>
-            ) : null}
-
-            <h1 className="mt-5 text-[1.75rem] font-semibold leading-[1.08] tracking-[-0.06em]">{post.title}</h1>
-            <p className="mt-3 text-sm leading-6 text-white/76">
-              {timeAgo(post.createdAt)} · 评论 {post.commentCount} · 收藏 {post.favoriteCount}
-            </p>
+            <h1 className="mt-5 text-[1.8rem] font-semibold leading-[1.08] tracking-[-0.05em] text-slate-950">{post.title}</h1>
+            <div className="mt-3 text-sm text-[var(--muted)]">{timeAgo(post.createdAt)} · 评论 {post.commentCount} · 收藏 {post.favoriteCount}</div>
           </div>
 
-          <div className="space-y-4 px-4 py-4 md:px-5 md:py-5">
-            {activeImage ? (
-              <div className="space-y-3">
-                <div className="overflow-hidden rounded-[1.3rem] bg-[var(--surface-muted)]">
-                  {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
-                  <img alt={post.title} className="max-h-[26rem] w-full object-cover" src={activeImage.url} />
-                </div>
-                {post.images.length > 1 ? (
-                  <div className="flex gap-2 overflow-x-auto pb-1">
-                    {post.images.map((image, index) => (
-                      <button
-                        key={image.id}
-                        type="button"
-                        className={`overflow-hidden rounded-[1rem] border ${index === activeImageIndex ? "border-[var(--primary)]" : "border-[var(--separator)]"}`}
-                        onClick={() => setActiveImageIndex(index)}
-                      >
-                        {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured URLs are loaded from the existing object storage service. */}
-                        <img alt={`${post.title} 缩略图 ${index + 1}`} className="h-20 w-20 object-cover" src={image.url} />
-                      </button>
-                    ))}
-                  </div>
-                ) : null}
+          {activeImage ? (
+            <div className="space-y-3 rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4">
+              <div className="overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.9)]">
+                <Image alt={post.title} className="max-h-[32rem] w-full object-cover" src={activeImage.url} width={activeImage.width || 1200} height={activeImage.height || 900} unoptimized />
               </div>
-            ) : null}
+              {post.images.length > 1 ? <div className="flex gap-2 overflow-x-auto pb-1">{post.images.map((image, index) => <button key={image.id} type="button" className={`overflow-hidden rounded-[0.9rem] border ${index === activeImageIndex ? 'border-[var(--primary)]' : 'border-[var(--border)]'}`} onClick={() => setActiveImageIndex(index)}><Image alt={`${post.title} 缩略图 ${index + 1}`} className="h-20 w-20 object-cover" src={image.url} width={image.width || 80} height={image.height || 80} unoptimized /></button>)}</div> : null}
+            </div>
+          ) : null}
 
-            <div className="whitespace-pre-wrap text-[0.97rem] leading-8 text-slate-700">{post.content}</div>
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
+            <div className="text-sm font-semibold text-slate-900">正文内容</div>
+            <div className="mt-3 whitespace-pre-wrap text-[0.95rem] leading-8 text-[var(--foreground)]">{post.content}</div>
+            {post.tags.length > 0 ? <div className="mt-4 flex flex-wrap gap-2">{post.tags.map((tag) => <span key={tag} className="rounded-full border border-[rgba(57,245,143,0.12)] bg-[rgba(57,245,143,0.05)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--primary)]">#{tag}</span>)}</div> : null}
+          </div>
 
-            {post.tags.length > 0 ? (
-              <div className="flex flex-wrap gap-2">
-                {post.tags.map((tag) => (
-                  <span key={tag} className="rounded-full bg-[var(--surface-muted)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--primary)]">
-                    #{tag}
-                  </span>
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
+            <div className="text-sm font-semibold text-slate-900">评论区</div>
+            {post.comments.length === 0 ? (
+              <div className="mt-3 text-sm text-[var(--muted)]">还没有评论，快来抢沙发吧</div>
+            ) : (
+              <div className="mt-3 grid gap-3">
+                {post.comments.map((comment) => (
+                  <div key={comment.id} className="flex gap-3 p-3 rounded-xl border border-[var(--border)] bg-[rgba(10,18,18,0.88)]">
+                    <div className="inline-flex w-10 h-10 items-center justify-center rounded-full bg-gradient-to-br from-[rgba(57,245,143,0.15)] to-[rgba(72,201,255,0.1)] text-[var(--primary)] text-sm font-bold flex-shrink-0">
+                      {Array.from(comment.authorName)[0] ?? "邻"}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-950">{comment.authorName}</span>
+                        <span className="text-xs text-[var(--muted)]">{timeAgo(comment.createdAt)}</span>
+                      </div>
+                      <p className="mt-2 text-sm leading-relaxed text-[var(--foreground)]">{comment.content}</p>
+                    </div>
+                  </div>
                 ))}
               </div>
-            ) : null}
+            )}
+          </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              <Button isPending={busy} onPress={handleFavorite}>
-                {post.favorited ? "已收藏" : "收藏"} · {post.favoriteCount}
-              </Button>
-              <Button isPending={busy} onPress={handleReport} variant="secondary">
-                举报内容
-              </Button>
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4 md:p-5">
+            <div className="text-sm font-semibold text-slate-900">发表评论</div>
+            <div className="mt-3">
+              <textarea
+                className="w-full p-3 rounded-xl border border-[var(--field-border)] bg-[var(--field-background)] text-[var(--field-foreground)] resize-none"
+                placeholder="写下你的评论..."
+                rows={4}
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+              />
+              <div className="mt-3 flex justify-end">
+                <button
+                  type="button"
+                  className={`px-4 py-2 rounded-full bg-gradient-to-r from-[var(--primary)] to-[#7affc6] text-[#032111] font-semibold ${isSubmittingComment ? "opacity-70 cursor-not-allowed" : ""}`}
+                  onClick={handleCommentSubmit}
+                  disabled={isSubmittingComment}
+                >
+                  {isSubmittingComment ? "发送中..." : "发布评论"}
+                </button>
+              </div>
             </div>
           </div>
-        </article>
+        </div>
 
-        <section className="space-y-3 xl:max-w-5xl">
-          <div className="px-1 text-base font-semibold text-slate-950 md:px-0">评论 {post.comments.length}</div>
-          <CommentList comments={post.comments} />
-        </section>
-      </div>
+        <div className="space-y-4">
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4">
+            <div className="text-sm font-semibold text-slate-900">互动操作</div>
+            <div className="mt-3 grid gap-2">
+              <button
+                type="button"
+                className={`w-full py-2 px-4 rounded-full border ${post.favorited ? "border-[var(--primary)] bg-[var(--primary)] text-[#032111]" : "border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)]"} font-semibold transition-colors ${busy ? "opacity-70 cursor-not-allowed" : ""}`}
+                onClick={handleFavorite}
+                disabled={busy}
+              >
+                {post.favorited ? "已收藏" : "收藏"} · {post.favoriteCount}
+              </button>
+              <button
+                type="button"
+                className="w-full py-2 px-4 rounded-full border border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)] font-semibold transition-colors hover:border-[var(--border-strong)]"
+                onClick={handleReport}
+                disabled={busy}
+              >
+                举报内容
+              </button>
+              {canManagePost && (
+                <button
+                  type="button"
+                  className="w-full py-2 px-4 rounded-full border border-[var(--border)] bg-[rgba(10,18,18,0.88)] text-[var(--foreground)] font-semibold transition-colors hover:border-[var(--border-strong)]"
+                  onClick={() => { setMessage(""); setError(""); setEditing(true); }}
+                >
+                  编辑帖子
+                </button>
+              )}
+              {canManagePost && (
+                <button
+                  type="button"
+                  className="w-full py-2 px-4 rounded-full border border-[rgba(255,93,122,0.2)] bg-[rgba(255,93,122,0.08)] text-[#ff8da4] font-semibold transition-colors hover:border-[rgba(255,93,122,0.3)]"
+                  onClick={handleDelete}
+                  disabled={busy}
+                >
+                  删除帖子
+                </button>
+              )}
+            </div>
+          </div>
 
-      {message ? (
-        <Alert status="success">
-          <Alert.Content>
-            <Alert.Description>{message}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4">
+            <div className="text-sm font-semibold text-slate-900">数据概览</div>
+            <div className="mt-3 grid gap-2 text-sm text-[var(--muted)]">
+              <div className="flex justify-between">
+                <span>评论</span>
+                <span className="font-semibold text-[var(--foreground)]">{post.commentCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>收藏</span>
+                <span className="font-semibold text-[var(--foreground)]">{post.favoriteCount}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>图片</span>
+                <span className="font-semibold text-[var(--foreground)]">{post.images.length}</span>
+              </div>
+            </div>
+          </div>
 
-      {error ? (
-        <Alert status="danger">
-          <Alert.Content>
-            <Alert.Description>{error}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
-
-      {currentUser ? (
-        <CommentForm
-          onSubmit={async (content) => {
-            await addComment(postIdValue, { content });
-            setError("");
-            setMessage("评论已发布。");
-          }}
-        />
-      ) : (
-        <EmptyState
-          title="登录后参与评论"
-          actionHref={`/login?next=/posts/${postIdValue}`}
-          actionLabel="去登录"
-        />
-      )}
+          <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.94)] p-4">
+            <div className="text-sm font-semibold text-slate-900">帖子属性</div>
+            <div className="mt-3 grid gap-2 text-sm text-[var(--muted)]">
+              <div className="flex justify-between">
+                <span>分类</span>
+                <span className="font-semibold text-[var(--foreground)]">{meta.label}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>可见范围</span>
+                <span className="font-semibold text-[var(--foreground)]">{visibilityMeta[post.visibility].label}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>作者</span>
+                <span className="font-semibold text-[var(--foreground)]">{post.authorName}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
     </main>
   );
 }

@@ -9,6 +9,23 @@ export type NotificationType = "comment" | "favorite" | "poll" | "ticket" | "sys
 
 export const postCategories = ["request", "secondhand", "discussion", "play"] as const;
 
+export type PostCategoryTone = "green" | "orange" | "cyan" | "teal";
+
+export const postCategoryTabMeta: Record<
+  PostCategory,
+  { title: string; description: string; tone: PostCategoryTone }
+> = {
+  request: { title: "求助", description: "获取帮助", tone: "green" },
+  secondhand: { title: "二手", description: "闲置交易", tone: "orange" },
+  discussion: { title: "交流", description: "邻里交流", tone: "cyan" },
+  play: { title: "约玩", description: "一起玩耍", tone: "teal" },
+};
+
+export const postCategoryTabs = postCategories.map((category) => ({
+  category,
+  ...postCategoryTabMeta[category],
+}));
+
 export function isPostCategory(value: unknown): value is PostCategory {
   return typeof value === "string" && (postCategories as readonly string[]).includes(value);
 }
@@ -207,7 +224,7 @@ export const categoryMeta: Record<
     label: "发起约玩",
     badge: "约玩",
     accent: "from-amber-500 to-orange-400",
-    description: "组队运动、桌游、遛娃、饭搭子、同路活动。",
+    description: "组队运动、桌游、遛娃、饭搭子。",
   },
 };
 

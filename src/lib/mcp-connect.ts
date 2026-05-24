@@ -1,4 +1,7 @@
 import type { CommunityUser } from "./types";
+import { getCommunityName } from "./community-brand";
+
+const communityName = getCommunityName();
 
 export function buildMcpConnectionPrompt(input: {
   endpoint: string;
@@ -8,7 +11,7 @@ export function buildMcpConnectionPrompt(input: {
   return [
     "请接入下面这个 MCP 服务：",
     "",
-    `服务名称：邻里圈 Community Hub`,
+    `服务名称：${communityName} Community Hub`,
     `MCP 端点：${input.endpoint}`,
     `账号：${input.username}`,
     `认证方式：Bearer Token`,
