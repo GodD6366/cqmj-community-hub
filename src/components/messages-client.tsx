@@ -5,7 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button } from "@heroui/react";
 import { useCommunityPosts } from "./community-provider";
 import { notificationTypeMeta, type NotificationItem, type NotificationType } from "@/lib/types";
-import { CyberPanel, CyberStatGrid, EmptyState } from "./resident-shared";
+import { ArrowLeftIcon } from "./app-icons";
+import { CyberPanel, CyberStatGrid, EmptyState, NotificationTypeIcon } from "./resident-shared";
 import { timeAgo } from "@/lib/utils";
 
 const tabs: Array<{ key: "all" | NotificationType; label: string }> = [
@@ -52,7 +53,9 @@ export function MessagesClient() {
       <section className="terminal-mobile-root md:hidden">
         <div className="terminal-hero-card">
           <div className="terminal-page-head">
-            <Link href="/" className="terminal-back-link">←</Link>
+            <Link href="/" className="terminal-back-link">
+              <ArrowLeftIcon />
+            </Link>
             <div className="min-w-0 flex-1">
               <div className="terminal-kicker">MESSAGE CENTER</div>
               <h1 className="terminal-page-title">消息中心</h1>
@@ -118,7 +121,10 @@ function MessageRow({ notification, mobile = false }: { notification: Notificati
     <article className={mobile ? "terminal-list-row" : `rounded-[1.15rem] border p-4 ${notification.readAt ? "border-[var(--border)] bg-[rgba(8,16,16,0.82)] opacity-80" : "border-[rgba(57,245,143,0.22)] bg-[rgba(8,16,16,0.95)]"}`}>
       <div className="flex items-start gap-3">
         <div className={`flex shrink-0 items-center justify-center ${mobile ? "terminal-message-icon" : "h-11 w-11 rounded-[1rem] border border-[var(--border)] bg-[rgba(57,245,143,0.06)] text-lg"}`}>
-          {notificationTypeMeta[notification.type].icon}
+          <NotificationTypeIcon
+            type={notification.type}
+            className={mobile ? "h-4.5 w-4.5" : "h-5 w-5"}
+          />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-3">

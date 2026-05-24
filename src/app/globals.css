@@ -498,6 +498,16 @@ select {
   color: #03140d;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
 }
+.app-icon-bubble-inner {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-icon-bubble-inner svg {
+  width: 1.2rem;
+  height: 1.2rem;
+  stroke-width: 2;
+}
 .app-section-title {
   display: flex;
   align-items: end;
@@ -907,16 +917,20 @@ select {
   height: 3.65rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(0, 255, 143, 0.62);
+  border: 1px solid rgba(34, 197, 94, 0.92);
   clip-path: polygon(50% 0, 88% 20%, 88% 80%, 50% 100%, 12% 80%, 12% 20%);
-  background: rgba(0, 255, 143, 0.08);
-  color: var(--primary);
+  background:
+    linear-gradient(180deg, rgba(74, 222, 128, 0.96) 0%, rgba(22, 163, 74, 0.96) 100%);
+  color: #f3fff7;
   box-shadow:
-    0 0 24px rgba(0, 255, 143, 0.28),
-    inset 0 0 18px rgba(0, 255, 143, 0.08);
+    0 0 28px rgba(34, 197, 94, 0.34),
+    0 10px 24px rgba(22, 163, 74, 0.34),
+    inset 0 1px 0 rgba(255, 255, 255, 0.28),
+    inset 0 -8px 16px rgba(20, 83, 45, 0.18);
   transition:
     transform 160ms ease,
-    box-shadow 160ms ease;
+    box-shadow 160ms ease,
+    filter 160ms ease;
 }
 .mobile-tab-icon--publish svg {
   width: 1.7rem;
@@ -924,9 +938,12 @@ select {
 }
 .mobile-tab-link--publish:hover .mobile-tab-icon--publish {
   transform: translateY(-2px);
+  filter: saturate(1.06) brightness(1.02);
   box-shadow:
-    0 0 32px rgba(0, 255, 143, 0.42),
-    inset 0 0 20px rgba(0, 255, 143, 0.1);
+    0 0 36px rgba(34, 197, 94, 0.4),
+    0 14px 28px rgba(22, 163, 74, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -10px 18px rgba(20, 83, 45, 0.2);
 }
 .mobile-tab-badge {
   position: absolute;

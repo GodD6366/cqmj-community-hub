@@ -4,6 +4,24 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Alert, Button } from "@heroui/react";
 import {
+  BrainCircuitIcon,
+  ChevronRightIcon,
+  ChevronUpIcon,
+  ClockIcon,
+  CloseIcon,
+  CopyIcon,
+  EditIcon,
+  FileTextIcon,
+  InfoIcon,
+  LogoutIcon,
+  MessagesIcon,
+  ServiceIcon,
+  SettingsIcon,
+  ShieldIcon,
+  StarIcon,
+  VoteIcon,
+} from "./app-icons";
+import {
   CyberPanel,
   CyberStatGrid,
   DataList,
@@ -14,17 +32,17 @@ import { useCommunityPosts } from "./community-provider";
 import { getCommunityName } from "@/lib/community-brand";
 
 const functionItems = [
-  { label: "我的帖子", href: "/posts?mode=mine", mark: "帖" },
-  { label: "我的收藏", href: "/posts?mode=favorites", mark: "藏" },
-  { label: "我的投票", href: "/publish?kind=poll", mark: "票" },
-  { label: "我的工单", href: "/services", mark: "单" },
+  { label: "我的帖子", href: "/posts?mode=mine", icon: <FileTextIcon /> },
+  { label: "我的收藏", href: "/posts?mode=favorites", icon: <StarIcon /> },
+  { label: "我的投票", href: "/publish?kind=poll", icon: <VoteIcon /> },
+  { label: "我的工单", href: "/services", icon: <ServiceIcon /> },
 ] as const;
 
 const extraItems = [
-  { label: "MCP / AI 配置", href: "/mcp/connect", mark: "AI" },
-  { label: "浏览历史", href: "/posts", mark: "史" },
-  { label: "邀请邻居", href: "/about", mark: "邀" },
-  { label: "社区规则", href: "/rules", mark: "规" },
+  { label: "MCP / AI 配置", href: "/mcp/connect", icon: <BrainCircuitIcon /> },
+  { label: "浏览历史", href: "/posts", icon: <ClockIcon /> },
+  { label: "邀请邻居", href: "/about", icon: <MessagesIcon /> },
+  { label: "社区规则", href: "/rules", icon: <ShieldIcon /> },
 ] as const;
 
 const mobileStats = [
@@ -33,7 +51,7 @@ const mobileStats = [
     key: "myPosts",
     href: "/posts?mode=mine",
     tone: "green",
-    icon: <PostIcon />,
+    icon: <FileTextIcon />,
   },
   {
     label: "我的收藏",
@@ -47,14 +65,14 @@ const mobileStats = [
     key: "votedPolls",
     href: "/neighbors",
     tone: "green",
-    icon: <MessageIcon />,
+    icon: <MessagesIcon />,
   },
   {
     label: "我的工单",
     key: "myTickets",
     href: "/services",
     tone: "amber",
-    icon: <TicketIcon />,
+    icon: <ServiceIcon />,
   },
 ] as const;
 
@@ -69,7 +87,7 @@ const mobileMenuItems = [
     label: "我的帖子",
     href: "/posts?mode=mine",
     tone: "green",
-    icon: <PostIcon />,
+    icon: <FileTextIcon />,
   },
   {
     label: "我的收藏",
@@ -77,7 +95,7 @@ const mobileMenuItems = [
     tone: "green",
     icon: <StarIcon />,
   },
-  { label: "我的投票", href: "/neighbors", tone: "cyan", icon: <PollIcon /> },
+  { label: "我的投票", href: "/neighbors", tone: "cyan", icon: <VoteIcon /> },
   { label: "浏览记录", href: "/posts", tone: "green", icon: <ClockIcon /> },
   { label: "社区规则", href: "/rules", tone: "green", icon: <ShieldIcon /> },
   { label: "项目介绍", href: "/about", tone: "green", icon: <InfoIcon /> },
@@ -207,7 +225,7 @@ export function MeClient() {
                 {item.icon}
               </span>
               <span>{item.label}</span>
-              <span className="mobile-me-menu-arrow">›</span>
+              <span className="mobile-me-menu-arrow"><ChevronRightIcon /></span>
             </Link>
           ))}
           <button
@@ -222,7 +240,7 @@ export function MeClient() {
             </span>
             <span>设置</span>
             <span className="mobile-me-menu-arrow" aria-hidden="true">
-              {settingsOpen ? "⌃" : "›"}
+              {settingsOpen ? <ChevronUpIcon /> : <ChevronRightIcon />}
             </span>
           </button>
         </section>
@@ -325,7 +343,7 @@ export function MeClient() {
                   href={item.href}
                   className="app-shell-link !p-3"
                 >
-                  <span className="app-shell-link-icon">{item.mark}</span>
+                  <span className="app-shell-link-icon">{item.icon}</span>
                   <span className="app-shell-link-copy">
                     <span className="app-shell-link-title">{item.label}</span>
                     <span className="app-shell-link-meta">进入模块</span>
@@ -340,7 +358,7 @@ export function MeClient() {
                   href={item.href}
                   className="app-shell-link !p-3"
                 >
-                  <span className="app-shell-link-icon">{item.mark}</span>
+                  <span className="app-shell-link-icon">{item.icon}</span>
                   <span className="app-shell-link-copy">
                     <span className="app-shell-link-title">{item.label}</span>
                     <span className="app-shell-link-meta">更多信息</span>
@@ -413,229 +431,5 @@ export function MeClient() {
         </CyberPanel>
       </section>
     </main>
-  );
-}
-
-function PostIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M7 5h10M7 9h10M7 13h6" />
-      <path d="M5 3h14v18H5z" />
-    </svg>
-  );
-}
-
-function StarIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" />
-    </svg>
-  );
-}
-
-function MessageIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M5 6h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-6l-5 3v-3H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2Z" />
-      <path d="M8 11h3M14 11h2" />
-    </svg>
-  );
-}
-
-function TicketIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M7 5h10v3h2v11H5V8h2V5Z" />
-      <path d="M9 5V3h6v2M8 12h8M8 16h5" />
-    </svg>
-  );
-}
-
-function PollIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M5 20V10M12 20V4M19 20v-7" />
-      <path d="M3 20h18" />
-    </svg>
-  );
-}
-
-function ClockIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
-      <path d="M12 7v5l3 2" />
-    </svg>
-  );
-}
-
-function ShieldIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M12 3 20 6v6c0 5-3.4 8-8 9-4.6-1-8-4-8-9V6l8-3Z" />
-      <path d="m8.5 12 2.2 2.2 4.8-5" />
-    </svg>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18Z" />
-      <path d="M12 11v6M12 7h.01" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M4 7h10" />
-      <path d="M18 7h2" />
-      <path d="M4 17h2" />
-      <path d="M10 17h10" />
-      <path d="M14 5v4" />
-      <path d="M8 15v4" />
-      <path d="M13 7a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z" />
-      <path d="M6.5 17a1.5 1.5 0 1 0 3 0 1.5 1.5 0 0 0-3 0Z" />
-    </svg>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M6 6 18 18" />
-      <path d="M18 6 6 18" />
-    </svg>
-  );
-}
-
-function LogoutIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden="true"
-    >
-      <path d="M10 5H6a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h4" />
-      <path d="M14 8l4 4-4 4" />
-      <path d="M18 12H9" />
-    </svg>
-  );
-}
-
-
-function BrainCircuitIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z" />
-      <path d="M9 13a4.5 4.5 0 0 0 3-4" />
-      <path d="M6.003 5.125A3 3 0 0 0 6.401 6.5" />
-      <path d="M3.477 10.896a4 4 0 0 1 .585-.396" />
-      <path d="M6 18a4 4 0 0 1-1.967-.516" />
-      <path d="M12 13h4" />
-      <path d="M12 18h6a2 2 0 0 1 2 2v1" />
-      <path d="M12 8h8" />
-      <path d="M16 8V5a2 2 0 0 1 2-2" />
-      <circle cx="16" cy="13" r=".5" />
-      <circle cx="18" cy="3" r=".5" />
-      <circle cx="20" cy="21" r=".5" />
-      <circle cx="20" cy="8" r=".5" />
-    </svg>
-  );
-}
-
-function CopyIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M8 8h10v10H8z" />
-      <path d="M6 16H4V4h12v2" />
-    </svg>
-  );
-}
-
-function EditIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-    >
-      <path d="M4 20h4l11-11-4-4L4 16v4Z" />
-      <path d="m13 7 4 4" />
-    </svg>
   );
 }

@@ -273,11 +273,11 @@ export const serviceTicketStatusMeta: Record<
 
 export const notificationTypeMeta: Record<
   NotificationType,
-  { label: string; icon: string }
+  { label: string }
 > = {
-  comment: { label: "评论提醒", icon: "💬" },
-  favorite: { label: "收藏提醒", icon: "⭐" },
-  poll: { label: "投票动态", icon: "📊" },
-  ticket: { label: "工单动态", icon: "🛠" },
-  system: { label: "系统通知", icon: "🔔" },
+  comment: { label: "评论提醒" },
+  favorite: { label: "收藏提醒" },
+  poll: { label: "投票动态" },
+  ticket: { label: "工单动态" },
+  system: { label: "系统通知" },
 };

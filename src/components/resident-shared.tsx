@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import type { PollSummary, ServiceTicketSummary } from "@/lib/types";
 import { pollStatusMeta, serviceTicketCategoryMeta, serviceTicketStatusMeta } from "@/lib/types";
 import { formatDateTime, timeAgo } from "@/lib/utils";
+import { notificationIconMap } from "./app-icons";
 
 export function getResidentAvatarInitial(name: string) {
   const firstCharacter = Array.from(name.trim())[0] ?? "?";
@@ -54,11 +55,25 @@ export function SectionHeader({ title, caption, href, actionLabel }: { title: st
   );
 }
 
-export function QuickActionTile({ label, description, icon, href, gradient }: { label: string; description?: string; icon: string; href: string; gradient: string; }) {
+export function QuickActionTile({
+  label,
+  description,
+  icon,
+  href,
+  gradient,
+}: {
+  label: string;
+  description?: string;
+  icon: ReactNode;
+  href: string;
+  gradient: string;
+}) {
   return (
     <Link href={href} className="app-card-muted h-full p-3 md:p-4">
       <div className="flex items-center gap-3">
-        <span className="app-icon-bubble shrink-0" style={{ background: gradient }}><span className="text-lg font-bold">{icon}</span></span>
+        <span className="app-icon-bubble shrink-0" style={{ background: gradient }}>
+          <span className="app-icon-bubble-inner">{icon}</span>
+        </span>
         <div className="min-w-0">
           <div className="truncate text-sm font-semibold text-slate-900">{label}</div>
           {description ? <div className="mt-1 text-xs leading-5 text-[var(--muted)]">{description}</div> : null}
@@ -197,6 +212,17 @@ export function EmptyState({ title, description, actionHref, actionLabel }: { ti
       {actionHref && actionLabel ? <Link className="mt-4 inline-flex rounded-full bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-[var(--primary-foreground)]" href={actionHref}>{actionLabel}</Link> : null}
     </div>
   );
+}
+
+export function NotificationTypeIcon({
+  type,
+  className,
+}: {
+  type: keyof typeof notificationIconMap;
+  className?: string;
+}) {
+  const Icon = notificationIconMap[type];
+  return <Icon aria-hidden="true" className={className} />;
 }
 
 function cn(...values: Array<string | false | null | undefined>) {

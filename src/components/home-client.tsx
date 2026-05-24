@@ -6,6 +6,7 @@ import { useCommunityPosts } from "./community-provider";
 import { filterPublicPosts } from "@/lib/community-store";
 import { PostCard } from "./post-card";
 import { EmptyState } from "./resident-shared";
+import { BellIcon, FilterIcon, PlusIcon, SearchIcon, VoteIcon } from "./app-icons";
 import { CategoryGlyph } from "./category-glyph";
 import { PostCategoryTabs } from "./post-category-tabs";
 import { getCommunityName } from "@/lib/community-brand";
@@ -55,16 +56,10 @@ export function HomeClient() {
           </div>
           <div className="mobile-home-header-actions">
             <Link href="/posts" className="mobile-home-header-btn" aria-label="搜索">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="11" cy="11" r="7" />
-                <path d="m20 20-3.5-3.5" />
-              </svg>
+              <SearchIcon />
             </Link>
             <Link href="/messages" className="mobile-home-header-btn" aria-label="通知">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-              </svg>
+              <BellIcon />
               {unreadNotificationCount > 0 && (
                 <span className="mobile-home-badge">{unreadNotificationCount}</span>
               )}
@@ -102,9 +97,7 @@ export function HomeClient() {
           </div>
           <button type="button" className="mobile-filter-more">
             <span>筛选</span>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
-            </svg>
+            <FilterIcon />
           </button>
         </div>
 
@@ -156,9 +149,9 @@ export function HomeClient() {
                 )}
 
                 <div className="mobile-post-card-stats">
-                  <span>👍 {post.favoriteCount}</span>
-                  <span>💬 {post.commentCount}</span>
-                  <span>⭐ {post.favoriteCount}</span>
+                  <span><HeartStatIcon /> {post.favoriteCount}</span>
+                  <span><CommentStatIcon /> {post.commentCount}</span>
+                  <span><StarStatIcon /> {post.favoriteCount}</span>
                 </div>
               </Link>
             ))
@@ -228,14 +221,14 @@ export function HomeClient() {
             <div className="text-sm font-semibold text-slate-900">快捷操作</div>
             <div className="mt-3 grid gap-2">
               <Link href="/publish" className="app-shell-link !p-3">
-                <span className="app-shell-link-icon">+</span>
+                <span className="app-shell-link-icon"><PlusIcon /></span>
                 <span className="app-shell-link-copy">
                   <span className="app-shell-link-title">发布内容</span>
                   <span className="app-shell-link-meta">分享你的想法</span>
                 </span>
               </Link>
               <Link href="/neighbors" className="app-shell-link !p-3">
-                <span className="app-shell-link-icon">👥</span>
+                <span className="app-shell-link-icon"><VoteIcon /></span>
                 <span className="app-shell-link-copy">
                   <span className="app-shell-link-title">投票</span>
                   <span className="app-shell-link-meta">参与社区投票</span>
@@ -247,4 +240,16 @@ export function HomeClient() {
       </section>
     </main>
   );
+}
+
+function HeartStatIcon() {
+  return <span className="inline-flex"><BellIcon className="h-3.5 w-3.5" /></span>;
+}
+
+function CommentStatIcon() {
+  return <span className="inline-flex"><VoteIcon className="h-3.5 w-3.5" /></span>;
+}
+
+function StarStatIcon() {
+  return <span className="inline-flex"><FilterIcon className="h-3.5 w-3.5" /></span>;
 }

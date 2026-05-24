@@ -5,24 +5,32 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useCommunityPosts } from "./community-provider";
 import { SystemLogo } from "./system-logo";
+import {
+  HomeIcon,
+  MessagesIcon,
+  PublishIcon,
+  ServiceIcon,
+  UserIcon,
+  VoteIcon,
+} from "./app-icons";
 import { getCommunityName } from "@/lib/community-brand";
 
 const communityName = getCommunityName();
 
 const desktopNavigationItems = [
   { key: "home", href: "/", label: "社区首页", meta: "Feed", icon: HomeIcon },
-  { key: "neighbors", href: "/neighbors", label: "投票", meta: "Voting", icon: NeighborsIcon },
-  { key: "services", href: "/services", label: "工单服务", meta: "Service Desk", icon: ServicesIcon },
+  { key: "neighbors", href: "/neighbors", label: "投票", meta: "Voting", icon: VoteIcon },
+  { key: "services", href: "/services", label: "工单服务", meta: "Service Desk", icon: ServiceIcon },
   { key: "messages", href: "/messages", label: "消息中心", meta: "Inbox", icon: MessagesIcon },
-  { key: "me", href: "/me", label: "个人中心", meta: "Profile", icon: MeIcon },
+  { key: "me", href: "/me", label: "个人中心", meta: "Profile", icon: UserIcon },
 ] as const;
 
 const mobileNavigationItems = [
   { key: "home", href: "/", label: "首页", icon: HomeIcon },
-  { key: "neighbors", href: "/neighbors", label: "投票", icon: NeighborsIcon },
+  { key: "neighbors", href: "/neighbors", label: "投票", icon: VoteIcon },
   { key: "publish", href: "/publish", label: "发布", icon: PublishIcon, isPublish: true },
   { key: "messages", href: "/messages", label: "消息", icon: MessagesIcon },
-  { key: "me", href: "/me", label: "我的", icon: MeIcon },
+  { key: "me", href: "/me", label: "我的", icon: UserIcon },
 ] as const;
 
 function isResidentExperience(pathname: string) {
@@ -190,28 +198,4 @@ export function AppFrame({ children }: { children: ReactNode }) {
       </nav>
     </div>
   );
-}
-
-function HomeIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M4.5 10.5 12 4l7.5 6.5v8a1 1 0 0 1-1 1h-4.5v-5H10v5H5.5a1 1 0 0 1-1-1v-8Z" /></svg>;
-}
-
-function NeighborsIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M7.5 12.5a3 3 0 1 0 0-6 3 3 0 0 0 0 6ZM16.5 11.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Z" /><path d="M3.5 19a4 4 0 0 1 8 0M13 19a3.5 3.5 0 0 1 7 0" /></svg>;
-}
-
-function ServicesIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M5 6.5h14M5 12h9M5 17.5h7" /><path d="m15 14 2 2 4-4" /></svg>;
-}
-
-function MessagesIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M6 7.5h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-5 3v-5a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2Z" /></svg>;
-}
-
-function MeIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 12.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7ZM5 20a7 7 0 0 1 14 0" /></svg>;
-}
-
-function PublishIcon() {
-  return <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><path d="M12 3.6 19 7.7v8.6L12 20.4 5 16.3V7.7L12 3.6Z" /><path d="M12 8.1v7.8M8.1 12h7.8" /></svg>;
 }
