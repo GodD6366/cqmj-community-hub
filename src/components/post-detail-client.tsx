@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCommunityPosts } from "./community-provider";
 import { PostEditor } from "./post-editor";
-import { EmptyState } from "./resident-shared";
+import { EmptyState, Toast, useToast } from "./resident-shared";
 import { categoryMeta, visibilityMeta } from "../lib/types";
 import type { PostDraft } from "../lib/types";
 import { formatDateTime, timeAgo, copyToClipboard } from "../lib/utils";
@@ -143,8 +143,9 @@ function ImageLightbox({
 export function PostDetailClient({ postId }: PostDetailClientProps) {
   const router = useRouter();
   const { posts, addComment, updateComment, toggleFavorite, reportPost, updatePost, deletePost, currentUser, refresh } = useCommunityPosts();
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
+  const { toast, show: showToast } = useToast();
+  const setMessage = (msg: string) => { if (msg) showToast(msg, "success"); };
+  const setError = (msg: string) => { if (msg) showToast(msg, "error"); };
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -194,7 +195,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
     return list.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }, [post, commentSort]);
 
-  if (!post) return <main className="page-shell"><EmptyState title="帖子不存在" actionHref={postListHref} actionLabel="返回动态" /></main>;
+  if (!post) return <main className="page-shell"><EmptyState title="帖子不存在" actionHref={postListHref} actionLabel="返回动态" /><Toast toast={toast} /></main>;
 
   const meta = categoryMeta[post.category];
   const activeImage = post.images[activeImageIndex] ?? post.images[0] ?? null;
@@ -323,7 +324,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   }
 
   if (editing) {
-    return <main className="page-shell space-y-4"><Link href="#" onClick={(e) => { e.preventDefault(); setEditing(false); }} className="app-section-link">← 返回帖子详情</Link><PostEditor clearLabel="恢复原内容" editorTitle="编辑帖子" initialCategory={post.category} initialDraft={editDraft} persistDraft={false} submitLabel="保存修改" submittingLabel="保存中..." visibleCategories={["request", "secondhand", "discussion", "play"]} onSubmit={async (draft) => { await updatePost(postIdValue, draft); setEditing(false); setError(""); setMessage("帖子已更新。"); }} /></main>;
+    return <main className="page-shell space-y-4"><Link href="#" onClick={(e) => { e.preventDefault(); setEditing(false); }} className="app-section-link">← 返回帖子详情</Link><PostEditor clearLabel="恢复原内容" editorTitle="编辑帖子" initialCategory={post.category} initialDraft={editDraft} persistDraft={false} submitLabel="保存修改" submittingLabel="保存中..." visibleCategories={["request", "secondhand", "discussion", "play"]} onSubmit={async (draft) => { await updatePost(postIdValue, draft); setEditing(false); setError(""); setMessage("帖子已更新。"); }} /><Toast toast={toast} /></main>;
   }
 
   return (
@@ -377,8 +378,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           </div>
         </div>
 
-        {error && <div className="mobile-login-error">{error}</div>}
-        {message && <div className="mobile-login-success">{message}</div>}
+        {/* Messages replaced by Toast */}
 
         {/* 作者信息 */}
         <div className="mobile-post-author-section">
@@ -890,6 +890,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           </div>
         </div>
       </section>
+      <Toast toast={toast} />
     </main>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useRef, useCallback } from "react";
 import type { ReactNode } from "react";
 import type { PollSummary, ServiceTicketSummary } from "@/lib/types";
 import { pollStatusMeta, serviceTicketCategoryMeta, serviceTicketStatusMeta } from "@/lib/types";
@@ -227,4 +228,34 @@ export function NotificationTypeIcon({
 
 function cn(...values: Array<string | false | null | undefined>) {
   return values.filter(Boolean).join(" ");
+}
+
+export interface ToastState {
+  visible: boolean;
+  text: string;
+  status: "success" | "error";
+}
+
+export function useToast(durationMs = 2500) {
+  const [toast, setToast] = useState<ToastState>({ visible: false, text: "", status: "success" });
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const show = useCallback((text: string, status: "success" | "error" = "success") => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setToast({ visible: true, text, status });
+    timerRef.current = setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), durationMs);
+  }, [durationMs]);
+
+  return { toast, show };
+}
+
+export function Toast({ toast }: { toast: ToastState }) {
+  if (!toast.visible) return null;
+  return (
+    <div className="fixed inset-x-0 bottom-12 z-50 flex items-center justify-center pointer-events-none animate-in slide-in-from-bottom-6 fade-in duration-300">
+      <div className={`px-4 py-2.5 rounded-full shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-md border text-sm font-semibold tracking-wide ${toast.status === "error" ? "bg-[rgba(40,10,10,0.88)] border-red-500/30 text-red-400" : "bg-[rgba(6,12,12,0.88)] border-[var(--primary)] text-[var(--primary)]"}`}>
+        {toast.text}
+      </div>
+    </div>
+  );
 }

@@ -66,3 +66,13 @@ python3 scripts/community_hub.py polls list --limit 20
 - 参与投票：`python3 scripts/community_hub.py polls vote <poll-id> --option-id <option-id>`
 
 投票前，使用 `polls list` 返回的选项 ID。
+
+### 通知与联系状态
+
+- 列出通知：`python3 scripts/community_hub.py notifications list --limit 30`
+- 仅列出未读通知：`python3 scripts/community_hub.py notifications list --unread-only`
+- 标记特定通知为已读：`python3 scripts/community_hub.py notifications read --id <notification-id>`
+- 标记所有通知为已读：`python3 scripts/community_hub.py notifications read`
+
+**场景举例：查询技能被联系状态**
+如果当前用户发布了技能，可以通过 `notifications list --unread-only` 查看到 `type="system"` 且 `title="有人想获取您的技能帮助"` 的通知，这表示有邻居联系了 TA，可以借此将这个状态通知给用户。读取后，应该使用 `notifications read --id <通知ID>` 标记为已读，避免重复通知。

@@ -21,6 +21,8 @@ export function buildSkillConnectionPrompt(input: {
     "请用上面的临时 token 下载并安装/加载该 Skill Bundle。临时 token 只用于下载 bundle;",
     "",
     "常用能力：看帖、发帖、回帖、收藏/举报、看投票、发起投票、参与投票。",
+    "",
+    "💡 Tips：接入成功后，你可以跟我说「如果有人请求我协助，请主动通知我」，我会定时帮你留意社区的求助动态！",
   ].join("\n");
 }
 

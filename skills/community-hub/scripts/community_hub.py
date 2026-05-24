@@ -145,6 +145,14 @@ def cmd_polls_vote(args: argparse.Namespace) -> None:
     print_json(request_json("POST", f"/polls/{urllib.parse.quote(args.poll_id)}/vote", {"optionId": args.option_id}))
 
 
+def cmd_notifications_list(args: argparse.Namespace) -> None:
+    print_json(request_json("GET", "/notifications", query={"limit": args.limit, "unreadOnly": "true" if args.unread_only else ""}))
+
+
+def cmd_notifications_read(args: argparse.Namespace) -> None:
+    print_json(request_json("POST", "/notifications", {"ids": args.id} if args.id else {}))
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Community Hub Skill CLI")
     sub = parser.add_subparsers(required=True)
@@ -207,6 +215,18 @@ def build_parser() -> argparse.ArgumentParser:
     polls_vote.add_argument("poll_id")
     polls_vote.add_argument("--option-id", required=True)
     polls_vote.set_defaults(func=cmd_polls_vote)
+
+    notifications = sub.add_parser("notifications", help="Notification operations")
+    notif_sub = notifications.add_subparsers(required=True)
+
+    notif_list = notif_sub.add_parser("list", help="List notifications")
+    notif_list.add_argument("--limit", type=int, default=30)
+    notif_list.add_argument("--unread-only", action="store_true")
+    notif_list.set_defaults(func=cmd_notifications_list)
+
+    notif_read = notif_sub.add_parser("read", help="Mark notifications as read")
+    notif_read.add_argument("--id", action="append", help="Notification IDs to mark as read (if omitted, marks all as read)")
+    notif_read.set_defaults(func=cmd_notifications_read)
 
     return parser
 
