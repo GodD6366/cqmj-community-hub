@@ -51,3 +51,4 @@ next-env.d.ts
 .env*.local
 .pnpm-store
 .codex-artifacts/
+.antigravitycli/

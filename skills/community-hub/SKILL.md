@@ -1,18 +1,18 @@
 ---
 name: community-hub
-description: "Use this skill to operate a Community Hub neighborhood app through its Skill HTTP API: read current user info, list/read/create community posts, add comments, favorite or report posts, list/create polls, and vote in polls. Trigger when users ask an AI assistant to browse neighborhood posts, draft/publish posts or replies, summarize community activity, or participate in Community Hub polls using the bundled config.json credentials."
+description: "当需要通过 Community Hub 社区应用的 Skill HTTP API 执行操作时使用本技能：读取当前用户信息，列出、查看、创建社区帖子，添加评论，收藏或举报帖子，列出或创建投票，并参与投票。当用户要求 AI 助手浏览社区帖子、起草或发布帖子/回复、总结社区动态，或使用随包提供的 config.json 凭据参与 Community Hub 投票时触发。"
 ---
 
-# Community Hub Skill
+# Community Hub 技能
 
-## Quick start
+## 快速开始
 
-Use `scripts/community_hub.py` for all API calls. The downloaded Skill bundle includes `config.json` with:
+所有 API 调用都使用 `scripts/community_hub.py`。下载后的 Skill 包中包含 `config.json`，其中包括：
 
-- `apiBaseUrl`: base URL ending in `/api/skill`
-- `apiKey`: personal Bearer token from the Community Hub Skill connect page
+- `apiBaseUrl`：以 `/api/skill` 结尾的基础 URL
+- `apiKey`：从 Community Hub Skill 连接页面获取的个人 Bearer token
 
-Run from this skill directory or reference the script by absolute path:
+在本技能目录中运行，或使用脚本的绝对路径调用：
 
 ```bash
 python3 scripts/community_hub.py me
@@ -21,20 +21,20 @@ python3 scripts/community_hub.py posts get <post-id>
 python3 scripts/community_hub.py polls list --limit 20
 ```
 
-## Safety and confirmation
+## 安全与确认
 
-- Never copy `config.json` or its `apiKey` into repository files, logs, screenshots, or generated artifacts.
-- Before creating a post, comment, report, poll, or vote, confirm with the user unless they explicitly requested that exact action and content.
-- Treat posts, comments, reports, poll titles/descriptions/options, and votes as user-visible community actions.
-- If an API call returns an error, report the API message and do not retry mutating actions blindly.
+- 绝不要把 `config.json` 或其中的 `apiKey` 复制到仓库文件、日志、截图或生成物中。
+- 创建帖子、评论、举报、投票或提交投票前，必须先向用户确认；除非用户已经明确要求执行该确切动作并给出了具体内容。
+- 将帖子、评论、举报、投票标题/说明/选项以及投票行为视为对社区用户可见的操作。
+- 如果 API 调用返回错误，报告 API 消息，不要盲目重试会修改数据的操作。
 
-## Common tasks
+## 常见任务
 
-### Posts
+### 帖子
 
-- List posts: `python3 scripts/community_hub.py posts list --filter latest --category discussion --limit 10`
-- Read a post: `python3 scripts/community_hub.py posts get <post-id>`
-- Create a text post:
+- 列出帖子：`python3 scripts/community_hub.py posts list --filter latest --category discussion --limit 10`
+- 查看帖子：`python3 scripts/community_hub.py posts get <post-id>`
+- 创建文字帖子：
   ```bash
   python3 scripts/community_hub.py posts create \
     --title "标题" \
@@ -43,24 +43,24 @@ python3 scripts/community_hub.py polls list --limit 20
     --tag 交流 --tag 公告 \
     --visibility community
   ```
-- Reply to a post: `python3 scripts/community_hub.py posts comment <post-id> --content "回复内容"`
-- Toggle favorite: `python3 scripts/community_hub.py posts favorite <post-id>`
-- Report a post: `python3 scripts/community_hub.py posts report <post-id> --reason "原因"`
+- 回复帖子：`python3 scripts/community_hub.py posts comment <post-id> --content "回复内容"`
+- 切换收藏状态：`python3 scripts/community_hub.py posts favorite <post-id>`
+- 举报帖子：`python3 scripts/community_hub.py posts report <post-id> --reason "原因"`
 
-Categories: `request`, `secondhand`, `discussion`, `play`.
-Visibility: `community`, `building`, `private`.
-Filters: `all`, `latest`, `following`, `featured`.
+分类：`request`、`secondhand`、`discussion`、`play`。
+可见范围：`community`、`building`、`private`。
+筛选器：`all`、`latest`、`following`、`featured`。
 
-### Polls
+### 投票
 
-- List polls: `python3 scripts/community_hub.py polls list --limit 20`
-- Create a poll:
+- 列出投票：`python3 scripts/community_hub.py polls list --limit 20`
+- 创建投票：
   ```bash
   python3 scripts/community_hub.py polls create \
     --title "投票标题" \
     --description "投票说明" \
     --option "选项 A" --option "选项 B"
   ```
-- Vote: `python3 scripts/community_hub.py polls vote <poll-id> --option-id <option-id>`
+- 参与投票：`python3 scripts/community_hub.py polls vote <poll-id> --option-id <option-id>`
 
-Use the option IDs returned by `polls list` before voting.
+投票前，使用 `polls list` 返回的选项 ID。
