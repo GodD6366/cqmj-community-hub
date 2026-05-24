@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
-import { rotateUserSkillToken } from "@/lib/skill-auth";
+import { issueUserSkillBundleDownloadToken, rotateUserSkillToken } from "@/lib/skill-auth";
 
 export async function POST() {
   const currentUser = await getCurrentUserFromCookie();
@@ -10,7 +10,15 @@ export async function POST() {
 
   try {
     const result = await rotateUserSkillToken(currentUser.id);
-    return NextResponse.json(result, {
+    const bundleDownloadToken = issueUserSkillBundleDownloadToken({
+      id: result.user.id,
+      skillTokenVersion: result.user.skillTokenVersion,
+    });
+    return NextResponse.json({
+      ...result,
+      bundleDownloadToken: bundleDownloadToken.token,
+      bundleDownloadTokenExpiresAt: bundleDownloadToken.expiresAt,
+    }, {
       headers: {
         "Cache-Control": "no-store",
       },

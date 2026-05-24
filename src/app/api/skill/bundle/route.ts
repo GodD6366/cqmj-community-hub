@@ -2,7 +2,8 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
 import { getAppOrigin } from "@/lib/app-origin";
-import { ensureUserSkillAccess } from "@/lib/skill-auth";
+import { ensureUserSkillAccess, verifyUserSkillBundleDownloadToken } from "@/lib/skill-auth";
+import type { CommunityUser } from "@/lib/types";
 
 export const runtime = "nodejs";
 
@@ -64,21 +65,44 @@ async function buildTarball(config: { apiBaseUrl: string; apiKey: string; userna
   return Buffer.concat(parts);
 }
 
-export async function GET() {
+async function loadBundleAccess(request: Request): Promise<{ user: CommunityUser; token: string } | null> {
+  const downloadToken = new URL(request.url).searchParams.get("token")?.trim();
+  if (downloadToken) {
+    return verifyUserSkillBundleDownloadToken(downloadToken);
+  }
+
   const currentUser = await getCurrentUserFromCookie();
   if (!currentUser) {
-    return Response.json({ error: "请先登录" }, { status: 401, headers: { "Cache-Control": "no-store" } });
+    return null;
+  }
+
+  return ensureUserSkillAccess(currentUser.id);
+}
+
+export async function GET(request: Request) {
+  let access;
+  try {
+    access = await loadBundleAccess(request);
+  } catch (error) {
+    if (error instanceof Error && error.message === "USER_DISABLED") {
+      return Response.json({ error: "该账号已被管理员禁用" }, { status: 403, headers: { "Cache-Control": "no-store" } });
+    }
+    return Response.json(
+      { error: error instanceof Error ? error.message : "生成 Skill Bundle 失败" },
+      { status: 500, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
+  if (!access) {
+    return Response.json({ error: "请先登录或提供有效的 Bundle 临时下载 Token" }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
   try {
-    const [{ token, user }, appOrigin] = await Promise.all([
-      ensureUserSkillAccess(currentUser.id),
-      getAppOrigin(),
-    ]);
+    const appOrigin = await getAppOrigin();
     const tarball = await buildTarball({
       apiBaseUrl: `${appOrigin}/api/skill`,
-      apiKey: token,
-      username: user.username,
+      apiKey: access.token,
+      username: access.user.username,
     });
 
     return new Response(tarball, {
@@ -89,9 +113,6 @@ export async function GET() {
       },
     });
   } catch (error) {
-    if (error instanceof Error && error.message === "USER_DISABLED") {
-      return Response.json({ error: "该账号已被管理员禁用" }, { status: 403, headers: { "Cache-Control": "no-store" } });
-    }
     return Response.json(
       { error: error instanceof Error ? error.message : "生成 Skill Bundle 失败" },
       { status: 500, headers: { "Cache-Control": "no-store" } },
