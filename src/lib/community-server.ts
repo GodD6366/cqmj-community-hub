@@ -123,6 +123,7 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
     tags: parseTags(post.tags),
     authorName: post.authorName,
     authorId: post.authorId,
+    authorRoom: post.authorName === "匿名居民" ? "未知" : (post.author?.roomNumber ?? null),
     createdAt: post.createdAt.toISOString(),
     updatedAt: post.updatedAt.toISOString(),
     commentCount: post.commentCount,

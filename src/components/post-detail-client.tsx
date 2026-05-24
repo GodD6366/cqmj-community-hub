@@ -321,7 +321,6 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
     const url = window.location.href;
     const shareData = {
       title: post.title,
-      text: `${post.authorName} 发布的帖子：${post.title}`,
       url,
     };
 
@@ -412,7 +411,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
             <div className="mobile-post-author-info">
               <div className="mobile-post-author-name">{post.authorName}</div>
               <div className="mobile-post-author-meta">
-                <span className="mobile-post-author-room">2栋-1502</span>
+                <span className="mobile-post-author-room">{post.authorRoom || "未知"}</span>
                 {post.pinned && <span className="mobile-post-author-badge mobile-post-author-badge--pinned">置顶</span>}
                 {post.featured && <span className="mobile-post-author-badge mobile-post-author-badge--featured">精选</span>}
               </div>

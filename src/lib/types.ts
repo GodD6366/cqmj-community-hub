@@ -108,6 +108,7 @@ export interface CommunityPost {
   tags: string[];
   authorName: string;
   authorId?: string | null;
+  authorRoom?: string | null;
   createdAt: string;
   updatedAt: string;
   commentCount: number;

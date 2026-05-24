@@ -166,7 +166,7 @@ export function HomeClient() {
                     </span>
                     <div>
                       <span className="mobile-post-card-name">{(item.data as CommunityPost).authorName}</span>
-                      <span className="mobile-post-card-location">2栋-1502</span>
+                      <span className="mobile-post-card-location">{(item.data as CommunityPost).authorRoom || "未知"}</span>
                     </div>
                   </div>
                   <span className={`mobile-post-card-badge mobile-post-card-badge--${(item.data as CommunityPost).category}`}>
