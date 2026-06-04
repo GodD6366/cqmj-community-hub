@@ -99,6 +99,26 @@ export interface DraftPostImage {
   sortOrder: number;
 }
 
+export interface PostAttachment {
+  id: string;
+  objectKey: string;
+  url: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  sortOrder: number;
+}
+
+export interface DraftPostAttachment {
+  id?: string;
+  objectKey: string;
+  url: string;
+  filename: string;
+  mimeType: string;
+  sizeBytes: number;
+  sortOrder: number;
+}
+
 export interface CommunityPost {
   id: string;
   title: string;
@@ -117,6 +137,7 @@ export interface CommunityPost {
   status: PostStatus;
   comments: CommunityComment[];
   images: PostImage[];
+  attachments: PostAttachment[];
   pinned?: boolean;
   featured?: boolean;
   favorited?: boolean;
@@ -284,6 +305,7 @@ export interface PostDraft {
   visibility: VisibilityScope;
   anonymous: boolean;
   images: DraftPostImage[];
+  attachments: DraftPostAttachment[];
 }
 
 export const categoryMeta: Record<

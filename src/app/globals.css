@@ -1,5 +1,6 @@
 @import 'tailwindcss';
 @import '@heroui/styles';
+@import 'highlight.js/styles/github-dark.css';
 
 :root {
   --background: #060c0c;
@@ -93,6 +94,184 @@ body {
   font-family: var(--font-sans);
   overflow-x: clip;
   text-rendering: optimizeLegibility;
+}
+
+.markdown-body {
+  color: inherit;
+  line-height: 1.85;
+  overflow-wrap: anywhere;
+}
+.markdown-body > * + * {
+  margin-top: 0.9rem;
+}
+.markdown-body h1,
+.markdown-body h2,
+.markdown-body h3 {
+  color: #f3fff8;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.markdown-body h1 {
+  font-size: 1.45rem;
+}
+.markdown-body h2 {
+  font-size: 1.22rem;
+}
+.markdown-body h3 {
+  font-size: 1.05rem;
+}
+.markdown-body ul,
+.markdown-body ol {
+  padding-left: 1.25rem;
+}
+.markdown-body ul {
+  list-style: disc;
+}
+.markdown-body ol {
+  list-style: decimal;
+}
+.markdown-body li + li {
+  margin-top: 0.25rem;
+}
+.markdown-body a {
+  color: var(--primary);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+.markdown-body blockquote {
+  border-left: 4px solid var(--primary);
+  border-radius: 0 0.75rem 0.75rem 0;
+  background: rgba(57, 245, 143, 0.06);
+  color: rgba(237, 255, 246, 0.72);
+  padding: 0.7rem 1rem;
+}
+.markdown-body table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border-radius: 0.9rem;
+  font-size: 0.9rem;
+}
+.markdown-body th,
+.markdown-body td {
+  border: 1px solid rgba(76, 255, 177, 0.14);
+  padding: 0.65rem 0.75rem;
+}
+.markdown-body th {
+  background: rgba(57, 245, 143, 0.08);
+  color: #f3fff8;
+}
+.markdown-inline-code {
+  border: 1px solid rgba(57, 245, 143, 0.14);
+  border-radius: 0.45rem;
+  background: rgba(57, 245, 143, 0.1);
+  color: #9cffc9;
+  padding: 0.08rem 0.35rem;
+  font-family: var(--font-display);
+  font-size: 0.9em;
+}
+.markdown-code-block {
+  overflow: hidden;
+  border: 1px solid rgba(76, 255, 177, 0.16);
+  border-radius: 1rem;
+  background: rgba(2, 7, 7, 0.98);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04), 0 14px 36px rgba(0, 0, 0, 0.22);
+}
+.markdown-code-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgba(76, 255, 177, 0.12);
+  background: rgba(57, 245, 143, 0.07);
+  padding: 0.55rem 0.75rem;
+  color: #9cffc9;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+.markdown-code-toolbar button {
+  border: 1px solid rgba(57, 245, 143, 0.22);
+  border-radius: 999px;
+  background: rgba(57, 245, 143, 0.1);
+  color: var(--primary);
+  padding: 0.25rem 0.6rem;
+  font-family: var(--font-display);
+  font-size: 0.72rem;
+  text-transform: none;
+}
+.markdown-code-block pre {
+  margin: 0;
+  overflow-x: auto;
+  padding: 1rem;
+}
+.markdown-code-block code {
+  font-family: var(--font-display);
+  font-size: 0.86rem;
+  line-height: 1.7;
+}
+.post-attachments {
+  margin-top: 1rem;
+  border: 1px solid rgba(76, 255, 177, 0.14);
+  border-radius: 1rem;
+  background: rgba(8, 16, 16, 0.72);
+  padding: 0.9rem;
+}
+.post-attachments-title {
+  font-size: 0.82rem;
+  font-weight: 800;
+  color: #f3fff8;
+}
+.post-attachments-list {
+  display: grid;
+  gap: 0.65rem;
+  margin-top: 0.7rem;
+}
+.post-attachment-item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border: 1px solid rgba(76, 255, 177, 0.12);
+  border-radius: 0.85rem;
+  background: rgba(3, 8, 8, 0.52);
+  padding: 0.75rem;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 140ms ease, background 140ms ease;
+}
+.post-attachment-item:hover {
+  border-color: rgba(57, 245, 143, 0.3);
+  background: rgba(57, 245, 143, 0.07);
+}
+.post-attachment-icon {
+  display: inline-flex;
+  width: 2.4rem;
+  height: 2.4rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.7rem;
+  background: rgba(57, 245, 143, 0.12);
+  color: var(--primary);
+  font-family: var(--font-display);
+  font-size: 0.62rem;
+  font-weight: 800;
+}
+.post-attachment-name,
+.post-attachment-meta {
+  display: block;
+}
+.post-attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #f3fff8;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.post-attachment-meta {
+  margin-top: 0.18rem;
+  color: var(--muted);
+  font-size: 0.76rem;
 }
 body::before {
   content: '';

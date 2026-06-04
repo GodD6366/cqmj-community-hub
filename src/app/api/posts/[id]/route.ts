@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
 import { deletePostForViewer, getPostForViewer, updatePostForViewer } from "@/lib/community-server";
 import { validateImageStorageFields, validatePostImages } from "@/lib/post-images";
+import { validateAttachmentStorageFields, validatePostAttachments } from "@/lib/post-attachments";
 import { getPublicImageBaseUrl, getUploadPrefix } from "@/lib/s3-storage";
 import { isPostCategory } from "@/lib/types";
 import type { VisibilityScope } from "@/lib/types";
@@ -20,7 +21,8 @@ function parseDraft(body: unknown) {
   const visibility = value.visibility;
   const anonymous = Boolean(value.anonymous);
   const images = Array.isArray(value.images) ? value.images : [];
-  return { title, content, category, tags, visibility, anonymous, images };
+  const attachments = Array.isArray(value.attachments) ? value.attachments : [];
+  return { title, content, category, tags, visibility, anonymous, images, attachments };
 }
 
 function isVisibilityScope(value: unknown): value is VisibilityScope {
@@ -67,6 +69,33 @@ function validateDraft(draft: ReturnType<typeof parseDraft>) {
     }
   }
 
+  const attachmentValidation = validatePostAttachments(draft.attachments);
+  if (!attachmentValidation.ok) {
+    return { ok: false as const, response: NextResponse.json({ error: attachmentValidation.error }, { status: 400 }) };
+  }
+
+  if (attachmentValidation.attachments.length > 0) {
+    let attachmentStorageValidation;
+    try {
+      attachmentStorageValidation = validateAttachmentStorageFields(attachmentValidation.attachments, {
+        publicBaseUrl: getPublicImageBaseUrl(),
+        uploadPrefix: getUploadPrefix(),
+      });
+    } catch (error) {
+      return {
+        ok: false as const,
+        response: NextResponse.json(
+          { error: error instanceof Error ? error.message : "对象存储配置错误" },
+          { status: 500 },
+        ),
+      };
+    }
+
+    if (!attachmentStorageValidation.ok) {
+      return { ok: false as const, response: NextResponse.json({ error: attachmentStorageValidation.error }, { status: 400 }) };
+    }
+  }
+
   return {
     ok: true as const,
     draft: {
@@ -77,6 +106,7 @@ function validateDraft(draft: ReturnType<typeof parseDraft>) {
       visibility: draft.visibility,
       anonymous: draft.anonymous,
       images: imageValidation.images,
+      attachments: attachmentValidation.attachments,
     },
   };
 }

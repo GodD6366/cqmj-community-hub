@@ -143,6 +143,7 @@ model Post {
   comments      Comment[]
   favorites     Favorite[]
   images        PostImage[]
+  attachments   PostAttachment[]
   reports       Report[]
   skillMatches  PostSkillMatch[]
 
@@ -160,6 +161,21 @@ model PostImage {
   mimeType  String
   width     Int
   height    Int
+  sizeBytes Int
+  sortOrder Int
+  createdAt DateTime @default(now())
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, sortOrder])
+}
+
+model PostAttachment {
+  id        String   @id @default(cuid())
+  postId    String
+  objectKey String
+  url       String
+  filename  String
+  mimeType  String
   sizeBytes Int
   sortOrder Int
   createdAt DateTime @default(now())

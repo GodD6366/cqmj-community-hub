@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { verifyUserSkillToken } from "./skill-auth";
 import { createPostForViewer, listPostsForViewer } from "./community-server";
 import { validateImageStorageFields, validatePostImages } from "./post-images";
+import { validateAttachmentStorageFields, validatePostAttachments } from "./post-attachments";
 import { getPublicImageBaseUrl, getUploadPrefix } from "./s3-storage";
 import { isPostCategory, isRequestStatus } from "./types";
 import type { CommunityUser, PostCategory, VisibilityScope, RequestStatus } from "./types";
@@ -76,7 +77,8 @@ function parsePostDraft(body: unknown) {
   const visibility = value.visibility;
   const anonymous = Boolean(value.anonymous);
   const images = Array.isArray(value.images) ? value.images : [];
-  return { title, content, category, tags, visibility, anonymous, images };
+  const attachments = Array.isArray(value.attachments) ? value.attachments : [];
+  return { title, content, category, tags, visibility, anonymous, images, attachments };
 }
 
 function isVisibilityScope(value: unknown): value is VisibilityScope {
@@ -140,6 +142,30 @@ export async function createSkillPostFromRequest(request: Request, viewer: Commu
     }
   }
 
+  const attachmentValidation = validatePostAttachments(draft.attachments);
+  if (!attachmentValidation.ok) {
+    return skillJson({ error: attachmentValidation.error }, { status: 400 });
+  }
+
+  if (attachmentValidation.attachments.length > 0) {
+    let attachmentStorageValidation;
+    try {
+      attachmentStorageValidation = validateAttachmentStorageFields(attachmentValidation.attachments, {
+        publicBaseUrl: getPublicImageBaseUrl(),
+        uploadPrefix: getUploadPrefix(),
+      });
+    } catch (error) {
+      return skillJson(
+        { error: error instanceof Error ? error.message : "对象存储配置错误" },
+        { status: 500 },
+      );
+    }
+
+    if (!attachmentStorageValidation.ok) {
+      return skillJson({ error: attachmentStorageValidation.error }, { status: 400 });
+    }
+  }
+
   const id = await createPostForViewer(viewer, {
     title: draft.title,
     content: draft.content,
@@ -148,6 +174,7 @@ export async function createSkillPostFromRequest(request: Request, viewer: Commu
     visibility: draft.visibility,
     anonymous: draft.anonymous,
     images: imageValidation.images,
+    attachments: attachmentValidation.attachments,
   });
 
   return skillJson({ id }, { status: 201 });

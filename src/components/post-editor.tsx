@@ -10,7 +10,24 @@ import {
   POST_IMAGE_OUTPUT_TYPE,
   type PostImageInput,
 } from "../lib/post-images";
-import type { DraftPostImage, PostCategory, PostDraft, PostImage, VisibilityScope } from "../lib/types";
+import {
+  ACCEPTED_POST_ATTACHMENT_EXTENSIONS,
+  MAX_POST_ATTACHMENTS,
+  MAX_POST_ATTACHMENT_BYTES,
+  POST_ATTACHMENT_FALLBACK_TYPE,
+  isAcceptedPostAttachmentFile,
+  normalizePostAttachmentFilename,
+  type PostAttachmentInput,
+} from "../lib/post-attachments";
+import type {
+  DraftPostAttachment,
+  DraftPostImage,
+  PostAttachment,
+  PostCategory,
+  PostDraft,
+  PostImage,
+  VisibilityScope,
+} from "../lib/types";
 import { categoryMeta, isPostCategory, visibilityMeta } from "../lib/types";
 import { splitTags } from "../lib/utils";
 import { SectionCard } from "./ui";
@@ -49,10 +66,15 @@ interface EditorImageItem extends PostImage {
   error?: string;
 }
 
+interface EditorAttachmentItem extends PostAttachment {
+  clientId: string;
+  status: "uploading" | "uploaded" | "error";
+  error?: string;
+}
+
 const visibilityOptions = Object.entries(visibilityMeta) as [VisibilityScope, (typeof visibilityMeta)[VisibilityScope]][];
 const STORAGE_KEY = "community-hub-post-draft";
 const TITLE_MAX = 60;
-const CONTENT_MAX = 1200;
 const WEBP_EXT = ".webp";
 const categoryEditorCopy: Record<
   PostCategory,
@@ -135,12 +157,19 @@ function revokeBlobUrl(value: string) {
 function createClientId() {
   return typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
-    : `image_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    : `file_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
 function getFilenameStem(name: string) {
   const normalized = name.replace(/\.[^.]+$/g, "").replace(/[^a-zA-Z0-9_-]+/g, "-").replace(/^-+|-+$/g, "");
   return normalized || "image";
+}
+
+function formatFileSize(sizeBytes: number) {
+  if (sizeBytes >= 1024 * 1024) {
+    return `${(sizeBytes / 1024 / 1024).toFixed(sizeBytes >= 10 * 1024 * 1024 ? 0 : 1)}MB`;
+  }
+  return `${Math.max(1, Math.round(sizeBytes / 1024))}KB`;
 }
 
 function readResponseError(body: unknown, fallback: string) {
@@ -268,6 +297,20 @@ function toDraftImages(items: EditorImageItem[]): DraftPostImage[] {
     }));
 }
 
+function toDraftAttachments(items: EditorAttachmentItem[]): DraftPostAttachment[] {
+  return items
+    .filter((item) => item.status === "uploaded")
+    .map((item, index) => ({
+      id: item.id,
+      objectKey: item.objectKey,
+      url: item.url,
+      filename: item.filename,
+      mimeType: item.mimeType,
+      sizeBytes: item.sizeBytes,
+      sortOrder: index,
+    }));
+}
+
 export function PostEditor({
   onSubmit,
   initialDraft,
@@ -307,10 +350,23 @@ export function PostEditor({
       };
     }),
   );
+  const [attachments, setAttachments] = useState<EditorAttachmentItem[]>(() =>
+    (initialDraft?.attachments ?? []).map((attachment, index) => {
+      const draftAttachmentId = attachment.id || createClientId();
+      return {
+        ...attachment,
+        id: draftAttachmentId,
+        clientId: draftAttachmentId,
+        status: "uploaded" as const,
+        sortOrder: index,
+      };
+    }),
+  );
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [hydratedDraft, setHydratedDraft] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const attachmentInputRef = useRef<HTMLInputElement | null>(null);
   const imagesRef = useRef<EditorImageItem[]>([]);
   const previousCategoryRef = useRef(category);
 
@@ -318,8 +374,13 @@ export function PostEditor({
   const titleLength = title.trim().length;
   const contentLength = content.trim().length;
   const uploadedImages = useMemo(() => toDraftImages(images), [images]);
-  const uploadingCount = images.filter((item) => item.status === "uploading").length;
-  const failedCount = images.filter((item) => item.status === "error").length;
+  const uploadedAttachments = useMemo(() => toDraftAttachments(attachments), [attachments]);
+  const uploadingImageCount = images.filter((item) => item.status === "uploading").length;
+  const failedImageCount = images.filter((item) => item.status === "error").length;
+  const uploadingAttachmentCount = attachments.filter((item) => item.status === "uploading").length;
+  const failedAttachmentCount = attachments.filter((item) => item.status === "error").length;
+  const uploadingCount = uploadingImageCount + uploadingAttachmentCount;
+  const failedCount = failedImageCount + failedAttachmentCount;
   const currentCategoryCopy = categoryEditorCopy[category];
   const showCategoryInHeader = visibleCategories.length > 1 && !categoryLocked;
   const resolvedEditorTitle = showCategoryInHeader ? categoryMeta[category].label : editorTitle;
@@ -388,6 +449,20 @@ export function PostEditor({
           }),
         );
       }
+      if (Array.isArray(draft.attachments)) {
+        setAttachments(
+          draft.attachments.map((attachment, index) => {
+            const draftAttachmentId = attachment.id || createClientId();
+            return {
+              ...attachment,
+              id: draftAttachmentId,
+              clientId: draftAttachmentId,
+              status: "uploaded" as const,
+              sortOrder: index,
+            };
+          }),
+        );
+      }
     } catch {
       // ignore broken local draft
     } finally {
@@ -405,9 +480,10 @@ export function PostEditor({
       visibility,
       anonymous,
       images: uploadedImages,
+      attachments: uploadedAttachments,
     };
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
-  }, [anonymous, category, content, hydratedDraft, persistDraft, uploadedImages, parsedTags, title, visibility]);
+  }, [anonymous, category, content, hydratedDraft, persistDraft, uploadedAttachments, uploadedImages, parsedTags, title, visibility]);
 
   const clearDraft = () => {
     for (const image of images) {
@@ -432,9 +508,24 @@ export function PostEditor({
         };
       }),
     );
+    setAttachments(
+      (initialDraft?.attachments ?? []).map((attachment, index) => {
+        const draftAttachmentId = attachment.id || createClientId();
+        return {
+          ...attachment,
+          id: draftAttachmentId,
+          clientId: draftAttachmentId,
+          status: "uploaded" as const,
+          sortOrder: index,
+        };
+      }),
+    );
     setError("");
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
+    }
+    if (attachmentInputRef.current) {
+      attachmentInputRef.current.value = "";
     }
     if (persistDraft) {
       window.localStorage.removeItem(STORAGE_KEY);
@@ -455,6 +546,23 @@ export function PostEditor({
 
   const reorderImage = (from: number, to: number) => {
     setImages((current) =>
+      moveItem(current, from, to).map((item, index) => ({
+        ...item,
+        sortOrder: index,
+      })),
+    );
+  };
+
+  const removeAttachment = (clientId: string) => {
+    setAttachments((current) =>
+      current
+        .filter((item) => item.clientId !== clientId)
+        .map((item, index) => ({ ...item, sortOrder: index })),
+    );
+  };
+
+  const reorderAttachment = (from: number, to: number) => {
+    setAttachments((current) =>
       moveItem(current, from, to).map((item, index) => ({
         ...item,
         sortOrder: index,
@@ -588,6 +696,128 @@ export function PostEditor({
     event.target.value = "";
   };
 
+  const uploadOneAttachment = async (file: File) => {
+    const filename = normalizePostAttachmentFilename(file.name);
+    const mimeType = file.type || POST_ATTACHMENT_FALLBACK_TYPE;
+
+    if (!isAcceptedPostAttachmentFile(filename, mimeType)) {
+      throw new Error(`仅支持 ${ACCEPTED_POST_ATTACHMENT_EXTENSIONS.join(" / ")} 附件`);
+    }
+    if (file.size > MAX_POST_ATTACHMENT_BYTES) {
+      throw new Error(`单个附件不能超过 ${formatFileSize(MAX_POST_ATTACHMENT_BYTES)}`);
+    }
+
+    const presignResponse = await fetch("/api/uploads/presign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        kind: "attachment",
+        filename,
+        mimeType,
+        sizeBytes: file.size,
+      }),
+    });
+    const presignBody = (await presignResponse.json().catch(() => null)) as UploadPresignResponse | { error?: string } | null;
+    if (!presignResponse.ok || !presignBody || !("uploadUrl" in presignBody)) {
+      throw new Error(readResponseError(presignBody, "生成上传地址失败"));
+    }
+
+    const uploadResponse = await fetch(presignBody.uploadUrl, {
+      method: "PUT",
+      headers: presignBody.headers,
+      body: file,
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("附件上传失败");
+    }
+
+    return {
+      objectKey: presignBody.objectKey,
+      url: presignBody.publicUrl,
+      filename,
+      mimeType,
+      sizeBytes: file.size,
+    } satisfies Omit<PostAttachmentInput, "sortOrder">;
+  };
+
+  const handleAttachmentsSelected = async (event: ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = Array.from(event.target.files ?? []);
+    if (selectedFiles.length === 0) {
+      return;
+    }
+
+    if (attachments.length + selectedFiles.length > MAX_POST_ATTACHMENTS) {
+      setError(`最多只能上传 ${MAX_POST_ATTACHMENTS} 个附件`);
+      event.target.value = "";
+      return;
+    }
+
+    setError("");
+
+    for (const file of selectedFiles) {
+      const clientId = createClientId();
+      const filename = normalizePostAttachmentFilename(file.name);
+      const placeholder: EditorAttachmentItem = {
+        clientId,
+        id: clientId,
+        objectKey: "",
+        url: "",
+        filename,
+        mimeType: file.type || POST_ATTACHMENT_FALLBACK_TYPE,
+        sizeBytes: Math.max(1, file.size),
+        sortOrder: 0,
+        status: "uploading",
+      };
+
+      setAttachments((current) => [
+        ...current,
+        {
+          ...placeholder,
+          sortOrder: current.length,
+        },
+      ]);
+
+      try {
+        const uploaded = await uploadOneAttachment(file);
+        setAttachments((current) =>
+          current.map((item, index) =>
+            item.clientId === clientId
+              ? {
+                  ...item,
+                  id: clientId,
+                  objectKey: uploaded.objectKey,
+                  url: uploaded.url,
+                  filename: uploaded.filename,
+                  mimeType: uploaded.mimeType,
+                  sizeBytes: uploaded.sizeBytes,
+                  sortOrder: index,
+                  status: "uploaded",
+                  error: undefined,
+                }
+              : item,
+          ),
+        );
+      } catch (uploadError) {
+        setAttachments((current) =>
+          current.map((item, index) =>
+            item.clientId === clientId
+              ? {
+                  ...item,
+                  sortOrder: index,
+                  status: "error",
+                  error: readUploadError(uploadError),
+                }
+              : item,
+          ),
+        );
+      }
+    }
+
+    event.target.value = "";
+  };
+
   return (
     <form
       className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_18rem] xl:items-start"
@@ -607,20 +837,24 @@ export function PostEditor({
           setError("内容不能为空");
           return;
         }
-        if (nextContent.length > CONTENT_MAX) {
-          setError(`正文请控制在 ${CONTENT_MAX} 字以内`);
-          return;
-        }
         if (parsedTags.length === 0) {
           setError("请至少填写一个标签");
           return;
         }
-        if (uploadingCount > 0) {
+        if (uploadingImageCount > 0) {
           setError("还有图片正在上传，请稍候再发布");
           return;
         }
-        if (failedCount > 0) {
+        if (uploadingAttachmentCount > 0) {
+          setError("还有附件正在上传，请稍候再发布");
+          return;
+        }
+        if (failedImageCount > 0) {
           setError("有图片上传失败，请删除失败项或重新上传");
+          return;
+        }
+        if (failedAttachmentCount > 0) {
+          setError("有附件上传失败，请删除失败项或重新上传");
           return;
         }
         setError("");
@@ -634,6 +868,7 @@ export function PostEditor({
             visibility,
             anonymous,
             images: uploadedImages,
+            attachments: uploadedAttachments,
           });
           clearDraft();
         } catch (submitError) {
@@ -730,7 +965,7 @@ export function PostEditor({
               <label className="space-y-2 text-sm font-semibold text-slate-950">
                 <span className="flex items-center justify-between gap-3">
                   <span>{categoryLocked && visibleCategories.length <= 1 ? "2" : "3"}. 内容</span>
-                  <span className={`text-xs ${contentLength > CONTENT_MAX ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>{contentLength}/{CONTENT_MAX}</span>
+                  <span className="text-xs text-[var(--muted)]">{contentLength} 字 · 不限长度</span>
                 </span>
                 <TextArea
                   aria-label="帖子内容"
@@ -845,9 +1080,103 @@ export function PostEditor({
                 )}
               </div>
 
+              <div className="space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-slate-950">{categoryLocked && visibleCategories.length <= 1 ? "4" : "5"}. 附件</p>
+                    <p className="mt-1 text-xs leading-5 text-[var(--muted)]">
+                      最多 {MAX_POST_ATTACHMENTS} 个 · 单个 ≤ {formatFileSize(MAX_POST_ATTACHMENT_BYTES)} · 支持 PDF、Office、文本、CSV、ZIP
+                    </p>
+                  </div>
+                  <Button
+                    className="min-h-11 w-full sm:w-auto rounded-[1rem] bg-[rgba(57,245,143,0.12)] border border-[rgba(57,245,143,0.32)] text-[var(--primary)] hover:bg-[rgba(57,245,143,0.18)] transition-colors"
+                    onPress={() => attachmentInputRef.current?.click()}
+                    size="sm"
+                    type="button"
+                    variant="secondary"
+                  >
+                    上传附件
+                  </Button>
+                </div>
+                <input
+                  ref={attachmentInputRef}
+                  accept={ACCEPTED_POST_ATTACHMENT_EXTENSIONS.join(",")}
+                  className="hidden"
+                  multiple
+                  onChange={handleAttachmentsSelected}
+                  type="file"
+                />
+
+                {attachments.length > 0 ? (
+                  <div className="grid gap-2">
+                    {attachments.map((attachment, index) => (
+                      <div key={attachment.clientId} className="rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.92)] p-3">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                          <div className="min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Chip size="sm" variant="soft">
+                                附件 {index + 1}
+                              </Chip>
+                              <Chip
+                                color={attachment.status === "uploaded" ? "success" : attachment.status === "uploading" ? "warning" : "danger"}
+                                size="sm"
+                                variant="soft"
+                              >
+                                {attachment.status === "uploaded" ? "已上传" : attachment.status === "uploading" ? "上传中" : "失败"}
+                              </Chip>
+                            </div>
+                            <p className="mt-2 truncate text-sm font-semibold text-slate-950">{attachment.filename}</p>
+                            <p className={`mt-1 text-xs leading-5 ${attachment.status === "error" ? "text-[var(--danger)]" : "text-[var(--muted)]"}`}>
+                              {attachment.status === "uploaded"
+                                ? `${formatFileSize(attachment.sizeBytes)} · ${attachment.mimeType}`
+                                : attachment.error ?? "正在上传附件"}
+                            </p>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 sm:flex sm:flex-wrap">
+                            <Button
+                              className="min-h-11 w-full justify-center sm:w-auto"
+                              isDisabled={index === 0}
+                              onPress={() => reorderAttachment(index, index - 1)}
+                              size="sm"
+                              type="button"
+                              variant="secondary"
+                            >
+                              前移
+                            </Button>
+                            <Button
+                              className="min-h-11 w-full justify-center sm:w-auto"
+                              isDisabled={index === attachments.length - 1}
+                              onPress={() => reorderAttachment(index, index + 1)}
+                              size="sm"
+                              type="button"
+                              variant="secondary"
+                            >
+                              后移
+                            </Button>
+                            <Button
+                              className="min-h-11 w-full justify-center text-[var(--danger)] sm:w-auto"
+                              onPress={() => removeAttachment(attachment.clientId)}
+                              size="sm"
+                              type="button"
+                              variant="ghost"
+                            >
+                              删除
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[rgba(8,16,16,0.72)] px-4 py-5 text-sm leading-6 text-[var(--muted)]">
+                    可上传需求说明、报价单、表格、文档等附件。
+                  </div>
+                )}
+              </div>
+
               <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_240px]">
                 <label className="space-y-2 text-sm font-semibold text-slate-950">
-                  <span>{categoryLocked && visibleCategories.length <= 1 ? "4" : "5"}. 标签</span>
+                  <span>{categoryLocked && visibleCategories.length <= 1 ? "5" : "6"}. 标签</span>
                   <Input
                     aria-label="帖子标签"
                     fullWidth
@@ -877,7 +1206,7 @@ export function PostEditor({
 
             <div className="forum-sidebar">
               <div className="rounded-[1.1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.92)] p-4">
-                <p className="text-sm font-semibold text-slate-950">{categoryLocked && visibleCategories.length <= 1 ? "5" : "6"}. 可见范围</p>
+                <p className="text-sm font-semibold text-slate-950">{categoryLocked && visibleCategories.length <= 1 ? "6" : "7"}. 可见范围</p>
                 <div className="mt-3 grid gap-2">
                   {visibilityOptions.map(([value, meta]) => (
                     <Button
@@ -960,6 +1289,7 @@ export function PostEditor({
                 <Chip size="sm" variant="soft">{visibilityMeta[visibility].label}</Chip>
                 {anonymous ? <Chip size="sm" variant="soft">匿名</Chip> : null}
                 {uploadedImages.length > 0 ? <Chip size="sm" variant="soft">{uploadedImages.length} 张图</Chip> : null}
+                {uploadedAttachments.length > 0 ? <Chip size="sm" variant="soft">{uploadedAttachments.length} 个附件</Chip> : null}
               </div>
               <h2 className="mt-4 text-xl font-semibold tracking-tight text-slate-950">
                 {title.trim() || currentCategoryCopy.previewTitlePlaceholder}
@@ -978,6 +1308,18 @@ export function PostEditor({
                   <span className="text-xs text-[var(--muted)]">{currentCategoryCopy.emptyTagsHint}</span>
                 )}
               </div>
+              {uploadedAttachments.length > 0 ? (
+                <div className="mt-4 rounded-[0.9rem] border border-[var(--border)] bg-[rgba(8,16,16,0.72)] p-3">
+                  <p className="text-xs font-semibold text-slate-950">附件</p>
+                  <div className="mt-2 grid gap-1.5">
+                    {uploadedAttachments.map((attachment) => (
+                      <p key={attachment.objectKey} className="truncate text-xs text-[var(--muted)]">
+                        {attachment.filename} · {formatFileSize(attachment.sizeBytes)}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[rgba(8,16,16,0.78)] px-4 py-3 text-xs leading-6 text-[var(--muted)]">

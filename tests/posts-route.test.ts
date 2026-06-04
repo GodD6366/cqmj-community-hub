@@ -7,6 +7,7 @@ const listPollsForViewerMock = vi.hoisted(() => vi.fn());
 const listServiceTicketsForViewerMock = vi.hoisted(() => vi.fn());
 const listNotificationsForViewerMock = vi.hoisted(() => vi.fn());
 const countUnreadNotificationsForViewerMock = vi.hoisted(() => vi.fn());
+const listNeighborSkillsForViewerMock = vi.hoisted(() => vi.fn());
 const getPublicImageBaseUrlMock = vi.hoisted(() => vi.fn());
 const getUploadPrefixMock = vi.hoisted(() => vi.fn());
 
@@ -26,6 +27,10 @@ vi.mock("../src/lib/resident-server", () => ({
   countUnreadNotificationsForViewer: countUnreadNotificationsForViewerMock,
 }));
 
+vi.mock("../src/lib/skill-server", () => ({
+  listNeighborSkillsForViewer: listNeighborSkillsForViewerMock,
+}));
+
 vi.mock("../src/lib/s3-storage", () => ({
   getPublicImageBaseUrl: getPublicImageBaseUrlMock,
   getUploadPrefix: getUploadPrefixMock,
@@ -40,6 +45,7 @@ describe("/api/posts route", () => {
     vi.clearAllMocks();
     getPublicImageBaseUrlMock.mockReturnValue("https://cdn.example.com");
     getUploadPrefixMock.mockReturnValue("posts");
+    listNeighborSkillsForViewerMock.mockResolvedValue([]);
   });
 
   it("returns resident app data for GET", async () => {
@@ -57,6 +63,7 @@ describe("/api/posts route", () => {
     await expect(response.json()).resolves.toEqual({
       posts: [{ id: "post-1", title: "社区公告" }],
       polls: [{ id: "poll-1", title: "周末活动" }],
+      neighborSkills: [],
       serviceTickets: [{ id: "ticket-1", title: "电梯报修" }],
       notifications: [{ id: "notice-1", title: "新提醒" }],
       unreadNotificationCount: 2,
@@ -94,6 +101,7 @@ describe("/api/posts route", () => {
     await expect(response.json()).resolves.toEqual({
       posts: [],
       polls: [],
+      neighborSkills: [],
       serviceTickets: [],
       notifications: [],
       unreadNotificationCount: 0,
@@ -111,6 +119,7 @@ describe("/api/posts route", () => {
     await expect(response.json()).resolves.toEqual({
       posts: [],
       polls: [],
+      neighborSkills: [],
       serviceTickets: [],
       notifications: [],
       unreadNotificationCount: 0,
@@ -126,7 +135,7 @@ describe("/api/posts route", () => {
       new Request("http://localhost/api/posts", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: "闲置", content: "内容", category: "secondhand", tags: ["闲置"], visibility: "community", anonymous: false, images: [] }),
+        body: JSON.stringify({ title: "闲置", content: "内容", category: "secondhand", tags: ["闲置"], visibility: "community", anonymous: false, images: [], attachments: [] }),
       }),
     );
 
@@ -160,6 +169,16 @@ describe("/api/posts route", () => {
               sortOrder: 0,
             },
           ],
+          attachments: [
+            {
+              objectKey: "posts/user-1/2026/04/guide.pdf",
+              url: "https://cdn.example.com/posts/user-1/2026/04/guide.pdf",
+              filename: "guide.pdf",
+              mimeType: "application/pdf",
+              sizeBytes: 320000,
+              sortOrder: 0,
+            },
+          ],
         }),
       }),
     );
@@ -173,6 +192,13 @@ describe("/api/posts route", () => {
           expect.objectContaining({
             objectKey: "posts/user-1/2026/04/demo-1.webp",
             url: "https://cdn.example.com/posts/user-1/2026/04/demo-1.webp",
+            sortOrder: 0,
+          }),
+        ],
+        attachments: [
+          expect.objectContaining({
+            objectKey: "posts/user-1/2026/04/guide.pdf",
+            filename: "guide.pdf",
             sortOrder: 0,
           }),
         ],

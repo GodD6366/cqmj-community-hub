@@ -18,6 +18,7 @@ const basePost: CommunityPost = {
   status: "published",
   comments: [],
   images: [],
+  attachments: [],
 };
 
 describe("post categories", () => {

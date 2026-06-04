@@ -32,6 +32,7 @@ const draft = {
   visibility: "community",
   anonymous: false,
   images: [],
+  attachments: [],
 };
 
 describe("/api/posts/[id] route", () => {

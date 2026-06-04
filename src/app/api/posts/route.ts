@@ -10,6 +10,7 @@ import {
 import { listNeighborSkillsForViewer } from "@/lib/skill-server";
 import { getPublicImageBaseUrl, getUploadPrefix } from "@/lib/s3-storage";
 import { validateImageStorageFields, validatePostImages } from "@/lib/post-images";
+import { validateAttachmentStorageFields, validatePostAttachments } from "@/lib/post-attachments";
 import { isPostCategory } from "@/lib/types";
 import type { CommunityUser, NotificationItem, PollSummary, ServiceTicketSummary, NeighborSkillSummary } from "@/lib/types";
 
@@ -23,7 +24,8 @@ function parseDraft(body: unknown) {
   const visibility = value.visibility;
   const anonymous = Boolean(value.anonymous);
   const images = Array.isArray(value.images) ? value.images : [];
-  return { title, content, category, tags, visibility, anonymous, images };
+  const attachments = Array.isArray(value.attachments) ? value.attachments : [];
+  return { title, content, category, tags, visibility, anonymous, images, attachments };
 }
 
 function buildResidentFallbackPayload(currentUser: CommunityUser | null = null) {
@@ -142,6 +144,30 @@ export async function POST(request: Request) {
     }
   }
 
+  const attachmentValidation = validatePostAttachments(draft.attachments);
+  if (!attachmentValidation.ok) {
+    return NextResponse.json({ error: attachmentValidation.error }, { status: 400 });
+  }
+
+  if (attachmentValidation.attachments.length > 0) {
+    let attachmentStorageValidation;
+    try {
+      attachmentStorageValidation = validateAttachmentStorageFields(attachmentValidation.attachments, {
+        publicBaseUrl: getPublicImageBaseUrl(),
+        uploadPrefix: getUploadPrefix(),
+      });
+    } catch (error) {
+      return NextResponse.json(
+        { error: error instanceof Error ? error.message : "对象存储配置错误" },
+        { status: 500 },
+      );
+    }
+
+    if (!attachmentStorageValidation.ok) {
+      return NextResponse.json({ error: attachmentStorageValidation.error }, { status: 400 });
+    }
+  }
+
   const id = await createPostForViewer(currentUser, {
     title: draft.title,
     content: draft.content,
@@ -150,6 +176,7 @@ export async function POST(request: Request) {
     visibility: draft.visibility,
     anonymous: draft.anonymous,
     images: imageValidation.images,
+    attachments: attachmentValidation.attachments,
   });
 
   return NextResponse.json({ id }, { status: 201 });

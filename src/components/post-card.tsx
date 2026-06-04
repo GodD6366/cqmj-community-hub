@@ -51,6 +51,7 @@ export function PostCard({ post, compact = false }: PostCardProps) {
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {post.pinned ? <span className="app-chip">置顶</span> : null}
         {post.featured ? <span className="app-chip app-chip-muted">精选</span> : null}
+        {post.attachments.length > 0 ? <span className="app-chip app-chip-muted">{post.attachments.length} 个附件</span> : null}
         {post.category === "request" && post.requestStatus ? (
           <span
             className="rounded-full border px-2.5 py-1 text-[0.68rem] font-semibold"

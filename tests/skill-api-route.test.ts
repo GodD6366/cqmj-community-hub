@@ -122,6 +122,7 @@ describe("/api/skill routes", () => {
         visibility: "community",
         anonymous: false,
         images: [],
+        attachments: [],
       }),
     }));
 
@@ -129,6 +130,7 @@ describe("/api/skill routes", () => {
     expect(createPostForViewerMock).toHaveBeenCalledWith(viewer, expect.objectContaining({
       title: "闲置：餐椅转让",
       images: [],
+      attachments: [],
     }));
     await expect(response.json()).resolves.toEqual({ id: "post-123" });
   });
@@ -137,7 +139,7 @@ describe("/api/skill routes", () => {
     const { POST } = await import("../src/app/api/skill/posts/route");
     const response = await POST(request("http://localhost/api/skill/posts", {
       method: "POST",
-      body: JSON.stringify({ title: "", content: "内容", category: "discussion", tags: ["交流"], visibility: "community", images: [] }),
+      body: JSON.stringify({ title: "", content: "内容", category: "discussion", tags: ["交流"], visibility: "community", images: [], attachments: [] }),
     }));
 
     expect(response.status).toBe(400);

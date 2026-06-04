@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { buildPublicImageUrl, normalizeUploadPrefix } from "./post-images";
+import { getPostAttachmentExtension } from "./post-attachments";
 
 const ENV_KEYS = [
   "S3_ENDPOINT",
@@ -80,6 +81,10 @@ export function resolvePublicImageUrl(objectKey: string, fallbackUrl: string) {
   return publicBaseUrl ? buildPublicImageUrl(publicBaseUrl, objectKey) : fallbackUrl;
 }
 
+export function resolvePublicAssetUrl(objectKey: string, fallbackUrl: string) {
+  return resolvePublicImageUrl(objectKey, fallbackUrl);
+}
+
 export function getUploadPrefix() {
   return normalizeUploadPrefix(readStorageEnv().S3_UPLOAD_PREFIX);
 }
@@ -92,6 +97,35 @@ export async function createPresignedImageUpload(input: {
   const now = new Date();
   const month = String(now.getUTCMonth() + 1).padStart(2, "0");
   const objectKey = `${normalizeUploadPrefix(env.S3_UPLOAD_PREFIX)}/${input.userId}/${now.getUTCFullYear()}/${month}/${randomUUID()}.webp`;
+
+  const command = new PutObjectCommand({
+    Bucket: env.S3_BUCKET,
+    Key: objectKey,
+    ContentType: input.contentType,
+  });
+
+  const uploadUrl = await getSignedUrl(getS3Client(), command, { expiresIn: 300 });
+
+  return {
+    objectKey,
+    uploadUrl,
+    publicUrl: buildPublicImageUrl(env.S3_PUBLIC_BASE_URL, objectKey),
+    headers: {
+      "Content-Type": input.contentType,
+    },
+  };
+}
+
+export async function createPresignedAttachmentUpload(input: {
+  userId: string;
+  contentType: string;
+  filename: string;
+}) {
+  const env = readStorageEnv();
+  const now = new Date();
+  const month = String(now.getUTCMonth() + 1).padStart(2, "0");
+  const extension = getPostAttachmentExtension(input.filename) || ".bin";
+  const objectKey = `${normalizeUploadPrefix(env.S3_UPLOAD_PREFIX)}/${input.userId}/${now.getUTCFullYear()}/${month}/${randomUUID()}${extension}`;
 
   const command = new PutObjectCommand({
     Bucket: env.S3_BUCKET,

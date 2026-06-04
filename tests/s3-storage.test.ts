@@ -60,3 +60,21 @@ describe("createPresignedImageUpload", () => {
     expect(uploadUrl.pathname).toMatch(/^\/posts\/user-1\/\d{4}\/\d{2}\/.+\.webp$/);
   });
 });
+
+describe("createPresignedAttachmentUpload", () => {
+  it("keeps a safe attachment extension in generated object keys", async () => {
+    setStorageEnv();
+
+    const { createPresignedAttachmentUpload } = await import("../src/lib/s3-storage");
+    const upload = await createPresignedAttachmentUpload({
+      userId: "user-1",
+      contentType: "application/pdf",
+      filename: "guide.pdf",
+    });
+
+    const uploadUrl = new URL(upload.uploadUrl);
+
+    expect(uploadUrl.pathname).toMatch(/^\/community-hub-assets\/posts\/user-1\/\d{4}\/\d{2}\/.+\.pdf$/);
+    expect(upload.publicUrl).toMatch(/^https:\/\/cdn\.example\.com\/assets\/posts\/user-1\/\d{4}\/\d{2}\/.+\.pdf$/);
+  });
+});

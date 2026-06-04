@@ -2,6 +2,7 @@ import type {
   AdminPostUpdateInput,
   CommunityComment,
   CommunityPost,
+  NeighborSkillCategory,
   PostCategory,
   PostDraft,
   PostStatus,
@@ -11,7 +12,7 @@ import type {
 import { prisma } from "./db";
 import type { Prisma } from "@/generated/prisma/client";
 import { createNotificationRecord } from "./resident-server";
-import { resolvePublicImageUrl } from "./s3-storage";
+import { resolvePublicAssetUrl, resolvePublicImageUrl } from "./s3-storage";
 import { triggerSkillMatching } from "./skill-server";
 import { getBuildingFromRoomNumber } from "./access-control";
 
@@ -20,6 +21,7 @@ type PostRecord = Prisma.PostGetPayload<{
     comments: true;
     favorites: { select: { userId: true } };
     images: { orderBy: { sortOrder: "asc" } };
+    attachments: { orderBy: { sortOrder: "asc" } };
     reports: { select: { userId: true } };
     author: { select: { roomNumber: true } };
   };
@@ -141,6 +143,15 @@ export function mapPost(post: PostRecord, viewerId: string | null): CommunityPos
       sizeBytes: image.sizeBytes,
       sortOrder: image.sortOrder,
     })),
+    attachments: post.attachments.map((attachment) => ({
+      id: attachment.id,
+      objectKey: attachment.objectKey,
+      url: resolvePublicAssetUrl(attachment.objectKey, attachment.url),
+      filename: attachment.filename,
+      mimeType: attachment.mimeType,
+      sizeBytes: attachment.sizeBytes,
+      sortOrder: attachment.sortOrder,
+    })),
     pinned: post.pinned,
     featured: post.featured,
     favorited,
@@ -227,6 +238,7 @@ export async function listPostsForViewer(
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
       images: { orderBy: { sortOrder: "asc" } },
+      attachments: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
       author: { select: { roomNumber: true } },
     },
@@ -252,6 +264,7 @@ export async function getPostForViewer(
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
       images: { orderBy: { sortOrder: "asc" } },
+      attachments: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
       author: { select: { roomNumber: true } },
     },
@@ -286,7 +299,7 @@ export async function getPostForViewer(
       ownerName: m.skill.user.name,
       roomNumber: m.skill.user.roomNumber ?? "未知",
       building: m.skill.user.roomNumber ? m.skill.user.roomNumber.split("-")[0] : "未知",
-      category: m.skill.category as any,
+      category: m.skill.category as NeighborSkillCategory,
       skillTitle: m.skill.title,
       skillDescription: m.skill.description,
       tags: JSON.parse(m.skill.tags || "[]"),
@@ -328,6 +341,16 @@ export async function createPostForViewer(
             height: image.height,
             sizeBytes: image.sizeBytes,
             sortOrder: image.sortOrder,
+          })),
+        },
+        attachments: {
+          create: draft.attachments.map((attachment) => ({
+            objectKey: attachment.objectKey,
+            url: attachment.url,
+            filename: attachment.filename,
+            mimeType: attachment.mimeType,
+            sizeBytes: attachment.sizeBytes,
+            sortOrder: attachment.sortOrder,
           })),
         },
       },
@@ -377,6 +400,9 @@ export async function updatePostForViewer(
     await tx.postImage.deleteMany({
       where: { postId },
     });
+    await tx.postAttachment.deleteMany({
+      where: { postId },
+    });
 
     await tx.post.update({
       where: { id: postId },
@@ -402,6 +428,16 @@ export async function updatePostForViewer(
             height: image.height,
             sizeBytes: image.sizeBytes,
             sortOrder: image.sortOrder,
+          })),
+        },
+        attachments: {
+          create: draft.attachments.map((attachment) => ({
+            objectKey: attachment.objectKey,
+            url: attachment.url,
+            filename: attachment.filename,
+            mimeType: attachment.mimeType,
+            sizeBytes: attachment.sizeBytes,
+            sortOrder: attachment.sortOrder,
           })),
         },
       },
@@ -716,6 +752,7 @@ export async function listPostsForAdmin() {
       comments: { orderBy: { createdAt: "asc" } },
       favorites: { select: { userId: true } },
       images: { orderBy: { sortOrder: "asc" } },
+      attachments: { orderBy: { sortOrder: "asc" } },
       reports: { select: { userId: true } },
       author: { select: { roomNumber: true } },
     },
@@ -755,6 +792,7 @@ export async function updatePostForAdmin(postId: string, input: AdminPostUpdateI
         comments: { orderBy: { createdAt: "asc" } },
         favorites: { select: { userId: true } },
         images: { orderBy: { sortOrder: "asc" } },
+        attachments: { orderBy: { sortOrder: "asc" } },
         reports: { select: { userId: true } },
         author: { select: { roomNumber: true } },
       },

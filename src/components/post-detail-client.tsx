@@ -6,37 +6,55 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCommunityPosts } from "./community-provider";
 import { PostEditor } from "./post-editor";
+import { MarkdownRenderer } from "./markdown-renderer";
 import { EmptyState, Toast, useToast } from "./resident-shared";
 import { categoryMeta, visibilityMeta } from "../lib/types";
-import type { PostDraft } from "../lib/types";
+import type { PostAttachment, PostDraft } from "../lib/types";
 import { formatDateTime, timeAgo, copyToClipboard } from "../lib/utils";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
-
-const MarkdownComponents = {
-  h1: ({ node, ...props }: any) => <h1 className="text-xl font-bold mt-6 mb-4 text-[#f3fff8]" {...props} />,
-  h2: ({ node, ...props }: any) => <h2 className="text-lg font-bold mt-5 mb-3 text-[#f3fff8]" {...props} />,
-  h3: ({ node, ...props }: any) => <h3 className="text-base font-bold mt-4 mb-2 text-[#f3fff8]" {...props} />,
-  p: ({ node, ...props }: any) => <p className="mb-4 leading-relaxed last:mb-0" {...props} />,
-  ul: ({ node, ...props }: any) => <ul className="list-disc list-inside mb-4 space-y-1" {...props} />,
-  ol: ({ node, ...props }: any) => <ol className="list-decimal list-inside mb-4 space-y-1" {...props} />,
-  li: ({ node, ...props }: any) => <li className="leading-relaxed" {...props} />,
-  a: ({ node, ...props }: any) => <a className="text-[var(--primary)] hover:underline" {...props} />,
-  strong: ({ node, ...props }: any) => <strong className="font-bold text-[#f3fff8]" {...props} />,
-  blockquote: ({ node, ...props }: any) => <blockquote className="border-l-4 border-[var(--primary)] pl-4 italic text-[var(--muted)] my-4 bg-[rgba(57,245,143,0.05)] py-2 rounded-r" {...props} />,
-  code: ({ node, className, children, ...props }: any) => {
-    const isBlock = className?.includes("language-");
-    if (isBlock) {
-      return <code className={className} {...props}>{children}</code>;
-    }
-    return <code className="bg-[rgba(57,245,143,0.1)] text-[var(--primary)] px-1.5 py-0.5 rounded text-sm font-mono" {...props}>{children}</code>;
-  },
-  pre: ({ node, ...props }: any) => <pre className="bg-[rgba(8,16,16,0.9)] border border-[var(--border)] p-4 rounded-xl overflow-x-auto my-4 text-sm font-mono" {...props} />,
-};
 
 interface PostDetailClientProps { postId: string; }
 
 type CommentSort = "hot" | "new";
+
+function formatAttachmentSize(sizeBytes: number) {
+  if (sizeBytes >= 1024 * 1024) {
+    return `${(sizeBytes / 1024 / 1024).toFixed(sizeBytes >= 10 * 1024 * 1024 ? 0 : 1)}MB`;
+  }
+  return `${Math.max(1, Math.round(sizeBytes / 1024))}KB`;
+}
+
+function AttachmentList({ attachments }: { attachments: PostAttachment[] }) {
+  if (attachments.length === 0) {
+    return null;
+  }
+
+  return (
+    <div className="post-attachments">
+      <div className="post-attachments-title">附件</div>
+      <div className="post-attachments-list">
+        {attachments.map((attachment) => (
+          <a
+            key={attachment.id}
+            className="post-attachment-item"
+            href={attachment.url}
+            rel="noreferrer"
+            target="_blank"
+          >
+            <span className="post-attachment-icon" aria-hidden="true">
+              FILE
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="post-attachment-name">{attachment.filename}</span>
+              <span className="post-attachment-meta">
+                {formatAttachmentSize(attachment.sizeBytes)} · 点击打开或下载
+              </span>
+            </span>
+          </a>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ── 图片灯箱组件 ─────────────────────────────────── */
 function ImageLightbox({
@@ -224,7 +242,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
   const activeImage = post.images[activeImageIndex] ?? post.images[0] ?? null;
   const canManagePost = Boolean(currentUser && (post.isMine || currentUser.role === "admin"));
   const postIdValue = post.id;
-  const editDraft: PostDraft = { title: post.title, content: post.content, category: post.category, tags: post.tags, visibility: post.visibility, anonymous: post.authorName === "匿名居民", images: post.images };
+  const editDraft: PostDraft = { title: post.title, content: post.content, category: post.category, tags: post.tags, visibility: post.visibility, anonymous: post.authorName === "匿名居民", images: post.images, attachments: post.attachments };
 
   async function handleDelete() {
     if (!window.confirm("确定删除这篇帖子？删除后评论、收藏和图片记录都会一并移除。")) return;
@@ -318,7 +336,8 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
       return;
     }
 
-    const url = window.location.href;
+    const origin = process.env.NEXT_PUBLIC_APP_ORIGIN || window.location.origin;
+    const url = `${origin}/posts/${postIdValue}`;
     const shareData = {
       title: post.title,
       url,
@@ -437,8 +456,9 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
 
         <h1 className="mobile-post-title">{post.title}</h1>
         <div className="mobile-post-content text-[0.95rem] leading-8 text-[var(--foreground)]">
-          <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents}>{post.content}</ReactMarkdown>
+          <MarkdownRenderer content={post.content} />
         </div>
+        <AttachmentList attachments={post.attachments} />
 
         {post.tags.length > 0 && (
           <div className="mobile-post-tags">
@@ -704,8 +724,9 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
           <div className="glass-card p-4 md:p-5">
             <div className="text-sm font-semibold text-slate-900">正文内容</div>
             <div className="mt-3 text-[0.95rem] leading-8 text-[var(--foreground)]">
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={MarkdownComponents}>{post.content}</ReactMarkdown>
+              <MarkdownRenderer content={post.content} />
             </div>
+            <AttachmentList attachments={post.attachments} />
             {post.tags.length > 0 ? <div className="mt-4 flex flex-wrap gap-2">{post.tags.map((tag) => <span key={tag} className="rounded-full border border-[rgba(57,245,143,0.12)] bg-[rgba(57,245,143,0.05)] px-3 py-1 text-[0.74rem] font-semibold text-[var(--primary)]">#{tag}</span>)}</div> : null}
           </div>
 
@@ -903,6 +924,7 @@ export function PostDetailClient({ postId }: PostDetailClientProps) {
               <div className="flex justify-between"><span>评论</span><span className="font-semibold text-[var(--foreground)]">{post.commentCount}</span></div>
               <div className="flex justify-between"><span>收藏</span><span className="font-semibold text-[var(--foreground)]">{post.favoriteCount}</span></div>
               <div className="flex justify-between"><span>图片</span><span className="font-semibold text-[var(--foreground)]">{post.images.length}</span></div>
+              <div className="flex justify-between"><span>附件</span><span className="font-semibold text-[var(--foreground)]">{post.attachments.length}</span></div>
             </div>
           </div>
 

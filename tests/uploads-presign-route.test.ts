@@ -2,12 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const getCurrentUserFromCookieMock = vi.hoisted(() => vi.fn());
 const createPresignedImageUploadMock = vi.hoisted(() => vi.fn());
+const createPresignedAttachmentUploadMock = vi.hoisted(() => vi.fn());
 
 vi.mock("../src/lib/auth-server", () => ({
   getCurrentUserFromCookie: getCurrentUserFromCookieMock,
 }));
 
 vi.mock("../src/lib/s3-storage", () => ({
+  createPresignedAttachmentUpload: createPresignedAttachmentUploadMock,
   createPresignedImageUpload: createPresignedImageUploadMock,
 }));
 
@@ -96,6 +98,47 @@ describe("/api/uploads/presign route", () => {
     expect(createPresignedImageUploadMock).toHaveBeenCalledWith({
       userId: "user-1",
       contentType: "image/webp",
+    });
+  });
+
+  it("returns a presigned upload payload for valid attachments", async () => {
+    const { POST } = await import("../src/app/api/uploads/presign/route");
+    getCurrentUserFromCookieMock.mockResolvedValueOnce({ id: "user-1" });
+    createPresignedAttachmentUploadMock.mockResolvedValueOnce({
+      objectKey: "posts/user-1/2026/04/guide.pdf",
+      uploadUrl: "https://storage.example.com/upload",
+      publicUrl: "https://cdn.example.com/posts/user-1/2026/04/guide.pdf",
+      headers: {
+        "Content-Type": "application/pdf",
+      },
+    });
+
+    const response = await POST(
+      new Request("http://localhost/api/uploads/presign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "attachment",
+          filename: "guide.pdf",
+          mimeType: "application/pdf",
+          sizeBytes: 1000,
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(201);
+    await expect(response.json()).resolves.toEqual({
+      objectKey: "posts/user-1/2026/04/guide.pdf",
+      uploadUrl: "https://storage.example.com/upload",
+      publicUrl: "https://cdn.example.com/posts/user-1/2026/04/guide.pdf",
+      headers: {
+        "Content-Type": "application/pdf",
+      },
+    });
+    expect(createPresignedAttachmentUploadMock).toHaveBeenCalledWith({
+      userId: "user-1",
+      contentType: "application/pdf",
+      filename: "guide.pdf",
     });
   });
 });

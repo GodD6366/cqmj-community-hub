@@ -42,6 +42,17 @@ interface MockPostRecord {
     sortOrder: number;
     createdAt: Date;
   }>;
+  attachments: Array<{
+    id: string;
+    postId: string;
+    objectKey: string;
+    url: string;
+    filename: string;
+    mimeType: string;
+    sizeBytes: number;
+    sortOrder: number;
+    createdAt: Date;
+  }>;
 }
 
 function createPostRecord(): MockPostRecord {
@@ -82,6 +93,19 @@ function createPostRecord(): MockPostRecord {
         createdAt: now,
       },
     ],
+    attachments: [
+      {
+        id: "attachment-1",
+        postId: "post-1",
+        objectKey: "posts/user-1/2026/04/guide.pdf",
+        url: "http://10.0.0.66:9000/cqmj/posts/user-1/2026/04/guide.pdf",
+        filename: "guide.pdf",
+        mimeType: "application/pdf",
+        sizeBytes: 320000,
+        sortOrder: 0,
+        createdAt: now,
+      },
+    ],
   };
 }
 
@@ -98,6 +122,7 @@ describe("mapPost", () => {
     const post = mapPost(createPostRecord(), null);
 
     expect(post.images[0]?.url).toBe("https://cdn.example.com/assets/posts/user-1/2026/04/demo.webp");
+    expect(post.attachments[0]?.url).toBe("https://cdn.example.com/assets/posts/user-1/2026/04/guide.pdf");
   });
 
   it("keeps the stored post image URL when no public base URL is configured", () => {
@@ -106,6 +131,7 @@ describe("mapPost", () => {
     const post = mapPost(createPostRecord(), null);
 
     expect(post.images[0]?.url).toBe("http://10.0.0.66:9000/cqmj/posts/user-1/2026/04/demo.webp");
+    expect(post.attachments[0]?.url).toBe("http://10.0.0.66:9000/cqmj/posts/user-1/2026/04/guide.pdf");
   });
 });
 
