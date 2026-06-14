@@ -30,7 +30,7 @@ export function ServicesClient() {
       {error ? <Alert status="danger"><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert> : null}
 
       <section className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_380px]">
-        <CyberPanel title="工单服务" kicker="Work-order Management" action={<Link href="/publish?kind=ticket" className="app-section-link">提交工单</Link>}>
+        <CyberPanel title="工单服务" kicker="便民服务台" action={<Link href="/publish?kind=ticket" className="app-section-link">提交工单</Link>}>
           <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             {serviceCatalog.map((item) => <QuickActionTile key={item.label} {...item} />)}
           </div>
@@ -80,7 +80,7 @@ export function ServicesClient() {
 
 function ServiceTicketItem({ ticket, onEdit, onDelete, busy }: { ticket: ServiceTicketSummary; onEdit?: () => void; onDelete?: () => void; busy?: boolean; }) {
   return (
-    <div className="rounded-[1.2rem] border border-[var(--border)] bg-[rgba(8,16,16,0.92)] p-4">
+    <div className="rounded-[1.2rem] border border-[var(--border)] bg-[var(--surface)] p-4 shadow-[0_12px_28px_rgba(73,98,128,0.08)]">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="text-sm font-semibold text-[var(--primary)]">#{ticket.id}</div>
@@ -90,7 +90,7 @@ function ServiceTicketItem({ ticket, onEdit, onDelete, busy }: { ticket: Service
         <div className="app-chip">{statusLabel(ticket.status)}</div>
       </div>
       <p className="mt-3 text-sm leading-6 text-[var(--muted)]">{ticket.description}</p>
-      {ticket.assigneeNote ? <div className="mt-3 rounded-[1rem] bg-[rgba(57,245,143,0.06)] px-3 py-2 text-xs text-[var(--muted)]">处理备注：{ticket.assigneeNote}</div> : null}
+      {ticket.assigneeNote ? <div className="mt-3 rounded-[1rem] bg-[rgba(109,221,175,0.12)] px-3 py-2 text-xs text-[var(--muted)]">处理备注：{ticket.assigneeNote}</div> : null}
       {(onEdit || onDelete) ? <div className="mt-4 flex gap-2">{onEdit ? <Button size="sm" variant="secondary" onPress={onEdit}>编辑</Button> : null}{onDelete ? <Button size="sm" variant="secondary" isPending={busy} onPress={onDelete}>删除</Button> : null}</div> : null}
     </div>
   );

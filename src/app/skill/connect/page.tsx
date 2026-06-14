@@ -58,7 +58,7 @@ export function SkillConnectUnavailableFallback() {
         </section>
       </div>
 
-      <Card className="glass-card hidden p-6 sm:p-8 md:block">
+      <Card className="app-card hidden p-6 sm:p-8 md:block">
         <Card.Header className="p-0">
           <div>
             <p className="section-kicker">Skill 接入</p>

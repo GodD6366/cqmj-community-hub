@@ -30,7 +30,7 @@ export function PostCard({ post, compact = false }: PostCardProps) {
   return (
     <Link
       href={`/posts/${post.id}`}
-      className="group block rounded-[1.45rem] border border-[rgba(76,255,177,0.12)] bg-[linear-gradient(180deg,rgba(9,18,18,0.95),rgba(7,12,12,0.98))] p-4 shadow-[0_16px_36px_rgba(0,0,0,0.25)] transition duration-150 hover:border-[rgba(76,255,177,0.26)]"
+      className="group block rounded-[1.45rem] border border-[var(--border)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,251,255,0.92))] p-4 shadow-[0_16px_36px_rgba(73,98,128,0.08)] transition duration-150 hover:border-[rgba(123,166,214,0.28)] hover:shadow-[0_18px_40px_rgba(73,98,128,0.12)]"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="flex min-w-0 items-start gap-3">
@@ -45,7 +45,7 @@ export function PostCard({ post, compact = false }: PostCardProps) {
             <div className="mt-1 text-[0.72rem] text-[var(--muted)]">{timeAgo(post.createdAt)}</div>
           </div>
         </div>
-        <span className="shrink-0 rounded-full border border-[rgba(76,255,177,0.12)] px-2.5 py-1 text-[0.65rem] text-[var(--muted)]">{getVisibilityLabel(post.visibility)}</span>
+        <span className="shrink-0 rounded-full border border-[rgba(123,166,214,0.18)] bg-[rgba(255,255,255,0.82)] px-2.5 py-1 text-[0.65rem] text-[var(--muted)]">{getVisibilityLabel(post.visibility)}</span>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -91,7 +91,7 @@ export function PostCard({ post, compact = false }: PostCardProps) {
       {images.length > 0 ? (
         <div className={`mt-3 grid gap-2 ${images.length === 1 ? "grid-cols-1" : "grid-cols-3"}`}>
           {images.map((image, index) => (
-            <div key={image.id} className={`overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[rgba(10,18,18,0.88)] ${images.length === 1 ? "aspect-[16/10]" : "aspect-square"}`}>
+            <div key={image.id} className={`overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[rgba(244,248,252,0.92)] ${images.length === 1 ? "aspect-[16/10]" : "aspect-square"}`}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img alt={`${post.title} ${index + 1}`} className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" src={image.url} />
             </div>
@@ -102,12 +102,12 @@ export function PostCard({ post, compact = false }: PostCardProps) {
       {tags.length > 0 ? (
         <div className="mt-3 flex flex-wrap gap-2">
           {tags.map((tag) => (
-            <span key={tag} className="rounded-full border border-[rgba(57,245,143,0.12)] bg-[rgba(57,245,143,0.05)] px-2.5 py-1 text-[0.68rem] font-semibold text-[var(--primary)]">#{tag}</span>
+            <span key={tag} className="rounded-full border border-[rgba(94,169,135,0.14)] bg-[rgba(94,169,135,0.08)] px-2.5 py-1 text-[0.68rem] font-semibold text-[var(--primary-strong)]">#{tag}</span>
           ))}
         </div>
       ) : null}
 
-      <div className="mt-4 flex items-center justify-between gap-3 border-t border-[rgba(76,255,177,0.08)] pt-3 text-[0.76rem] text-[var(--muted)]">
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-[rgba(123,166,214,0.12)] pt-3 text-[0.76rem] text-[var(--muted)]">
         <div className="flex items-center gap-4">
           <span>☆ 收藏 {post.favoriteCount}</span>
           <span>💬 评论 {post.commentCount}</span>

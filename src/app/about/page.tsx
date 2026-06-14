@@ -22,7 +22,7 @@ export default async function AboutPage() {
         <CyberPanel title="项目介绍" kicker="About Community Hub">
           <DataList items={[
             { label: "项目定位", hint: "面向小区住户的社区协作平台" },
-            { label: "界面方向", hint: "Cyber Terminal UI" },
+            { label: "界面方向", hint: "清爽居民 App 风格" },
             { label: "核心能力", hint: "社区动态、服务工单、投票协同、居民消息" },
           ]} />
         </CyberPanel>

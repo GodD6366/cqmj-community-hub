@@ -1,6 +1,6 @@
 import { formatDateTime } from "../lib/utils";
 import type { CommunityComment } from "../lib/types";
-import { EmptyState, ResidentAvatar } from "./resident-shared";
+import { EmptyState, ResidentAvatar, ResidentListRow } from "./resident-shared";
 
 interface CommentListProps {
   comments: CommunityComment[];
@@ -14,19 +14,18 @@ export function CommentList({ comments }: CommentListProps) {
   return (
     <div className="space-y-3">
       {comments.map((comment, index) => (
-        <article key={comment.id} className="terminal-comment-item">
-          <div className="flex items-start gap-3">
-            <ResidentAvatar name={comment.authorName} size="sm" />
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-3">
-                <div className="truncate text-sm font-semibold text-slate-950">{comment.authorName}</div>
-                <div className="text-xs text-[var(--muted)]">#{String(index + 1).padStart(2, "0")}</div>
-              </div>
-              <div className="mt-1 text-xs text-[var(--muted)]">{formatDateTime(comment.createdAt)}</div>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-7 text-[var(--foreground)]">{comment.content}</p>
+        <ResidentListRow
+          key={comment.id}
+          leading={<ResidentAvatar name={comment.authorName} size="sm" />}
+          meta={<span>#{String(index + 1).padStart(2, "0")}</span>}
+          subtitle={
+            <div className="grid gap-2">
+              <span className="text-xs text-[var(--muted)]">{formatDateTime(comment.createdAt)}</span>
+              <p className="whitespace-pre-wrap text-sm leading-7 text-slate-700">{comment.content}</p>
             </div>
-          </div>
-        </article>
+          }
+          title={<span className="truncate">{comment.authorName}</span>}
+        />
       ))}
     </div>
   );

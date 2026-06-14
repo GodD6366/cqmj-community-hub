@@ -42,10 +42,10 @@ export default function RulesPage() {
 
         <div className="grid gap-4 md:grid-cols-3">
           {communityRules.map((rule) => (
-            <CyberPanel key={rule.title} title={rule.title} kicker="Rule Module">
+            <CyberPanel key={rule.title} title={rule.title} kicker="规则说明">
               <div className="grid gap-3">
                 {rule.points.map((point) => (
-                  <div key={point} className="rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.82)] p-3 text-sm leading-6 text-[var(--foreground)]">
+                  <div key={point} className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)] p-3 text-sm leading-6 text-[var(--foreground)]">
                     {point}
                   </div>
                 ))}

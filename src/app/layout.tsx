@@ -25,7 +25,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN" data-scroll-behavior="smooth">
-      <body className="site-frame min-h-full bg-[var(--background)] text-[var(--foreground)] antialiased">
+      <body className="site-frame community-app min-h-full bg-[var(--background)] text-[var(--foreground)] antialiased">
         <CommunityProvider>
           <AppFrame>{children}</AppFrame>
         </CommunityProvider>

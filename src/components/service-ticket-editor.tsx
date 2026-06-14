@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Alert, Button, Input, TextArea } from "@heroui/react";
+import { Alert, Button, Chip, Input, TextArea } from "@heroui/react";
 import type { ServiceTicketCategory, ServiceTicketDraft } from "@/lib/types";
 import { serviceTicketCategoryMeta } from "@/lib/types";
 import { CyberPanel, CyberStatGrid } from "./resident-shared";
@@ -62,8 +62,8 @@ export function ServiceTicketEditor({
                 type="button"
                 className={`rounded-[1rem] border px-4 py-3 text-left ${
                   category === value
-                    ? "border-[rgba(57,245,143,0.24)] bg-[rgba(57,245,143,0.08)]"
-                    : "border-[var(--border)] bg-[rgba(8,16,16,0.82)]"
+                    ? "border-[rgba(109,221,175,0.34)] bg-[rgba(109,221,175,0.16)]"
+                    : "border-[var(--border)] bg-[var(--surface-secondary)]"
                 }`}
                 onClick={() => setCategory(value)}
               >
@@ -141,12 +141,12 @@ export function ServiceTicketEditor({
           { label: "当前分类", value: serviceTicketCategoryMeta[category].label },
           { label: "标题长度", value: title.trim().length },
         ]} />
-        <div className="mt-4 rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.82)] p-4">
+        <div className="app-card-muted mt-4 rounded-[1rem] p-4">
           <div className="text-sm font-semibold text-slate-900">{title || "工单标题预览"}</div>
           <div className="mt-2 text-xs leading-6 text-[var(--muted)]">{description || "这里显示问题位置、故障现象与诉求说明。"}</div>
-          <div className="mt-3 inline-flex rounded-full border border-[rgba(57,245,143,0.16)] bg-[rgba(57,245,143,0.08)] px-3 py-1 text-xs font-semibold text-[var(--primary)]">
+          <Chip className="mt-3" size="sm" variant="soft">
             {serviceTicketCategoryMeta[category].label}
-          </div>
+          </Chip>
         </div>
       </CyberPanel>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Alert, Button, Input, TextArea } from "@heroui/react";
+import { Alert, Button, Chip, Input, TextArea } from "@heroui/react";
 import type { PollDraft } from "@/lib/types";
 import { CyberPanel, CyberStatGrid } from "./resident-shared";
 
@@ -100,7 +100,7 @@ export function PollEditor({
             />
           </label>
 
-          <div className="space-y-3 rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.82)] p-4">
+          <div className="space-y-3 rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)] p-4">
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-semibold text-slate-900">投票选项</div>
@@ -184,14 +184,14 @@ export function PollEditor({
           { label: "选项数量", value: options.filter((item) => item.trim()).length },
           { label: "是否定时", value: endsAt ? "是" : "否" },
         ]} />
-        <div className="mt-4 rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.82)] p-4">
+        <div className="app-card-muted mt-4 rounded-[1rem] p-4">
           <div className="text-sm font-semibold text-slate-900">{title || "投票标题预览"}</div>
           <div className="mt-2 text-xs leading-6 text-[var(--muted)]">{description || "这里显示投票背景与说明。"}</div>
           <div className="mt-3 grid gap-2">
             {options.map((option, index) => (
-              <div key={`${option}-${index}`} className="rounded-[0.9rem] border border-[var(--border)] px-3 py-2 text-sm text-[var(--foreground)]">
+              <Chip key={`${option}-${index}`} className="justify-start px-3 py-2" variant="secondary">
                 {option || `选项 ${index + 1}`}
-              </div>
+              </Chip>
             ))}
           </div>
         </div>

@@ -889,7 +889,7 @@ export function PostEditor({
           </div>
         </Card.Header>
 
-        <Card.Content className="space-y-5 bg-[rgba(8,16,16,0.9)] p-4 sm:p-5">
+        <Card.Content className="space-y-5 bg-[var(--surface-strong)] p-4 sm:p-5">
           {!categoryLocked && visibleCategories.length > 1 ? (
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
@@ -902,10 +902,10 @@ export function PostEditor({
                     {categoryOptions.map(([value, meta]) => (
                       <Button
                         key={value}
-                        className={`h-auto min-h-[6.5rem] w-[14rem] shrink-0 snap-start justify-start px-4 py-3.5 text-left rounded-[1.1rem] transition-all ${
+                        className={`h-auto min-h-[6.5rem] w-[14rem] shrink-0 snap-start justify-start rounded-[1.1rem] px-4 py-3.5 text-left transition-all ${
                           category === value
-                            ? "border border-[rgba(57,245,143,0.32)] bg-[rgba(57,245,143,0.12)]"
-                            : "border border-[var(--border)] bg-[rgba(8,16,16,0.85)]"
+                            ? "border border-[rgba(47,158,118,0.22)] bg-[rgba(47,158,118,0.1)]"
+                            : "border border-[var(--border)] bg-[var(--surface-secondary)]"
                         }`}
                         isDisabled={categoryLocked}
                         onPress={() => setCategory(value)}
@@ -913,8 +913,8 @@ export function PostEditor({
                         variant="secondary"
                       >
                         <span className="flex flex-col items-start gap-1">
-                          <span className={`text-lg font-semibold ${category === value ? "text-white" : "text-slate-800"}`}>{meta.label}</span>
-                          <span className={`text-xs leading-5 ${category === value ? "text-white/80" : "text-[var(--muted)]"}`}>{meta.description}</span>
+                          <span className="text-lg font-semibold text-slate-950">{meta.label}</span>
+                          <span className="text-xs leading-5 text-[var(--muted)]">{meta.description}</span>
                         </span>
                       </Button>
                     ))}
@@ -925,10 +925,10 @@ export function PostEditor({
                 {categoryOptions.map(([value, meta]) => (
                   <Button
                     key={value}
-                    className={`h-auto justify-start px-4 py-3 text-left rounded-[1rem] transition-all ${
+                    className={`h-auto justify-start rounded-[1rem] px-4 py-3 text-left transition-all ${
                       category === value
-                        ? "border border-[rgba(57,245,143,0.32)] bg-[rgba(57,245,143,0.12)]"
-                        : "border border-[var(--border)] bg-[rgba(8,16,16,0.85)]"
+                        ? "border border-[rgba(47,158,118,0.22)] bg-[rgba(47,158,118,0.1)]"
+                        : "border border-[var(--border)] bg-[var(--surface-secondary)]"
                     }`}
                     isDisabled={categoryLocked}
                     onPress={() => setCategory(value)}
@@ -936,8 +936,8 @@ export function PostEditor({
                     variant="secondary"
                   >
                     <span className="flex flex-col items-start gap-1">
-                      <span className={`text-base font-semibold ${category === value ? "text-white" : "text-slate-800"}`}>{meta.label}</span>
-                      <span className={`text-sm leading-5 ${category === value ? "text-white/80" : "text-[var(--muted)]"}`}>{meta.description}</span>
+                      <span className="text-base font-semibold text-slate-950">{meta.label}</span>
+                      <span className="text-sm leading-5 text-[var(--muted)]">{meta.description}</span>
                     </span>
                   </Button>
                 ))}
@@ -958,7 +958,7 @@ export function PostEditor({
                   value={title}
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder={currentCategoryCopy.titlePlaceholder}
-                  className="rounded-[1rem] bg-[rgba(8,16,16,0.85)] border border-[var(--border)]"
+                  className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)]"
                 />
               </label>
 
@@ -974,7 +974,7 @@ export function PostEditor({
                   onChange={(event) => setContent(event.target.value)}
                   rows={12}
                   placeholder={currentCategoryCopy.contentPlaceholder}
-                  className="rounded-[1rem] bg-[rgba(8,16,16,0.85)] border border-[var(--border)]"
+                  className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)]"
                 />
               </label>
 
@@ -990,7 +990,7 @@ export function PostEditor({
                     </p>
                   </div>
                   <Button
-                    className="min-h-11 w-full sm:w-auto rounded-[1rem] bg-[rgba(57,245,143,0.12)] border border-[rgba(57,245,143,0.32)] text-[var(--primary)] hover:bg-[rgba(57,245,143,0.18)] transition-colors"
+                    className="min-h-11 w-full rounded-[1rem] border border-[rgba(47,158,118,0.2)] bg-[rgba(47,158,118,0.1)] text-[var(--primary-strong)] transition-colors hover:bg-[rgba(47,158,118,0.16)] sm:w-auto"
                     onPress={() => fileInputRef.current?.click()}
                     size="sm"
                     type="button"
@@ -1011,8 +1011,8 @@ export function PostEditor({
                 {images.length > 0 ? (
                   <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                     {images.map((image, index) => (
-                      <div key={image.clientId} className="overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.96)]">
-                        <div className="aspect-[16/10] bg-[rgba(6,14,12,0.96)] sm:aspect-[4/3]">
+                      <div key={image.clientId} className="overflow-hidden rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)]">
+                        <div className="aspect-[16/10] bg-[rgba(235,244,247,0.84)] sm:aspect-[4/3]">
                           {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured CDN URLs are not a fit for static remotePatterns here. */}
                           <img
                             alt={`已选图片 ${index + 1}`}
@@ -1074,7 +1074,7 @@ export function PostEditor({
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[rgba(8,16,16,0.72)] px-4 py-5 text-sm leading-6 text-[var(--muted)]">
+                  <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-5 text-sm leading-6 text-[var(--muted)]">
                     {currentCategoryCopy.emptyImageHint}
                   </div>
                 )}
@@ -1089,7 +1089,7 @@ export function PostEditor({
                     </p>
                   </div>
                   <Button
-                    className="min-h-11 w-full sm:w-auto rounded-[1rem] bg-[rgba(57,245,143,0.12)] border border-[rgba(57,245,143,0.32)] text-[var(--primary)] hover:bg-[rgba(57,245,143,0.18)] transition-colors"
+                    className="min-h-11 w-full rounded-[1rem] border border-[rgba(47,158,118,0.2)] bg-[rgba(47,158,118,0.1)] text-[var(--primary-strong)] transition-colors hover:bg-[rgba(47,158,118,0.16)] sm:w-auto"
                     onPress={() => attachmentInputRef.current?.click()}
                     size="sm"
                     type="button"
@@ -1110,7 +1110,7 @@ export function PostEditor({
                 {attachments.length > 0 ? (
                   <div className="grid gap-2">
                     {attachments.map((attachment, index) => (
-                      <div key={attachment.clientId} className="rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.92)] p-3">
+                      <div key={attachment.clientId} className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)] p-3">
                         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                           <div className="min-w-0">
                             <div className="flex flex-wrap items-center gap-2">
@@ -1168,7 +1168,7 @@ export function PostEditor({
                     ))}
                   </div>
                 ) : (
-                  <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[rgba(8,16,16,0.72)] px-4 py-5 text-sm leading-6 text-[var(--muted)]">
+                  <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-5 text-sm leading-6 text-[var(--muted)]">
                     可上传需求说明、报价单、表格、文档等附件。
                   </div>
                 )}
@@ -1183,7 +1183,7 @@ export function PostEditor({
                     value={tags}
                     onChange={(event) => setTags(event.target.value)}
                     placeholder={currentCategoryCopy.tagsPlaceholder}
-                    className="rounded-[1rem] bg-[rgba(8,16,16,0.85)] border border-[var(--border)]"
+                    className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)]"
                   />
                 </label>
 
@@ -1205,7 +1205,7 @@ export function PostEditor({
             </div>
 
             <div className="forum-sidebar">
-              <div className="rounded-[1.1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.92)] p-4">
+              <div className="rounded-[1.1rem] border border-[var(--border)] bg-[var(--surface-secondary)] p-4">
                 <p className="text-sm font-semibold text-slate-950">{categoryLocked && visibleCategories.length <= 1 ? "6" : "7"}. 可见范围</p>
                 <div className="mt-3 grid gap-2">
                   {visibilityOptions.map(([value, meta]) => (
@@ -1248,7 +1248,7 @@ export function PostEditor({
                 size="sm"
                 type="button"
                 variant="secondary"
-                className="rounded-[1rem] bg-[rgba(8,16,16,0.85)] border border-[var(--border)]"
+                className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)]"
               >
                 {clearLabel}
               </Button>
@@ -1256,7 +1256,7 @@ export function PostEditor({
                 isPending={submitting}
                 size="sm"
                 type="submit"
-                className="rounded-[1rem] bg-[rgba(57,245,143,0.12)] border border-[rgba(57,245,143,0.32)] text-[var(--primary)]"
+                className="rounded-[1rem] border border-[rgba(47,158,118,0.2)] bg-[rgba(47,158,118,0.1)] text-[var(--primary-strong)]"
               >
                 {submitting ? submittingLabel : submitLabel}
               </Button>
@@ -1273,9 +1273,9 @@ export function PostEditor({
             </div>
           </Card.Header>
           <Card.Content className="space-y-4 p-4">
-            <div className="rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.92)] p-4">
+            <div className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)] p-4">
               {uploadedImages[0] ? (
-                <div className="mb-4 aspect-[4/3] overflow-hidden rounded-[0.9rem] bg-[rgba(6,14,12,0.96)]">
+                <div className="mb-4 aspect-[4/3] overflow-hidden rounded-[0.9rem] bg-[rgba(235,244,247,0.84)]">
                   {/* eslint-disable-next-line @next/next/no-img-element -- runtime-configured CDN URLs are not a fit for static remotePatterns here. */}
                   <img
                     alt="首图预览"
@@ -1309,7 +1309,7 @@ export function PostEditor({
                 )}
               </div>
               {uploadedAttachments.length > 0 ? (
-                <div className="mt-4 rounded-[0.9rem] border border-[var(--border)] bg-[rgba(8,16,16,0.72)] p-3">
+                <div className="mt-4 rounded-[0.9rem] border border-[var(--border)] bg-[rgba(255,255,255,0.78)] p-3">
                   <p className="text-xs font-semibold text-slate-950">附件</p>
                   <div className="mt-2 grid gap-1.5">
                     {uploadedAttachments.map((attachment) => (
@@ -1322,7 +1322,7 @@ export function PostEditor({
               ) : null}
             </div>
 
-            <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[rgba(8,16,16,0.78)] px-4 py-3 text-xs leading-6 text-[var(--muted)]">
+            <div className="rounded-[1rem] border border-dashed border-[var(--border)] bg-[rgba(255,255,255,0.78)] px-4 py-3 text-xs leading-6 text-[var(--muted)]">
               当前状态：
               <span className="ml-2 font-semibold text-slate-950">
                 {title.trim() && content.trim() && parsedTags.length > 0 && uploadingCount === 0 && failedCount === 0

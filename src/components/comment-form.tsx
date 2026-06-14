@@ -14,7 +14,7 @@ export function CommentForm({ onSubmit }: CommentFormProps) {
 
   return (
     <form
-      className="terminal-comment-form"
+      className="resident-panel"
       onSubmit={async (event) => {
         event.preventDefault();
         const value = content.trim();

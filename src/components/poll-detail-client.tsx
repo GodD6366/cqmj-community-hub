@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Alert, Button } from "@heroui/react";
+import { Alert } from "@heroui/react";
 import { useCommunityPosts } from "./community-provider";
-import { EmptyState, ResidentAvatar } from "./resident-shared";
+import { EmptyState, ResidentAvatar, ResidentPageHeader, ResidentPanel } from "./resident-shared";
 import { formatDateTime, timeAgo } from "@/lib/utils";
 import { pollStatusMeta } from "@/lib/types";
 
@@ -24,19 +23,15 @@ export function PollDetailClient({ pollId }: { pollId: string }) {
       {message ? <Alert status="success"><Alert.Content><Alert.Description>{message}</Alert.Description></Alert.Content></Alert> : null}
       {error ? <Alert status="danger"><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert> : null}
 
-      <section className="terminal-mobile-root md:!hidden">
-        <div className="terminal-hero-card">
-          <div className="terminal-page-head">
-            <Link href="/" className="terminal-back-link">←</Link>
-            <div>
-              <div className="terminal-kicker">投票详情</div>
-              <h1 className="terminal-page-title">{poll.title}</h1>
-              <p className="terminal-page-subtitle">{pollStatusMeta[poll.status].label} · {poll.totalVotes} 人参与</p>
-            </div>
-          </div>
-        </div>
+      <section className="grid gap-4 md:hidden">
+        <ResidentPageHeader
+          backHref="/"
+          kicker="投票详情"
+          subtitle={`${pollStatusMeta[poll.status].label} · ${poll.totalVotes} 人参与`}
+          title={poll.title}
+        />
 
-        <div className="terminal-panel">
+        <ResidentPanel>
           <div className="flex items-start gap-3">
             <ResidentAvatar name={poll.authorName} size="sm" />
             <div className="min-w-0">
@@ -49,13 +44,9 @@ export function PollDetailClient({ pollId }: { pollId: string }) {
             <div>发起时间：{formatDateTime(poll.createdAt)}</div>
             <div>截止时间：{poll.endsAt ? formatDateTime(poll.endsAt) : "长期开放"}</div>
           </div>
-        </div>
+        </ResidentPanel>
 
-        <div className="terminal-panel">
-          <div className="terminal-panel-head">
-            <h2>方案结果</h2>
-            <span>{poll.selectedOptionId ? "已投票" : "未投票"}</span>
-          </div>
+        <ResidentPanel action={<span className="text-xs text-[var(--muted)]">{poll.selectedOptionId ? "已投票" : "未投票"}</span>} title="方案结果">
           <div className="mt-4 grid gap-3">
             {poll.options.map((option) => {
               const percentage = poll.totalVotes > 0 ? Math.round((option.voteCount / poll.totalVotes) * 1000) / 10 : 0;
@@ -64,7 +55,7 @@ export function PollDetailClient({ pollId }: { pollId: string }) {
                 <button
                   key={option.id}
                   type="button"
-                  className={`terminal-progress-card ${isSelected ? "is-selected" : ""}`}
+                  className={`rounded-[1.15rem] border px-4 py-4 text-left transition ${isSelected ? "border-[rgba(94,169,135,0.3)] bg-[rgba(94,169,135,0.12)]" : "border-[var(--border)] bg-[rgba(255,255,255,0.84)]"}`}
                   disabled={!currentUser || poll.hasVoted || poll.status !== "active" || pendingOptionId === option.id}
                   onClick={async () => {
                     if (!currentUser) {
@@ -88,12 +79,14 @@ export function PollDetailClient({ pollId }: { pollId: string }) {
                     <span className="font-semibold text-slate-950">{option.label}</span>
                     <span className="text-[var(--muted)]">{option.voteCount} 票 · {percentage}%</span>
                   </span>
-                  <span className="terminal-progress-track"><span className="terminal-progress-fill" style={{ width: `${Math.max(percentage, isSelected ? 12 : 0)}%` }} /></span>
+                  <span className="mt-3 block h-2 overflow-hidden rounded-full bg-[rgba(122,165,201,0.14)]">
+                    <span className="block h-full rounded-full bg-[linear-gradient(90deg,var(--primary),#89c0a5)]" style={{ width: `${Math.max(percentage, isSelected ? 12 : 0)}%` }} />
+                  </span>
                 </button>
               );
             })}
           </div>
-        </div>
+        </ResidentPanel>
       </section>
     </main>
   );

@@ -106,7 +106,7 @@ export function ReadmeRenderer({ markdown }: { markdown: string }) {
         </section>
       </div>
 
-      <Card className="glass-card hidden overflow-hidden p-4 sm:p-8 md:block">
+      <Card className="app-card hidden overflow-hidden p-4 sm:p-8 md:block">
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{

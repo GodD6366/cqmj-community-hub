@@ -2,12 +2,20 @@
 
 import Link from "next/link";
 import { useDeferredValue, useMemo, useState } from "react";
-import { Input } from "@heroui/react";
 import type { PostCategory } from "@/lib/types";
 import { categoryMeta } from "@/lib/types";
 import { useCommunityPosts } from "./community-provider";
 import { filterPublicPosts } from "@/lib/community-store";
-import { CyberPanel, CyberStatGrid, EmptyState } from "./resident-shared";
+import { ButtonLink } from "./ui";
+import {
+  CyberPanel,
+  CyberStatGrid,
+  EmptyState,
+  ResidentFilterTabs,
+  ResidentPageHeader,
+  ResidentPanel,
+  ResidentSearchBar,
+} from "./resident-shared";
 import { PostCard } from "./post-card";
 import { filterPosts, sortPosts, uniquePosts } from "@/lib/utils";
 
@@ -33,60 +41,90 @@ export function PostsClient({
 
   const filteredPosts = useMemo(() => sortPosts(filterPosts(visiblePosts, { category, query: deferredQuery }), "latest"), [category, deferredQuery, visiblePosts]);
   const categoryEntries = useMemo(() => Object.entries(categoryMeta) as Array<[PostCategory, (typeof categoryMeta)[PostCategory]]>, []);
+  const categoryTabs = useMemo(
+    () => [{ key: "all" as const, label: "全部" }, ...categoryEntries.map(([value, meta]) => ({ key: value, label: meta.badge }))],
+    [categoryEntries],
+  );
 
   return (
-    <main className="page-shell space-y-4 md:space-y-5">
-      <section className="terminal-mobile-root md:!hidden">
-        <div className="terminal-hero-card">
-          <div className="terminal-page-head">
-            <div>
-              <div className="terminal-kicker">社区终端</div>
-              <h1 className="terminal-page-title">社区动态</h1>
-              <p className="terminal-page-subtitle">需求、闲置、交流、约玩统一查看</p>
-            </div>
-            <Link href="/publish" className="terminal-icon-button" aria-label="发布内容">＋</Link>
+    <main className="page-shell">
+      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.5fr)_320px] gap-4">
+        {/* 左侧主要内容 */}
+        <div className="space-y-4">
+          {/* 移动端专属 PageHeader：在 md:hidden 下显示 */}
+          <div className="md:hidden">
+            <ResidentPageHeader
+              action={
+                <ButtonLink className="min-w-0" href="/publish" size="sm">
+                  发布
+                </ButtonLink>
+              }
+              kicker="社区动态"
+              subtitle="需求、闲置、交流、约玩统一查看"
+              title="社区动态"
+            />
           </div>
-          <div className="terminal-search-shell mt-4">
-            <Input aria-label="搜索动态" className="flex-1" placeholder="搜索标题 / 作者 / 标签" value={query} onChange={(event) => setQuery(event.target.value)} />
+
+          {/* 搜索与过滤栏（共享） */}
+          <div className="bg-white p-4 rounded-2xl border border-[var(--border)] space-y-4">
+            <ResidentFilterTabs activeKey={category} items={categoryTabs} onChange={setCategory} />
+            <ResidentSearchBar
+              ariaLabel="搜索动态"
+              placeholder="搜索标题 / 作者 / 标签"
+              value={query}
+              onChange={setQuery}
+            />
           </div>
-          <div className="terminal-filter-row mt-4">
-            <button type="button" className={`terminal-filter-pill ${category === "all" ? "is-active" : ""}`} onClick={() => setCategory("all")}>全部</button>
-            {categoryEntries.map(([value, meta]) => <button key={value} type="button" className={`terminal-filter-pill ${category === value ? "is-active" : ""}`} onClick={() => setCategory(value)}>{meta.badge}</button>)}
+
+          {/* 帖子列表（共享） */}
+          <div className="grid gap-3">
+            {!hydrated ? (
+              <div className="app-card p-6 text-sm text-[var(--muted)] text-center">加载中...</div>
+            ) : filteredPosts.length > 0 ? (
+              filteredPosts.map((post) => <PostCard key={post.id} post={post} />)
+            ) : (
+              <EmptyState title="没有匹配的社区动态" actionHref="/publish" actionLabel="去发布" />
+            )}
           </div>
         </div>
 
-        <div className="space-y-3">
-          {!hydrated ? <div className="terminal-panel text-sm text-[var(--muted)]">加载中...</div> : filteredPosts.length > 0 ? filteredPosts.map((post) => <PostCard key={post.id} post={post} compact />) : <EmptyState title="没有匹配的社区动态" actionHref="/publish" actionLabel="去发布" />}
-        </div>
-      </section>
-
-      <section className="hidden md:grid gap-4 xl:grid-cols-[minmax(0,1.5fr)_320px]">
-        <CyberPanel title="社区动态" kicker="Posts Feed">
-          <div className="flex gap-2 overflow-x-auto pb-3">
-            <button type="button" className={`rounded-full px-3 py-1.5 text-[0.82rem] font-semibold ${category === "all" ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "border border-[var(--border)] text-[var(--muted)]"}`} onClick={() => setCategory("all")}>全部</button>
-            {categoryEntries.map(([value, meta]) => <button key={value} type="button" className={`rounded-full px-3 py-1.5 text-[0.82rem] font-semibold ${category === value ? "bg-[var(--primary)] text-[var(--primary-foreground)]" : "border border-[var(--border)] text-[var(--muted)]"}`} onClick={() => setCategory(value)}>{meta.badge}</button>)}
-          </div>
-          <Input aria-label="搜索动态" placeholder="搜索标题 / 作者 / 标签" value={query} onChange={(event) => setQuery(event.target.value)} />
-          <div className="mt-4 grid gap-3">
-            {!hydrated ? <div className="app-card-muted p-4 text-sm text-[var(--muted)]">加载中...</div> : filteredPosts.length > 0 ? filteredPosts.map((post) => <PostCard key={post.id} post={post} />) : <EmptyState title="没有匹配的社区动态" actionHref="/publish" actionLabel="去发布" />}
-          </div>
-        </CyberPanel>
-
-        <div className="grid gap-4">
+        {/* 右侧边栏：仅在桌面端显示 */}
+        <div className="hidden md:grid gap-4 auto-rows-max">
           <CyberPanel title="列表统计" kicker="Summary">
-            <CyberStatGrid columns={2} items={[
-              { label: initialMode === "mine" ? "我的内容" : initialMode === "favorites" ? "我的收藏" : "公开动态", value: hydrated ? String(visiblePosts.length) : "--" },
-              { label: "筛选结果", value: hydrated ? String(filteredPosts.length) : "--" },
-            ]} />
+            <CyberStatGrid
+              columns={2}
+              items={[
+                {
+                  label:
+                    initialMode === "mine"
+                      ? "我的内容"
+                      : initialMode === "favorites"
+                      ? "我的收藏"
+                      : "公开动态",
+                  value: hydrated ? String(visiblePosts.length) : "--",
+                },
+                { label: "筛选结果", value: hydrated ? String(filteredPosts.length) : "--" },
+              ]}
+            />
           </CyberPanel>
           <CyberPanel title="快捷入口" kicker="Actions">
             <div className="grid gap-2 text-sm">
-              <Link href="/publish" className="app-shell-link !p-3"><span className="app-shell-link-copy"><span className="app-shell-link-title">发布内容</span><span className="app-shell-link-meta">发帖、报修、投票</span></span></Link>
-              <Link href="/neighbors" className="app-shell-link !p-3"><span className="app-shell-link-copy"><span className="app-shell-link-title">投票</span><span className="app-shell-link-meta">参与社区投票</span></span></Link>
+              <Link href="/publish" className="app-shell-link !p-3">
+                <span className="app-shell-link-copy">
+                  <span className="app-shell-link-title">发布内容</span>
+                  <span className="app-shell-link-meta">发帖、报修、投票</span>
+                </span>
+              </Link>
+              <Link href="/neighbors" className="app-shell-link !p-3">
+                <span className="app-shell-link-copy">
+                  <span className="app-shell-link-title">投票</span>
+                  <span className="app-shell-link-meta">参与社区投票</span>
+                </span>
+              </Link>
             </div>
           </CyberPanel>
         </div>
-      </section>
+      </div>
     </main>
   );
 }

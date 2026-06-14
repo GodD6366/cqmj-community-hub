@@ -28,6 +28,9 @@ import {
   DataList,
   EmptyState,
   ResidentAvatar,
+  ResidentListRow,
+  ResidentPageHeader,
+  ResidentPanel,
 } from "./resident-shared";
 import { useCommunityPosts } from "./community-provider";
 import { getCommunityName } from "@/lib/community-brand";
@@ -263,501 +266,403 @@ export function MeClient() {
         </Alert>
       ) : null}
 
-      <section className="mobile-me md:!hidden">
-        <section className="mobile-me-profile-card">
-          <div className="mobile-me-profile-glitch" />
-          <div className="mobile-me-avatar-ring">
-            <div className="mobile-me-avatar">
-              {Array.from(currentUser.nickname)[0] ?? "我"}
-            </div>
-          </div>
-          <div className="mobile-me-profile-copy">
-            <div className="mobile-me-name-row">
-              <h1 className="mobile-me-name">{currentUser.nickname}</h1>
-              <span className="mobile-me-level">LV.6 探索者</span>
-            </div>
-            <div className="mobile-me-room">
-              {communityName} · {currentUser.roomNumber || "未绑定房号"}
-              <CopyIcon />
-            </div>
-            <span className="mobile-me-status">SYS:ONLINE</span>
-            <p>探索 · 连接 · 共建未来社区</p>
-          </div>
-          <button type="button" className="mobile-me-edit" onClick={openProfileEditor}>
-            <EditIcon /> 编辑资料
-          </button>
-        </section>
-
-        <section className="mobile-me-stats" aria-label="个人统计">
-          {mobileStats.map((item) => (
-            <Link
-              key={item.key}
-              href={item.href}
-              className="mobile-me-stat-item"
-            >
-              <span className={`mobile-me-stat-icon is-${item.tone}`}>
-                {item.icon}
-              </span>
-              <strong>{stats[item.key]}</strong>
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </section>
-
-        <section className="mobile-me-list" aria-label="个人功能列表">
-          {mobileMenuItems.map((item) => (
-            <Link
-              key={item.label}
-              href={item.href}
-              className="mobile-me-menu-item"
-            >
-              <span className={`mobile-me-menu-icon is-${item.tone}`}>
-                {item.icon}
-              </span>
-              <span>{item.label}</span>
-              <span className="mobile-me-menu-arrow"><ChevronRightIcon /></span>
-            </Link>
-          ))}
-          <button
-            type="button"
-            className="mobile-me-menu-item"
-            aria-controls="mobile-me-settings"
-            aria-expanded={settingsOpen}
-            onClick={toggleSettings}
-          >
-            <span className="mobile-me-menu-icon is-green">
-              <SettingsIcon />
-            </span>
-            <span>设置</span>
-            <span className="mobile-me-menu-arrow" aria-hidden="true">
-              {settingsOpen ? <ChevronUpIcon /> : <ChevronRightIcon />}
-            </span>
-          </button>
-        </section>
-
-        <section className="grid gap-3">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-sm font-semibold text-slate-950">我的需求</h2>
-            <Link href="/publish?kind=request" className="text-xs font-semibold text-[var(--primary)]">
-              去发布
-            </Link>
-          </div>
-          {myRequests.length > 0 ? (
-            myRequests.slice(0, 3).map((post) => (
-              <article
-                key={post.id}
-                className="app-card-muted p-3"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0 flex-1">
-                    <Link href={`/posts/${post.id}`} className="line-clamp-1 text-sm font-semibold text-slate-950">
-                      {post.title}
-                    </Link>
-                    <p className="mt-1 line-clamp-2 text-xs leading-5 text-[var(--muted)]">
-                      {post.content}
-                    </p>
-                    <div className="mt-2 text-[11px] text-[var(--muted)]">
-                      {post.requestStatus ? requestStatusMeta[post.requestStatus].label : "待处理"} · {timeAgo(post.updatedAt)}
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {(Object.entries(requestStatusMeta) as Array<[RequestStatus, (typeof requestStatusMeta)[RequestStatus]]>).map(
-                    ([status, meta]) => (
-                      <Button
-                        key={status}
-                        size="sm"
-                        variant={post.requestStatus === status ? undefined : "secondary"}
-                        isDisabled={requestStatusBusyId === post.id || post.requestStatus === status}
-                        onPress={() => void handleRequestStatusChange(post.id, status)}
-                      >
-                        {requestStatusBusyId === post.id ? "更新中..." : meta.label}
-                      </Button>
-                    ),
-                  )}
-                </div>
-              </article>
-            ))
-          ) : (
-            <EmptyState
-              title="还没有需求"
-              description="发布需求后，可在这里快速标记状态。"
-              actionHref="/publish?kind=request"
-              actionLabel="去提需求"
-            />
-          )}
-        </section>
-
-        {settingsOpen ? (
-          <div
-            className="mobile-me-settings-modal"
-            onClick={closeSettings}
-            role="presentation"
-          >
-            <section
-              id="mobile-me-settings"
-              className="mobile-me-settings-panel"
-              aria-label="账户设置"
-              aria-modal="true"
-              role="dialog"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="mobile-me-settings-toolbar">
-                <div className="mobile-me-settings-head">
-                  <span className="mobile-me-settings-icon">
-                    <SettingsIcon />
-                  </span>
-                  <div>
-                    <h2>账户设置</h2>
-                    <p>管理当前登录账号与系统连接状态</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="mobile-me-settings-close"
-                  aria-label="关闭设置"
-                  onClick={closeSettings}
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-              <div className="mobile-me-settings-meta">
-                <span>当前账号</span>
-                <strong>{currentUser.username}</strong>
-              </div>
-              <div className="mobile-me-settings-meta">
-                <span>房号状态</span>
-                <strong>{currentUser.roomNumber || "未绑定房号"}</strong>
-              </div>
+      {/* 资料编辑模态框在自适应逻辑中共享 */}
+      {profileOpen && currentUser ? (
+        <div className="mobile-register-overlay" style={{ zIndex: 100 }}>
+          <section className="mobile-register-modal">
+            <header className="mobile-register-header">
+              <h2>编辑资料</h2>
               <button
                 type="button"
-                className="mobile-me-logout"
-                onClick={handleLogout}
-                disabled={loggingOut}
+                className="mobile-register-close"
+                onClick={closeProfileEditor}
+                aria-label="关闭"
+                disabled={profileSaving}
               >
-                <LogoutIcon />
-                {loggingOut ? "退出中..." : "退出登录"}
+                ✕
               </button>
-            </section>
-          </div>
-        ) : null}
-      </section>
-
-        {profileOpen ? (
-          <div
-            className="mobile-me-settings-modal"
-            onClick={closeProfileEditor}
-            role="presentation"
-          >
-            <section
-              className="mobile-me-settings-panel mobile-me-profile-editor"
-              aria-label="编辑资料"
-              aria-modal="true"
-              role="dialog"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="mobile-me-settings-toolbar">
-                <div className="mobile-me-settings-head">
-                  <span className="mobile-me-settings-icon">
-                    <EditIcon />
-                  </span>
-                  <div>
-                    <h2>编辑资料</h2>
-                    <p>更新昵称、用户名与房号信息</p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  className="mobile-me-settings-close"
-                  aria-label="关闭编辑资料"
-                  onClick={closeProfileEditor}
-                  disabled={profileSaving}
-                >
-                  <CloseIcon />
-                </button>
-              </div>
-              <form className="mobile-me-profile-form" onSubmit={handleProfileSubmit}>
-                <label className="mobile-register-field">
-                  <span>昵称</span>
-                  <span className="mobile-register-input-wrap">
-                    <EditIcon />
-                    <input
-                      type="text"
-                      value={profileDraft.nickname}
-                      onChange={(event) =>
-                        setProfileDraft((draft) => ({ ...draft, nickname: event.target.value }))
-                      }
-                      placeholder="请输入昵称"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      disabled={profileSaving}
-                    />
-                  </span>
-                </label>
-                <label className="mobile-register-field">
-                  <span>用户名</span>
-                  <span className="mobile-register-input-wrap">
-                    <EditIcon />
-                    <input
-                      type="text"
-                      value={profileDraft.username}
-                      onChange={(event) =>
-                        setProfileDraft((draft) => ({ ...draft, username: event.target.value }))
-                      }
-                      placeholder="请输入用户名"
-                      autoCapitalize="none"
-                      autoCorrect="off"
-                      disabled={profileSaving}
-                    />
-                  </span>
-                </label>
-                <label className="mobile-register-field">
-                  <span>房号</span>
-                  <span className="mobile-register-input-wrap">
-                    <CopyIcon />
-                    <input
-                      type="text"
-                      value={profileDraft.roomNumber}
-                      onChange={(event) =>
-                        setProfileDraft((draft) => ({ ...draft, roomNumber: event.target.value }))
-                      }
-                      placeholder="如：1-905"
-                      autoCapitalize="none"
-                      disabled={profileSaving}
-                    />
-                  </span>
-                  <small>格式：楼栋-房号，例如 1-905</small>
-                </label>
-                <button
-                  type="submit"
-                  className="mobile-register-submit"
-                  disabled={profileSaving}
-                >
-                  {profileSaving ? "保存中..." : "保存资料"}
-                </button>
-              </form>
-            </section>
-          </div>
-        ) : null}
-
-      <section className="hidden md:grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
-        <CyberPanel title="个人中心" kicker="Profile">
-          <div className="flex items-start gap-4">
-            <ResidentAvatar name={currentUser.nickname} size="lg" />
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="text-[1.3rem] font-semibold text-slate-950">
-                  {currentUser.nickname}
-                </div>
-                <span className="app-chip">
-                  {currentUser.role === "admin" ? "管理员" : "已认证业主"}
+            </header>
+            <form onSubmit={handleProfileSubmit} className="space-y-4">
+              <label className="mobile-register-field">
+                <span>昵称</span>
+                <span className="mobile-register-input-wrap">
+                  <input
+                    type="text"
+                    value={profileDraft.nickname}
+                    onChange={(event) =>
+                      setProfileDraft((draft) => ({ ...draft, nickname: event.target.value }))
+                    }
+                    placeholder="请输入你的昵称"
+                    maxLength={20}
+                    disabled={profileSaving}
+                  />
                 </span>
-              </div>
-              <div className="mt-2 text-sm text-[var(--muted)]">
-                {currentUser.roomNumber}
-              </div>
-            </div>
-            <Button size="sm" variant="secondary" onPress={openProfileEditor}>
-              编辑资料
-            </Button>
-          </div>
-          <div className="mt-4">
-            <CyberStatGrid
-              columns={4}
-              items={[
-                { label: "我的帖子", value: stats.myPosts },
-                { label: "我的需求", value: stats.myRequests },
-                { label: "我的收藏", value: stats.favoritePosts },
-                { label: "我的参与", value: stats.votedPolls },
-                { label: "我的工单", value: stats.myTickets },
-              ]}
-            />
-          </div>
-        </CyberPanel>
-
-        <CyberPanel title="功能中心" kicker="Function Center">
-          <div className="grid gap-4 xl:grid-cols-2">
-            <div className="grid gap-3">
-              {functionItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="app-shell-link !p-3"
-                >
-                  <span className="app-shell-link-icon">{item.icon}</span>
-                  <span className="app-shell-link-copy">
-                    <span className="app-shell-link-title">{item.label}</span>
-                  </span>
-                </Link>
-              ))}
-            </div>
-            <div className="grid gap-3">
-              {extraItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="app-shell-link !p-3"
-                >
-                  <span className="app-shell-link-icon">{item.icon}</span>
-                  <span className="app-shell-link-copy">
-                    <span className="app-shell-link-title">{item.label}</span>
-                  </span>
-                </Link>
-              ))}
-              <Button
-                isPending={loggingOut}
-                onPress={handleLogout}
-                variant="secondary"
+              </label>
+              <label className="mobile-register-field">
+                <span>用户名</span>
+                <span className="mobile-register-input-wrap">
+                  <input
+                    type="text"
+                    value={profileDraft.username}
+                    onChange={(event) =>
+                      setProfileDraft((draft) => ({ ...draft, username: event.target.value }))
+                    }
+                    placeholder="请输入用户名"
+                    disabled={profileSaving}
+                  />
+                </span>
+              </label>
+              <label className="mobile-register-field">
+                <span>房号</span>
+                <span className="mobile-register-input-wrap">
+                  <input
+                    type="text"
+                    value={profileDraft.roomNumber}
+                    onChange={(event) =>
+                      setProfileDraft((draft) => ({ ...draft, roomNumber: event.target.value }))
+                    }
+                    placeholder="如：1-905"
+                    autoCapitalize="none"
+                    disabled={profileSaving}
+                  />
+                </span>
+                <small>格式：楼栋-房号，例如 1-905</small>
+              </label>
+              <button
+                type="submit"
+                className="mobile-register-submit"
+                disabled={profileSaving}
               >
-                {loggingOut ? "退出中..." : "退出登录"}
-              </Button>
-            </div>
-          </div>
-        </CyberPanel>
-      </section>
+                {profileSaving ? "保存中..." : "保存资料"}
+              </button>
+            </form>
+          </section>
+        </div>
+      ) : null}
 
-      <section className="hidden md:grid gap-4 xl:grid-cols-3">
-        <CyberPanel title="账户统计" kicker="Summary">
-          <DataList
-            items={[
-              { label: "我的评论提醒", value: stats.comments },
-              { label: "我的需求", value: stats.myRequests },
-              { label: "我的收藏", value: stats.favoritePosts },
-              { label: "我的工单", value: stats.myTickets },
-            ]}
-          />
-        </CyberPanel>
-        <CyberPanel title="参与记录" kicker="Activity">
-          <DataList
-            items={[
-              { label: "投票参与", value: stats.votedPolls },
-              { label: "房号状态", value: currentUser.roomNumber },
-              {
-                label: "账号角色",
-                value: currentUser.role === "admin" ? "管理员" : "居民",
-              },
-            ]}
-          />
-        </CyberPanel>
-        <CyberPanel title="快捷跳转" kicker="Links">
-          <DataList
-            items={[
-              {
-                label: "返回首页",
-                value: (
-                  <Link href="/" className="text-[var(--primary)]">
-                    前往
-                  </Link>
-                ),
-              },
-              {
-                label: "查看邻里",
-                value: (
-                  <Link href="/neighbors" className="text-[var(--primary)]">
-                    前往
-                  </Link>
-                ),
-              },
-              {
-                label: "发布内容",
-                value: (
-                  <Link href="/publish" className="text-[var(--primary)]">
-                    前往
-                  </Link>
-                ),
-              },
-            ]}
-          />
-        </CyberPanel>
-      </section>
-
-      <section className="grid gap-4">
-        <CyberPanel
-          title="我的需求"
-          kicker="Request Center"
-          action={
-            <Link href="/publish?kind=request" className="text-sm font-semibold text-[var(--primary)]">
-              新建需求
-            </Link>
-          }
-        >
-          {myRequests.length > 0 ? (
-            <div className="grid gap-3">
-              {myRequests.map((post) => (
-                <article
-                  key={post.id}
-                  className="rounded-[1rem] border border-[var(--border)] bg-[rgba(10,18,18,0.72)] px-4 py-4"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Link href={`/posts/${post.id}`} className="text-sm font-semibold text-slate-950 hover:text-[var(--primary)]">
-                          {post.title}
-                        </Link>
-                        {post.requestStatus ? (
-                          <span
-                            className="rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold"
-                            style={{
-                              borderColor:
-                                requestStatusMeta[post.requestStatus].tone === "green"
-                                  ? "rgba(57,245,143,0.24)"
-                                  : requestStatusMeta[post.requestStatus].tone === "amber"
-                                  ? "rgba(246,200,95,0.24)"
-                                  : "rgba(72,201,255,0.24)",
-                              color:
-                                requestStatusMeta[post.requestStatus].tone === "green"
-                                  ? "#39f58f"
-                                  : requestStatusMeta[post.requestStatus].tone === "amber"
-                                  ? "#f6c85f"
-                                  : "#48c9ff",
-                              background:
-                                requestStatusMeta[post.requestStatus].tone === "green"
-                                  ? "rgba(57,245,143,0.08)"
-                                  : requestStatusMeta[post.requestStatus].tone === "amber"
-                                  ? "rgba(246,200,95,0.08)"
-                                  : "rgba(72,201,255,0.08)",
-                            }}
-                          >
-                            {requestStatusMeta[post.requestStatus].label}
-                          </span>
-                        ) : null}
-                      </div>
-                      <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--muted)]">
-                        {post.content}
-                      </p>
-                      <div className="mt-2 text-xs text-[var(--muted)]">
-                        更新时间 · {timeAgo(post.updatedAt)}
-                      </div>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {(Object.entries(requestStatusMeta) as Array<[RequestStatus, (typeof requestStatusMeta)[RequestStatus]]>).map(
-                        ([status, meta]) => (
-                          <Button
-                            key={status}
-                            size="sm"
-                            variant={post.requestStatus === status ? undefined : "secondary"}
-                            isDisabled={requestStatusBusyId === post.id || post.requestStatus === status}
-                            onPress={() => void handleRequestStatusChange(post.id, status)}
-                          >
-                            {requestStatusBusyId === post.id ? "更新中..." : meta.label}
-                          </Button>
-                        ),
-                      )}
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          ) : (
-            <EmptyState
-              title="你还没有发布需求"
-              description="发布后可在这里统一查看并更新处理状态。"
-              actionHref="/publish?kind=request"
-              actionLabel="去提需求"
+      {/* 统一的自适应双栏网格 */}
+      <div className="grid grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] gap-4">
+        {/* 左侧栏/信息栏 */}
+        <div className="space-y-4">
+          {/* 移动端专属 PageHeader 与信息：在 md:hidden 下显示 */}
+          <div className="md:hidden">
+            <ResidentPageHeader
+              action={<Button size="sm" onPress={openProfileEditor}>编辑资料</Button>}
+              kicker="个人中心"
+              subtitle="消息、工单、发帖记录都在这里统一查看。"
+              title={currentUser.nickname}
             />
-          )}
-        </CyberPanel>
-      </section>
+
+            <ResidentPanel>
+              <ResidentListRow
+                leading={<ResidentAvatar name={currentUser.nickname} size="lg" />}
+                subtitle={`${communityName} · ${currentUser.roomNumber || "未绑定房号"}`}
+                title={
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-semibold text-slate-900">{currentUser.nickname}</span>
+                    <span className="app-chip">{currentUser.role === "admin" ? "管理员" : "已认证住户"}</span>
+                  </div>
+                }
+              />
+            </ResidentPanel>
+          </div>
+
+          {/* 桌面端专属的个人信息 CyberPanel：仅在桌面端显示 */}
+          <div className="hidden md:block">
+            <CyberPanel title="个人中心" kicker="Profile">
+              <div className="flex items-start gap-4">
+                <ResidentAvatar name={currentUser.nickname} size="lg" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="text-[1.3rem] font-semibold text-slate-950">
+                      {currentUser.nickname}
+                    </div>
+                    <span className="app-chip">
+                      {currentUser.role === "admin" ? "管理员" : "已认证业主"}
+                    </span>
+                  </div>
+                  <div className="mt-2 text-sm text-[var(--muted)]">
+                    {currentUser.roomNumber}
+                  </div>
+                </div>
+                <Button size="sm" variant="secondary" onPress={openProfileEditor}>
+                  编辑资料
+                </Button>
+              </div>
+              <div className="mt-4">
+                <CyberStatGrid
+                  columns={4}
+                  items={[
+                    { label: "我的帖子", value: stats.myPosts },
+                    { label: "我的需求", value: stats.myRequests },
+                    { label: "我的收藏", value: stats.favoritePosts },
+                    { label: "我的参与", value: stats.votedPolls },
+                    { label: "我的工单", value: stats.myTickets },
+                  ]}
+                />
+              </div>
+            </CyberPanel>
+          </div>
+        </div>
+
+        {/* 右侧栏：包含功能列表、需求列表等 */}
+        <div className="space-y-4">
+          {/* 功能中心：移动端是统计统计和列表 */}
+          <div className="md:hidden space-y-4">
+            <section className="mobile-me-stats" aria-label="个人统计">
+              {mobileStats.map((item) => (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  className="mobile-me-stat-item"
+                >
+                  <span className={`mobile-me-stat-icon is-${item.tone}`}>
+                    {item.icon}
+                  </span>
+                  <strong>{stats[item.key]}</strong>
+                  <span>{item.label}</span>
+                </Link>
+              ))}
+            </section>
+
+            <section className="mobile-me-list" aria-label="个人功能列表">
+              {mobileMenuItems.map((item) => (
+                <Link
+                  key={item.label}
+                  href={item.href}
+                  className="mobile-me-menu-item"
+                >
+                  <span className={`mobile-me-menu-icon is-${item.tone}`}>
+                    {item.icon}
+                  </span>
+                  <span>{item.label}</span>
+                  <span className="mobile-me-menu-arrow"><ChevronRightIcon /></span>
+                </Link>
+              ))}
+              <button
+                type="button"
+                className="mobile-me-menu-item"
+                aria-controls="mobile-me-settings"
+                aria-expanded={settingsOpen}
+                onClick={toggleSettings}
+              >
+                <span className="mobile-me-menu-icon is-green">
+                  <SettingsIcon />
+                </span>
+                <span>设置</span>
+                <span className="mobile-me-menu-arrow" aria-hidden="true">
+                  {settingsOpen ? <ChevronUpIcon /> : <ChevronRightIcon />}
+                </span>
+              </button>
+              
+              {settingsOpen && (
+                <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-secondary)] space-y-2 rounded-2xl mt-2">
+                  <div className="text-xs text-[var(--muted)] mb-2 flex justify-between">
+                    <span>当前账号</span>
+                    <strong>{currentUser.username}</strong>
+                  </div>
+                  <Button
+                    isPending={loggingOut}
+                    onPress={handleLogout}
+                    variant="danger"
+                    className="w-full"
+                  >
+                    {loggingOut ? "退出中..." : "退出登录"}
+                  </Button>
+                </div>
+              )}
+            </section>
+          </div>
+
+          {/* 桌面端专属的功能中心：在 md:block 下显示 */}
+          <div className="hidden md:block">
+            <CyberPanel title="功能中心" kicker="Function Center">
+              <div className="grid gap-4 xl:grid-cols-2">
+                <div className="grid gap-3">
+                  {functionItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="app-shell-link !p-3"
+                    >
+                      <span className="app-shell-link-icon">{item.icon}</span>
+                      <span className="app-shell-link-copy">
+                        <span className="app-shell-link-title">{item.label}</span>
+                      </span>
+                    </Link>
+                  ))}
+                </div>
+                <div className="grid gap-3">
+                  {extraItems.map((item) => (
+                    <Link
+                      key={item.label}
+                      href={item.href}
+                      className="app-shell-link !p-3"
+                    >
+                      <span className="app-shell-link-icon">{item.icon}</span>
+                      <span className="app-shell-link-copy">
+                        <span className="app-shell-link-title">{item.label}</span>
+                      </span>
+                    </Link>
+                  ))}
+                  <Button
+                    isPending={loggingOut}
+                    onPress={handleLogout}
+                    variant="secondary"
+                  >
+                    {loggingOut ? "退出中..." : "退出登录"}
+                  </Button>
+                </div>
+              </div>
+            </CyberPanel>
+          </div>
+
+          {/* 桌面端账户统计、参与记录、快捷跳转：仅在桌面端显示 */}
+          <div className="hidden md:grid gap-4 xl:grid-cols-3">
+            <CyberPanel title="账户统计" kicker="Summary">
+              <DataList
+                items={[
+                  { label: "我的评论提醒", value: stats.comments },
+                  { label: "我的需求", value: stats.myRequests },
+                  { label: "我的收藏", value: stats.favoritePosts },
+                  { label: "我的工单", value: stats.myTickets },
+                ]}
+              />
+            </CyberPanel>
+            <CyberPanel title="参与记录" kicker="Activity">
+              <DataList
+                items={[
+                  { label: "投票参与", value: stats.votedPolls },
+                  { label: "房号状态", value: currentUser.roomNumber },
+                  {
+                    label: "账号角色",
+                    value: currentUser.role === "admin" ? "管理员" : "居民",
+                  },
+                ]}
+              />
+            </CyberPanel>
+            <CyberPanel title="快捷跳转" kicker="Links">
+              <DataList
+                items={[
+                  {
+                    label: "返回首页",
+                    value: (
+                      <Link href="/" className="text-[var(--primary)]">
+                        前往
+                      </Link>
+                    ),
+                  },
+                  {
+                    label: "查看邻里",
+                    value: (
+                      <Link href="/neighbors" className="text-[var(--primary)]">
+                        前往
+                      </Link>
+                    ),
+                  },
+                  {
+                    label: "发布内容",
+                    value: (
+                      <Link href="/publish" className="text-[var(--primary)]">
+                        前往
+                      </Link>
+                    ),
+                  },
+                ]}
+              />
+            </CyberPanel>
+          </div>
+
+          {/* 我的需求列表：两端共享，只写一次！ */}
+          <section className="grid gap-4">
+            <CyberPanel
+              title="我的需求"
+              kicker="Request Center"
+              action={
+                <Link href="/publish?kind=request" className="text-sm font-semibold text-[var(--primary)]">
+                  新建需求
+                </Link>
+              }
+            >
+              {myRequests.length > 0 ? (
+                <div className="grid gap-3">
+                  {myRequests.map((post) => (
+                    <article
+                      key={post.id}
+                      className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-4"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Link href={`/posts/${post.id}`} className="text-sm font-semibold text-slate-950 hover:text-[var(--primary)]">
+                              {post.title}
+                            </Link>
+                            {post.requestStatus ? (
+                              <span
+                                className="rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold"
+                                style={{
+                                  borderColor:
+                                    requestStatusMeta[post.requestStatus].tone === "green"
+                                      ? "rgba(57,245,143,0.24)"
+                                      : requestStatusMeta[post.requestStatus].tone === "amber"
+                                      ? "rgba(246,200,95,0.24)"
+                                      : "rgba(72,201,255,0.24)",
+                                  color:
+                                    requestStatusMeta[post.requestStatus].tone === "green"
+                                      ? "#39f58f"
+                                      : requestStatusMeta[post.requestStatus].tone === "amber"
+                                      ? "#f6c85f"
+                                      : "#48c9ff",
+                                  background:
+                                    requestStatusMeta[post.requestStatus].tone === "green"
+                                      ? "rgba(57,245,143,0.08)"
+                                      : requestStatusMeta[post.requestStatus].tone === "amber"
+                                      ? "rgba(246,200,95,0.08)"
+                                      : "rgba(72,201,255,0.08)",
+                                }}
+                              >
+                                {requestStatusMeta[post.requestStatus].label}
+                              </span>
+                            ) : null}
+                          </div>
+                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--muted)]">
+                            {post.content}
+                          </p>
+                          <div className="mt-2 text-xs text-[var(--muted)]">
+                            更新时间 · {timeAgo(post.updatedAt)}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {(Object.entries(requestStatusMeta) as Array<[RequestStatus, (typeof requestStatusMeta)[RequestStatus]]>).map(
+                            ([status, meta]) => (
+                              <Button
+                                key={status}
+                                size="sm"
+                                variant={post.requestStatus === status ? undefined : "secondary"}
+                                isDisabled={requestStatusBusyId === post.id || post.requestStatus === status}
+                                onPress={() => void handleRequestStatusChange(post.id, status)}
+                              >
+                                {requestStatusBusyId === post.id ? "更新中..." : meta.label}
+                              </Button>
+                            ),
+                          )}
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              ) : (
+                <EmptyState
+                  title="你还没有发布需求"
+                  description="发布后可在这里统一查看并更新处理状态。"
+                  actionHref="/publish?kind=request"
+                  actionLabel="去提需求"
+                />
+              )}
+            </CyberPanel>
+          </section>
+        </div>
+      </div>
     </main>
   );
 }

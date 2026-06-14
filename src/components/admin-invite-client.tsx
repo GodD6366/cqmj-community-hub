@@ -283,11 +283,11 @@ export function AdminInviteClient({ initialTab }: { initialTab: AdminTab }) {
     <PageShell className="max-w-[1600px]">
       <section className="grid gap-4 xl:grid-cols-[280px_minmax(0,1fr)]">
         <aside className="grid gap-4">
-          <CyberPanel title="管理后台系统" kicker="Admin Console">
+          <CyberPanel title="管理后台系统" kicker="后台总览">
             <div className="text-sm leading-6 text-[var(--muted)]">用户、邀请码、内容审核、投票管理与工单协同。</div>
-            <div className="mt-4 rounded-[1rem] border border-[var(--border)] bg-[rgba(8,16,16,0.82)] p-4">
-              <div className="cyber-terminal-title">ADMIN_TERMINAL v1.0.0</div>
-              <pre className="m-0 whitespace-pre-wrap text-[0.75rem] leading-7 text-[var(--primary)]">{`> CONNECTED TO COMMUNITY DB ... OK\n> AUTHORIZATION ... OK\n> ADMIN LEVEL ... SUPER\n> CURRENT USER ... ${currentUser?.nickname ?? "ADMIN"}`}</pre>
+            <div className="mt-4 rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)] p-4">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">后台状态</div>
+              <pre className="m-0 whitespace-pre-wrap text-[0.78rem] leading-7 text-[var(--foreground)]">{`数据连接：正常\n当前权限：管理员\n当前账号：${currentUser?.nickname ?? "ADMIN"}\n建议操作：处理审核与工单`}</pre>
             </div>
           </CyberPanel>
 
