@@ -7,6 +7,20 @@ export interface MatchResult {
   source: "llm" | "rule";
 }
 
+interface LlmChatResponse {
+  choices?: Array<{
+    message?: {
+      content?: string | null;
+    };
+  }>;
+}
+
+interface LlmMatchItem {
+  skillId?: unknown;
+  score?: unknown;
+  reasons?: unknown;
+}
+
 const LLM_BASE_URL = process.env.COMMUNITY_LLM_BASE_URL;
 const LLM_API_KEY = process.env.COMMUNITY_LLM_API_KEY;
 const LLM_MODEL = process.env.COMMUNITY_LLM_MODEL || "gpt-5.4-mini";
@@ -105,8 +119,8 @@ ${JSON.stringify(availableSkills.map(s => ({ id: s.id, category: s.category, tit
       throw new Error(`LLM API Error: ${response.status} ${response.statusText}`);
     }
 
-    const data = await response.json();
-    let resultText = data.choices[0]?.message?.content?.trim() || "[]";
+    const data = (await response.json()) as LlmChatResponse;
+    let resultText = data.choices?.[0]?.message?.content?.trim() || "[]";
 
     // 容错处理：去除 markdown code block
     if (resultText.startsWith("```json")) {
@@ -118,12 +132,15 @@ ${JSON.stringify(availableSkills.map(s => ({ id: s.id, category: s.category, tit
     const parsed = JSON.parse(resultText);
 
     if (Array.isArray(parsed)) {
-      return parsed.map((item: any) => ({
-        skillId: item.skillId,
-        score: typeof item.score === "number" ? item.score : parseFloat(item.score) || 0.5,
-        reasons: Array.isArray(item.reasons) ? item.reasons : [],
-        source: "llm" as const,
-      })).filter(r => r.skillId).sort((a, b) => b.score - a.score).slice(0, 5);
+      return parsed.map((item: LlmMatchItem) => {
+        const score = typeof item.score === "number" ? item.score : Number.parseFloat(String(item.score ?? ""));
+        return {
+          skillId: typeof item.skillId === "string" ? item.skillId : "",
+          score: Number.isFinite(score) ? score : 0.5,
+          reasons: Array.isArray(item.reasons) ? item.reasons.filter((reason): reason is string => typeof reason === "string") : [],
+          source: "llm" as const,
+        };
+      }).filter(r => r.skillId).sort((a, b) => b.score - a.score).slice(0, 5);
     }
 
     throw new Error("Invalid LLM response format");

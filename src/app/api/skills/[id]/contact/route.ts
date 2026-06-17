@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { createNotificationRecord } from "@/lib/resident-server";
 
@@ -16,8 +17,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!skill) return NextResponse.json({ error: "Skill not found" }, { status: 404 });
   if (skill.userId === currentUser.id) return NextResponse.json({ error: "Cannot contact yourself" }, { status: 400 });
 
-  await prisma.$transaction(async (tx) => {
-    await createNotificationRecord(tx as any, {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+    await createNotificationRecord(tx, {
       userId: skill.userId,
       type: "system",
       title: "有人想获取您的技能帮助",

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getCurrentUserFromCookie } from "@/lib/auth-server";
+import type { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { createNotificationRecord } from "@/lib/resident-server";
 
@@ -27,13 +28,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ error: "Already notified" }, { status: 400 });
   }
 
-  await prisma.$transaction(async (tx) => {
+  await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     await tx.postSkillMatch.update({
       where: { id: matchId },
       data: { notifiedAt: new Date() }
     });
 
-    await createNotificationRecord(tx as any, {
+    await createNotificationRecord(tx, {
       userId: match.skill.userId,
       type: "system",
       title: "有人需要你的技能帮助！",

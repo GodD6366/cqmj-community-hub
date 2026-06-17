@@ -2,28 +2,17 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Input } from "@heroui/react";
-import { useCommunityPosts } from "./community-provider";
+import { Button, Input } from "@heroui/react";
+import { useCommunityPosts } from "@/lib/community-store";
 import { SystemLogo } from "./system-logo";
 import { getCommunityName } from "@/lib/community-brand";
-import { ButtonLink } from "./ui";
-import { HomeLineIcon, InviteIcon, LockLineIcon, UserLineIcon } from "./app-icons";
+import { InviteIcon, HomeLineIcon, UserLineIcon, LockLineIcon } from "./app-icons";
 
 const communityName = getCommunityName();
 
 type InviteCheckResult =
-  | {
-      ok: true;
-      normalizedCode: string;
-      remainingUses: number | null;
-      expiresAt: string | null;
-      note: string | null;
-    }
-  | {
-      ok: false;
-      normalizedCode: string | null;
-      reason: "empty" | "invalid" | "inactive" | "expired" | "exhausted";
-    };
+  | { ok: true; normalizedCode: string; remainingUses: number | null; expiresAt: string | null; note: string | null }
+  | { ok: false; normalizedCode: string | null; reason: "empty" | "invalid" | "inactive" | "expired" | "exhausted" };
 
 function getInviteHint(result: InviteCheckResult | null) {
   if (!result) return "";
@@ -33,16 +22,11 @@ function getInviteHint(result: InviteCheckResult | null) {
     return `${usage}${expiry}`;
   }
   switch (result.reason) {
-    case "empty":
-      return "请输入邀请码。";
-    case "invalid":
-      return "邀请码无效。";
-    case "inactive":
-      return "邀请码已停用。";
-    case "expired":
-      return "邀请码已过期。";
-    case "exhausted":
-      return "邀请码次数已用完。";
+    case "empty": return "请输入邀请码。";
+    case "invalid": return "邀请码无效。";
+    case "inactive": return "邀请码已停用。";
+    case "expired": return "邀请码已过期。";
+    case "exhausted": return "邀请码次数已用完。";
   }
 }
 
@@ -70,44 +54,29 @@ export function LoginClient() {
   const [inviteStatus, setInviteStatus] = useState<InviteCheckResult | null>(null);
 
   function switchMode(nextMode: "login" | "register") {
-    setMode(nextMode);
-    setError("");
-    setMessage("");
+    setMode(nextMode); setError(""); setMessage("");
   }
 
+  // 邀请码校验
   useEffect(() => {
     if (mode !== "register") return;
     const normalized = inviteCode.trim();
-    if (!normalized) {
-      setInviteStatus(null);
-      return;
-    }
+    if (!normalized) { setInviteStatus(null); return; }
     const controller = new AbortController();
     const timer = window.setTimeout(async () => {
       setCheckingInvite(true);
       try {
-        const response = await fetch(`/api/invite/validate?code=${encodeURIComponent(normalized)}`, {
-          cache: "no-store",
-          signal: controller.signal,
-        });
+        const response = await fetch(`/api/invite/validate?code=${encodeURIComponent(normalized)}`, { cache: "no-store", signal: controller.signal });
         const data = (await response.json().catch(() => null)) as InviteCheckResult | null;
         if (data) setInviteStatus(data);
-      } catch {
-        if (!controller.signal.aborted) setInviteStatus(null);
-      } finally {
-        if (!controller.signal.aborted) setCheckingInvite(false);
-      }
+      } catch { if (!controller.signal.aborted) setInviteStatus(null); }
+      finally { if (!controller.signal.aborted) setCheckingInvite(false); }
     }, 300);
-    return () => {
-      controller.abort();
-      window.clearTimeout(timer);
-    };
+    return () => { controller.abort(); window.clearTimeout(timer); };
   }, [inviteCode, mode]);
 
   async function submit() {
-    setSubmitting(true);
-    setError("");
-    setMessage("");
+    setSubmitting(true); setError(""); setMessage("");
     try {
       if (mode === "login") {
         const user = await login({ username, password });
@@ -119,188 +88,171 @@ export function LoginClient() {
         setMessage("注册成功，正在进入社区。");
         window.setTimeout(() => router.push(getPostLoginDestination(nextPath, user)), 450);
       }
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "操作失败");
-    } finally {
-      setSubmitting(false);
-    }
+    } catch (e) { setError(e instanceof Error ? e.message : "操作失败"); }
+    finally { setSubmitting(false); }
   }
 
   async function handleLogout() {
-    setError("");
-    setMessage("");
     setLoggingOut(true);
-    try {
-      await logout();
-    } catch (logoutError) {
-      setError(logoutError instanceof Error ? logoutError.message : "退出失败");
-    } finally {
-      setLoggingOut(false);
-    }
+    try { await logout(); }
+    catch (e) { setError(e instanceof Error ? e.message : "退出失败"); }
+    finally { setLoggingOut(false); }
   }
 
+  // 已登录状态
   if (currentUser) {
     return (
-      <main className="auth-page">
-        <section className="auth-card auth-card--session">
+      <div className="flex min-h-dvh items-center justify-center p-4">
+        <div className="app-panel-strong w-full max-w-sm space-y-6 p-6 text-center">
           <SystemLogo className="justify-center" markClassName="h-16 w-16" showLabel={false} />
-          <div className="auth-heading">
-            <p>当前账号</p>
-            <h1>{currentUser.nickname}</h1>
-            <span>{currentUser.role === "admin" ? "管理员账号" : currentUser.roomNumber || "未绑定房号"}</span>
+          <div>
+            <p className="text-sm text-muted-foreground">当前账号</p>
+            <h1 className="text-xl font-bold">{currentUser.nickname}</h1>
+            <span className="text-sm text-muted-foreground">{currentUser.role === "admin" ? "管理员账号" : currentUser.roomNumber || "未绑定房号"}</span>
           </div>
-          {error ? <Alert className="auth-alert" status="danger"><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert> : null}
-          <div className="auth-actions">
-            <ButtonLink className="auth-button auth-button--primary" href={nextPath}>
-              进入页面
-            </ButtonLink>
-            <ButtonLink className="auth-button auth-button--secondary" href="/">
-              返回首页
-            </ButtonLink>
-            <Button className="auth-button auth-button--danger" isPending={loggingOut} type="button" variant="danger-soft" onPress={handleLogout}>
-              {loggingOut ? "退出中..." : "退出登录"}
-            </Button>
+          {error && <div className="rounded-xl bg-danger/10 px-4 py-2 text-sm text-danger">{error}</div>}
+          <div className="space-y-2">
+            <Button className="min-h-11 w-full font-bold" variant="primary" onPress={() => router.push(nextPath)}>进入页面</Button>
+            <Button className="min-h-11 w-full font-bold" variant="secondary" onPress={() => router.push("/")}>返回首页</Button>
+            <Button className="min-h-11 w-full" variant="ghost" isPending={loggingOut} onPress={() => { void handleLogout(); }}>退出登录</Button>
           </div>
-        </section>
-      </main>
+        </div>
+      </div>
     );
   }
 
   const inviteHint = checkingInvite ? "邀请码校验中..." : inviteStatus ? getInviteHint(inviteStatus) : "请输入社区管理员提供的邀请码";
 
   return (
-    <main className="auth-page">
-      <section className="auth-card">
-        <div className="auth-brand">
-          <SystemLogo markClassName="h-16 w-16" showLabel={false} />
-          <div>
-            <p>居民入口</p>
-            <h1>{communityName}</h1>
-            <span>登录后参与动态、工单、投票和邻里互助</span>
-          </div>
+    <div className="flex min-h-dvh items-center justify-center p-4">
+      <div className="app-panel-strong w-full max-w-sm space-y-6 p-6">
+        {/* 品牌 */}
+        <div className="text-center">
+          <SystemLogo className="justify-center" markClassName="h-16 w-16" showLabel={false} />
+          <div className="map-coordinate mx-auto mt-4">居民入口站</div>
+          <h1 className="app-display mt-3 text-3xl leading-tight">{communityName}</h1>
+          <p className="mx-auto mt-2 max-w-xs text-sm leading-6 text-muted-foreground">登录后参与动态、工单、投票和邻里互助</p>
         </div>
 
-        <div aria-label="登录或注册" className="auth-segment" role="group">
+        {/* 登录/注册切换 */}
+        <div className="flex rounded-2xl border border-border bg-white/70 p-1">
           <Button
-            aria-pressed={mode === "login"}
-            className="auth-segment-button"
-            data-active={mode === "login" ? "true" : undefined}
-            type="button"
-            variant="secondary"
+            className={`min-h-11 flex-1 font-bold ${mode === "login" ? "" : "opacity-60"}`}
+            variant={mode === "login" ? "secondary" : "ghost"}
             onPress={() => switchMode("login")}
           >
             登录
           </Button>
           <Button
-            aria-pressed={mode === "register"}
-            className="auth-segment-button"
-            data-active={mode === "register" ? "true" : undefined}
-            type="button"
-            variant="secondary"
+            className={`min-h-11 flex-1 font-bold ${mode === "register" ? "" : "opacity-60"}`}
+            variant={mode === "register" ? "secondary" : "ghost"}
             onPress={() => switchMode("register")}
           >
             注册
           </Button>
         </div>
 
-        {message ? <Alert className="auth-alert" status="success"><Alert.Content><Alert.Description>{message}</Alert.Description></Alert.Content></Alert> : null}
-        {error ? <Alert className="auth-alert" status="danger"><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert> : null}
+        {message && <div className="rounded-xl bg-success/10 px-4 py-2 text-sm text-success">{message}</div>}
+        {error && <div className="rounded-xl bg-danger/10 px-4 py-2 text-sm text-danger">{error}</div>}
 
         <form
-          className="auth-form"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void submit();
-          }}
+          className="space-y-4"
+          onSubmit={(e) => { e.preventDefault(); void submit(); }}
         >
-          {mode === "register" ? (
+          {mode === "register" && (
             <>
-              <AuthField hint={inviteHint} icon={<InviteIcon />} label="邀请码">
-                <Input
-                  autoCapitalize="characters"
-                  autoCorrect="off"
-                  className="auth-input-control"
-                  placeholder="输入邀请码"
-                  type="text"
-                  value={inviteCode}
-                  onChange={(event) => setInviteCode(event.target.value)}
-                />
-              </AuthField>
-              <AuthField hint="例如 1-2-302" icon={<HomeLineIcon />} label="房号">
-                <Input
-                  autoCapitalize="none"
-                  className="auth-input-control"
-                  placeholder="楼栋-单元-房号"
-                  type="text"
-                  value={roomNumber}
-                  onChange={(event) => setRoomNumber(event.target.value)}
-                />
-              </AuthField>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">邀请码</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <InviteIcon />
+                  </span>
+                  <Input
+                    autoCapitalize="characters"
+                    placeholder="输入邀请码"
+                    value={inviteCode}
+                    onChange={(e) => setInviteCode(e.target.value)}
+                    fullWidth
+                    className="min-w-0 pl-9"
+                  />
+                </div>
+                <p className={`text-xs ${inviteStatus?.ok ? "text-success" : "text-muted-foreground"}`}>{inviteHint}</p>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs font-medium text-muted-foreground">房号</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                    <HomeLineIcon />
+                  </span>
+                  <Input
+                    placeholder="楼栋-单元-房号"
+                    value={roomNumber}
+                    onChange={(e) => setRoomNumber(e.target.value)}
+                    fullWidth
+                    className="min-w-0 pl-9"
+                  />
+                </div>
+                <p className="text-xs text-muted-foreground">例如 1-2-302</p>
+              </div>
             </>
-          ) : null}
+          )}
 
-          <AuthField icon={<UserLineIcon />} label="用户名">
-            <Input
-              autoCapitalize="none"
-              autoCorrect="off"
-              className="auth-input-control"
-              placeholder="输入用户名"
-              type="text"
-              value={username}
-              onChange={(event) => setUsername(event.target.value)}
-            />
-          </AuthField>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">用户名</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <UserLineIcon />
+              </span>
+              <Input
+                autoCapitalize="none"
+                placeholder="输入用户名"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                fullWidth
+                className="min-w-0 pl-9"
+              />
+            </div>
+          </div>
 
-          <AuthField hint={mode === "register" ? "至少 6 位密码" : undefined} icon={<LockLineIcon />} label="密码">
-            <Input
-              className="auth-input-control"
-              placeholder="输入密码"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-          </AuthField>
+          <div className="space-y-1">
+            <label className="text-xs font-medium text-muted-foreground">密码</label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">
+                <LockLineIcon />
+              </span>
+              <Input
+                type="password"
+                placeholder="输入密码"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                fullWidth
+                className="min-w-0 pl-9"
+              />
+            </div>
+            {mode === "register" && <p className="text-xs text-muted-foreground">至少 6 位密码</p>}
+          </div>
 
-          <Button className="auth-submit" isPending={submitting} type="submit">
+          <Button
+            type="submit"
+            className="min-h-11 w-full font-bold"
+            variant="primary"
+            isPending={submitting}
+          >
             {submitting ? (mode === "login" ? "登录中..." : "注册中...") : mode === "login" ? "登录" : "注册并进入"}
           </Button>
         </form>
 
-        <p className="auth-footer">
-          {mode === "login" ? "没有账号？" : "已有账号？"}
+        <div className="flex flex-wrap items-center justify-center gap-1 text-xs text-muted-foreground">
+          <span>{mode === "login" ? "没有账号？" : "已有账号？"}</span>
           <button
             type="button"
-            onClick={() => {
-              switchMode(mode === "login" ? "register" : "login");
-            }}
+            className="inline-flex min-h-11 items-center rounded-xl px-3 font-semibold text-primary transition-colors hover:bg-primary/8"
+            onClick={() => switchMode(mode === "login" ? "register" : "login")}
           >
             {mode === "login" ? "立即注册" : "去登录"}
           </button>
-        </p>
-      </section>
-    </main>
-  );
-}
-
-function AuthField({
-  children,
-  hint,
-  icon,
-  label,
-}: {
-  children: React.ReactNode;
-  hint?: string;
-  icon: React.ReactNode;
-  label: string;
-}) {
-  return (
-    <label className="auth-field">
-      <span className="auth-field-label">{label}</span>
-      <span className="auth-input">
-        <span className="auth-input-icon">{icon}</span>
-        {children}
-      </span>
-      {hint ? <span className="auth-field-hint">{hint}</span> : null}
-    </label>
+        </div>
+      </div>
+    </div>
   );
 }

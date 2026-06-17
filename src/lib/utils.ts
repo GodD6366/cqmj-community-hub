@@ -132,7 +132,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     try {
       await navigator.clipboard.writeText(text);
       return true;
-    } catch (e) {
+    } catch {
       // Fallback below
     }
   }
@@ -152,7 +152,7 @@ export async function copyToClipboard(text: string): Promise<boolean> {
     const copied = document.execCommand("copy");
     document.body.removeChild(textarea);
     return copied;
-  } catch (e) {
+  } catch {
     return false;
   }
 }

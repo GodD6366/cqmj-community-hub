@@ -1,15 +1,18 @@
 "use client";
 
-import { startTransition, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { Alert, Button, Input, TextArea } from "@heroui/react";
-import type { CommunityUser } from "@/lib/types";
-import { buildSkillConnectionPromptForUser } from "@/lib/skill-connect";
-import { CyberPanel, CyberStatGrid, DataList } from "./resident-shared";
-import { ButtonLink, PageShell } from "./ui";
+import { useState } from "react";
+import { Button, Card, Input } from "@heroui/react";
+import { Toast, useToast } from "./ui/toast";
+import { CopyIcon } from "./app-icons";
 
 interface SkillConnectClientProps {
-  currentUser: CommunityUser;
+  currentUser: {
+    id: string;
+    username: string;
+    nickname: string;
+    roomNumber: string;
+    skillTokenVersion: number;
+  };
   apiBaseUrl: string;
   skillBundleUrl: string;
   bundleDownloadToken: string;
@@ -18,188 +21,142 @@ interface SkillConnectClientProps {
   welcome: boolean;
 }
 
-async function copyText(value: string) {
-  if (typeof navigator !== "undefined" && navigator.clipboard?.writeText && window.isSecureContext) {
-    await navigator.clipboard.writeText(value);
-    return;
-  }
-  const textarea = document.createElement("textarea");
-  textarea.value = value;
-  textarea.setAttribute("readonly", "");
-  textarea.style.position = "fixed";
-  textarea.style.top = "0";
-  textarea.style.left = "0";
-  textarea.style.opacity = "0";
-  textarea.style.pointerEvents = "none";
-  document.body.appendChild(textarea);
-  textarea.focus();
-  textarea.select();
-  const copied = document.execCommand("copy");
-  document.body.removeChild(textarea);
-  if (!copied) throw new Error("copy_failed");
-}
-
-/* ── Toast ────────────────────────────────────────────────── */
-
-interface ToastState {
-  visible: boolean;
-  text: string;
-  status: "success" | "error";
-}
-
-const TOAST_DURATION_MS = 2500;
-
-function useToast() {
-  const [toast, setToast] = useState<ToastState>({ visible: false, text: "", status: "success" });
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const show = useCallback((text: string, status: "success" | "error" = "success") => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    setToast({ visible: true, text, status });
-    timerRef.current = setTimeout(() => setToast((prev) => ({ ...prev, visible: false })), TOAST_DURATION_MS);
-  }, []);
-
-  useEffect(() => () => { if (timerRef.current) clearTimeout(timerRef.current); }, []);
-
-  return { toast, show };
-}
-
-function CopyToast({ toast }: { toast: ToastState }) {
-  const [mounted, setMounted] = useState(false);
-  
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const isSuccess = toast.status === "success";
-
-  if (!mounted || typeof document === "undefined") return null;
-
-  return createPortal(
-    <div
-      aria-live="polite"
-      role="status"
-      style={{
-        position: "fixed",
-        top: 24,
-        left: "50%",
-        transform: toast.visible ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(-120%)",
-        opacity: toast.visible ? 1 : 0,
-        zIndex: 9999,
-        pointerEvents: "none",
-        transition: "transform 0.35s cubic-bezier(.4,0,.2,1), opacity 0.35s cubic-bezier(.4,0,.2,1)",
-      }}
-    >
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 10,
-          padding: "12px 24px",
-          borderRadius: 12,
-          fontSize: 15,
-          fontWeight: 600,
-          color: "#fff",
-          background: isSuccess
-            ? "linear-gradient(135deg, #22c55e 0%, #16a34a 100%)"
-            : "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
-          boxShadow: isSuccess
-            ? "0 8px 32px rgba(34,197,94,.35), 0 2px 8px rgba(0,0,0,.12)"
-            : "0 8px 32px rgba(239,68,68,.35), 0 2px 8px rgba(0,0,0,.12)",
-          backdropFilter: "blur(8px)",
-          whiteSpace: "nowrap" as const,
-        }}
-      >
-        <span style={{ fontSize: 20, lineHeight: 1 }}>{isSuccess ? "✅" : "❌"}</span>
-        {toast.text}
-      </div>
-    </div>,
-    document.body,
-  );
-}
-
-/* ── Main ─────────────────────────────────────────────────── */
-
-export function SkillConnectClient({ currentUser, apiBaseUrl, skillBundleUrl, bundleDownloadToken, bundleDownloadTokenExpiresAt, initialToken, welcome }: SkillConnectClientProps) {
+export function SkillConnectClient({
+  currentUser,
+  apiBaseUrl,
+  skillBundleUrl,
+  bundleDownloadTokenExpiresAt,
+  initialToken,
+  welcome,
+}: SkillConnectClientProps) {
   const [token, setToken] = useState(initialToken);
-  const [downloadToken, setDownloadToken] = useState(bundleDownloadToken);
-  const [downloadTokenExpiresAt, setDownloadTokenExpiresAt] = useState(bundleDownloadTokenExpiresAt);
-  const [message, setMessage] = useState("");
-  const [error, setError] = useState("");
-  const [isRotating, setIsRotating] = useState(false);
-  const [isCopying, setIsCopying] = useState(false);
-  const { toast, show: showToast } = useToast();
+  const [copied, setCopied] = useState(false);
+  const [copiedBundle, setCopiedBundle] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const { toast, show } = useToast();
+  const shortBundleUrl = `${skillBundleUrl.slice(0, 44)}...${skillBundleUrl.slice(-12)}`;
 
-  const currentSkillBundleUrl = useMemo(() => {
+  async function copyToken() {
     try {
-      const url = new URL(skillBundleUrl);
-      url.searchParams.set("token", downloadToken);
-      return url.toString();
-    } catch {
-      return skillBundleUrl;
-    }
-  }, [downloadToken, skillBundleUrl]);
+      await navigator.clipboard.writeText(token);
+      setCopied(true);
+      show("Token 已复制。", "success");
+      setTimeout(() => setCopied(false), 2000);
+    } catch { show("复制失败", "error"); }
+  }
 
-  const prompt = useMemo(
-    () => buildSkillConnectionPromptForUser({ skillBundleUrl: currentSkillBundleUrl, bundleDownloadToken: downloadToken, bundleDownloadTokenExpiresAt: downloadTokenExpiresAt, user: currentUser }),
-    [currentSkillBundleUrl, currentUser, downloadToken, downloadTokenExpiresAt],
-  );
+  async function copyBundleUrl() {
+    try {
+      await navigator.clipboard.writeText(skillBundleUrl);
+      setCopiedBundle(true);
+      show("Bundle 地址已复制。", "success");
+      setTimeout(() => setCopiedBundle(false), 2000);
+    } catch { show("复制失败", "error"); }
+  }
+
+  async function handleGenerateToken() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch("/api/skill/token", { method: "POST", credentials: "include" });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "生成失败");
+      setToken(data.token);
+      show("Token 已生成。", "success");
+    } catch (e) { show(e instanceof Error ? e.message : "生成失败", "error"); }
+    finally { setBusy(false); }
+  }
 
   return (
-    <PageShell className="max-w-[1500px] space-y-4">
-      <CopyToast toast={toast} />
+    <div className="mx-auto max-w-5xl space-y-5 p-4 pt-8 md:p-6">
+      <Toast toast={toast} />
+      <div className="app-panel-strong p-5 md:p-6">
+        <div className="map-coordinate">AI 接入站</div>
+        <h1 className="app-display mt-3 text-3xl leading-tight md:text-4xl">AI 助手 Skill 接入</h1>
+        <p className="mt-2 text-sm leading-7 text-muted-foreground">复制 Token 或下载 Bundle，让 AI 助手安全访问你的社区数据。</p>
+      </div>
 
-      <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)_320px]">
-        <CyberPanel title="Skill 接入" kicker="Connection Setup">
-          <CyberStatGrid columns={2} items={[
-            { label: "账号", value: currentUser.username },
-            { label: "模式", value: "读写" },
-            { label: "凭证状态", value: token ? "已生成" : "未生成" },
-            { label: "欢迎态", value: welcome ? "是" : "否" },
-          ]} />
-          {welcome ? (
-            <Alert className="mt-4" status="success">
-              <Alert.Content>
-                <Alert.Description>个人 Skill API Key 已生成。</Alert.Description>
-              </Alert.Content>
-            </Alert>
-          ) : null}
-        </CyberPanel>
+      {welcome && (
+        <Card className="app-panel border-primary/30 bg-primary/5 p-5">
+          <Card.Title>欢迎使用 AI Skill 接入</Card.Title>
+          <Card.Description>首次登录，请复制下方 Token 并为你的 AI 助手配置 Skill 连接。</Card.Description>
+        </Card>
+      )}
 
-        <CyberPanel title="接入信息" kicker="Config">
-          {error ? <Alert className="mb-4" status="danger"><Alert.Content><Alert.Description>{error}</Alert.Description></Alert.Content></Alert> : null}
-          {message ? <Alert className="mb-4" status="success"><Alert.Content><Alert.Description>{message}</Alert.Description></Alert.Content></Alert> : null}
+      {/* 用户信息 */}
+      <Card className="app-panel p-5">
+        <Card.Title>账户信息</Card.Title>
+        <div className="mt-3 space-y-2 text-sm">
+          <div className="flex justify-between gap-4 rounded-xl bg-white/70 px-3 py-2"><span className="text-muted-foreground">用户名</span><span className="break-all text-right">@{currentUser.username}</span></div>
+          <div className="flex justify-between gap-4 rounded-xl bg-white/70 px-3 py-2"><span className="text-muted-foreground">昵称</span><span className="break-all text-right">{currentUser.nickname}</span></div>
+          <div className="flex justify-between gap-4 rounded-xl bg-white/70 px-3 py-2"><span className="text-muted-foreground">房号</span><span className="break-all text-right">{currentUser.roomNumber}</span></div>
+        </div>
+      </Card>
 
-          <div className="grid gap-4">
-            <label className="grid gap-2 text-sm font-semibold text-slate-900">
-              <span>Skill API Base</span>
-              <Input aria-label="Skill API Base" fullWidth readOnly value={apiBaseUrl} variant="secondary" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-slate-900">
-              <span>API Key</span>
-              <Input aria-label="API Key" fullWidth readOnly value={token} variant="secondary" />
-            </label>
-            <label className="grid gap-2 text-sm font-semibold text-slate-900">
-              <span>接入文案</span>
-              <TextArea aria-label="接入文案" fullWidth readOnly rows={16} value={prompt} variant="secondary" />
-            </label>
+      {/* Token 管理 */}
+      <Card className="app-panel p-5">
+        <Card.Title>API Token</Card.Title>
+        <Card.Description>将此 Token 配置到 AI 助手中，即可通过 API 访问社区数据。</Card.Description>
+        <div className="mt-3 space-y-3">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              readOnly
+              value={token}
+              className="min-w-0 font-mono text-sm"
+              aria-label="当前 Token"
+            />
+            <Button variant="secondary" className="min-h-11 w-full sm:w-auto" onPress={() => { void copyToken(); }}>
+              {copied ? "已复制" : "复制"}
+            </Button>
           </div>
+          <Button variant="primary" className="min-h-11" isPending={busy} onPress={() => { void handleGenerateToken(); }}>
+            重新生成 Token
+          </Button>
+        </div>
+      </Card>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button isPending={isCopying} onPress={() => { setIsCopying(true); startTransition(() => { void copyText(prompt).then(() => showToast("接入文案已复制到剪贴板", "success")).catch(() => showToast("复制失败，请手动复制文本", "error")).finally(() => setIsCopying(false)); }); }}>复制接入文案</Button>
-            <Button isPending={isRotating} onPress={() => { setError(""); setMessage(""); setIsRotating(true); startTransition(() => { void fetch("/api/skill/token", { method: "POST", credentials: "include" }).then(async (response) => { const data = (await response.json().catch(() => null)) as { token?: string; bundleDownloadToken?: string; bundleDownloadTokenExpiresAt?: string; error?: string } | null; if (!response.ok || !data?.token || !data.bundleDownloadToken || !data.bundleDownloadTokenExpiresAt) throw new Error(data?.error || "重置 API Key 失败"); setToken(data.token); setDownloadToken(data.bundleDownloadToken); setDownloadTokenExpiresAt(data.bundleDownloadTokenExpiresAt); setMessage("API Key 与 Bundle 临时下载 Token 已重置。"); }).catch((requestError) => { setError(requestError instanceof Error ? requestError.message : "重置 API Key 失败"); }).finally(() => setIsRotating(false)); }); }} variant="secondary">重置 API Key</Button>
+      {/* 配置信息 */}
+      <Card className="app-panel p-5">
+        <Card.Title>Skill 配置信息</Card.Title>
+        <div className="mt-4 space-y-3 text-sm">
+          <div className="rounded-2xl border border-border/70 bg-white/72 p-3">
+            <span className="text-xs font-bold text-muted-foreground">API 地址</span>
+            <code className="mt-2 block min-w-0 rounded-xl bg-muted/40 px-3 py-2 text-xs break-all">{apiBaseUrl}</code>
           </div>
-        </CyberPanel>
+          <div className="rounded-2xl border border-border/70 bg-white/72 p-3">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-xs font-bold text-muted-foreground">Bundle 地址</span>
+              <button
+                type="button"
+                className="flex min-h-11 items-center gap-1 rounded-xl px-3 text-xs font-bold text-primary-strong transition-colors hover:bg-primary/8"
+                onClick={() => { void copyBundleUrl(); }}
+              >
+                <CopyIcon className="h-3.5 w-3.5" />
+                {copiedBundle ? "已复制" : "复制"}
+              </button>
+            </div>
+            <code className="mt-2 block min-w-0 rounded-xl bg-muted/40 px-3 py-2 text-xs break-all" title={skillBundleUrl}>
+              <span className="md:hidden">{shortBundleUrl}</span>
+              <span className="hidden md:inline">{skillBundleUrl}</span>
+            </code>
+          </div>
+          <div className="rounded-2xl border border-border/70 bg-white/72 p-3">
+            <span className="text-xs font-bold text-muted-foreground">Token 有效期</span>
+            <span className="mt-2 block">{new Date(bundleDownloadTokenExpiresAt).toLocaleString("zh-CN")}</span>
+          </div>
+        </div>
+      </Card>
 
-        <CyberPanel title="接入说明" kicker="Guide">
-          <DataList items={[
-            { label: "下载认证", value: "临时 Token", hint: "Bundle URL 的 token 只用于下载" },
-            { label: "API 认证", value: "Bearer Token", hint: "Skill 脚本读取 bundle 内 config.json" },
-            { label: "权限范围", value: "常用读写", hint: "看帖、发帖、回帖、收藏/举报、投票" },
-            { label: "返回入口", value: <ButtonLink href="/posts" variant="secondary" size="sm">返回邻里</ButtonLink> },
-          ]} />
-        </CyberPanel>
-      </section>
-    </PageShell>
+      {/* 下载 Bundle */}
+      <Card className="app-panel p-5">
+        <Card.Title>下载 Skill Bundle</Card.Title>
+        <Card.Description>下载 AI 助手 Skill 配置文件包。</Card.Description>
+        <div className="mt-3">
+          <a href={skillBundleUrl} download className="inline-block">
+            <Button variant="primary" className="min-h-11">下载 Skill Bundle</Button>
+          </a>
+        </div>
+      </Card>
+    </div>
   );
 }

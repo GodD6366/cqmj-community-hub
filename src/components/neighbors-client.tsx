@@ -1,291 +1,196 @@
 "use client";
 
-import { useDeferredValue, useMemo, useState } from "react";
-import { Button, Input } from "@heroui/react";
-import { useCommunityPosts } from "./community-provider";
-import {
-  CyberPanel,
-  CyberStatGrid,
-  EmptyState,
-  ResidentAvatar,
-  ResidentFilterTabs,
-  ResidentListRow,
-  ResidentPageHeader,
-  ResidentPanel,
-  ResidentSearchBar,
-} from "./resident-shared";
-import { timeAgo } from "@/lib/utils";
-import { neighborSkillCategories, type NeighborSkillCategory, type NeighborSkillSummary, type NeighborSkillDraft } from "@/lib/types";
+import { useMemo, useState } from "react";
+import { Button, Card, Chip } from "@heroui/react";
+import { useCommunityPosts } from "@/lib/community-store";
+import { EmptyState } from "./ui/empty-state";
+import { Toast, useToast } from "./ui/toast";
+import type { NeighborSkillCategory, NeighborSkillDraft } from "@/lib/types";
+import { SearchIcon } from "./app-icons";
 
-const categoryLabels: Record<NeighborSkillCategory | "all", string> = {
-  all: "全部",
+const categoryLabels: Record<NeighborSkillCategory, string> = {
   computer_repair: "电脑维修",
-  bicycle_repair: "单车维修",
-  photography: "摄影摄像",
-  pet_care: "宠物照看",
-  tutoring: "辅导教学",
-  cooking: "厨艺分享",
-  gardening: "绿植养护",
+  bicycle_repair: "自行车维修",
+  photography: "摄影",
+  pet_care: "宠物照料",
+  tutoring: "家教辅导",
+  cooking: "美食烹饪",
+  gardening: "园艺",
   tool_sharing: "工具共享",
-  home_repair: "家居维修",
+  home_repair: "家庭维修",
   errand: "跑腿代办",
   other: "其他",
 };
 
 export function NeighborsClient() {
-  const { currentUser, neighborSkills, hydrated, addNeighborSkill, updateNeighborSkill } = useCommunityPosts();
-  const [query, setQuery] = useState("");
-  const [activeCategory, setActiveCategory] = useState<NeighborSkillCategory | "all">("all");
-  const deferredQuery = useDeferredValue(query);
+  const { neighborSkills, addNeighborSkill, updateNeighborSkill, currentUser } = useCommunityPosts();
+  const { toast, show } = useToast();
+  const [search, setSearch] = useState("");
+  const [filterCategory, setFilterCategory] = useState<NeighborSkillCategory | "all">("all");
+  const [showForm, setShowForm] = useState(false);
+  const [editingSkillId, setEditingSkillId] = useState<string | null>(null);
+  const [formCategory, setFormCategory] = useState<NeighborSkillCategory>("other");
+  const [formTitle, setFormTitle] = useState("");
+  const [formDesc, setFormDesc] = useState("");
+  const [formTags, setFormTags] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editDraft, setEditDraft] = useState<NeighborSkillDraft>({
-    category: "other",
-    title: "",
-    description: "",
-    tags: [],
-  });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const mySkill = useMemo(() => neighborSkills.find(s => s.isMine), [neighborSkills]);
-
-  const filteredSkills = useMemo(() => {
-    const q = deferredQuery.trim().toLowerCase();
-    let items = [...neighborSkills];
-    
-    if (activeCategory !== "all") {
-      items = items.filter(item => item.category === activeCategory);
+  const filtered = useMemo(() => {
+    let result = neighborSkills;
+    if (filterCategory !== "all") result = result.filter((s) => s.category === filterCategory);
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      result = result.filter((s) => s.title.toLowerCase().includes(q) || s.description?.toLowerCase().includes(q) || s.ownerName.toLowerCase().includes(q) || s.tags.some((t) => t.toLowerCase().includes(q)));
     }
+    return result;
+  }, [neighborSkills, filterCategory, search]);
 
-    if (q) {
-      items = items.filter((item) => 
-        [item.title, item.description, item.ownerName, item.roomNumber].join(" ").toLowerCase().includes(q)
-      );
-    }
-    return items;
-  }, [deferredQuery, activeCategory, neighborSkills]);
-
-  const handleSubmit = async () => {
-    if (!editDraft.title.trim() || !editDraft.description.trim()) return;
-    setIsSubmitting(true);
+  async function handleSave() {
+    if (!formTitle.trim()) { show("请输入技能名称", "error"); return; }
+    setBusy(true);
     try {
-      if (mySkill) {
-        await updateNeighborSkill(mySkill.id, editDraft);
-      } else {
-        await addNeighborSkill(editDraft);
-      }
-      setIsEditing(false);
-    } catch {
-      alert("登记失败，请重试");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+      const draft: NeighborSkillDraft = {
+        category: formCategory,
+        title: formTitle.trim(),
+        description: formDesc.trim(),
+        tags: formTags.split(/[,，]/).map((t) => t.trim()).filter(Boolean),
+      };
+      if (editingSkillId) await updateNeighborSkill(editingSkillId, draft);
+      else await addNeighborSkill(draft);
+      resetForm();
+      show("保存成功。", "success");
+    } catch (e) { show(e instanceof Error ? e.message : "保存失败", "error"); }
+    finally { setBusy(false); }
+  }
 
-  const handleEditOpen = () => {
-    if (mySkill) {
-      setEditDraft({
-        category: mySkill.category,
-        title: mySkill.title,
-        description: mySkill.description,
-        tags: mySkill.tags,
-        availability: mySkill.availability,
-        active: mySkill.active,
-      });
-    } else {
-      setEditDraft({ category: "other", title: "", description: "", tags: [] });
-    }
-    setIsEditing(true);
-  };
+  function resetForm() {
+    setShowForm(false); setEditingSkillId(null);
+    setFormCategory("other"); setFormTitle(""); setFormDesc(""); setFormTags("");
+  }
 
-  const categoryTabs = useMemo(
-    () => (["all", ...neighborSkillCategories] as const).map((cat) => ({ key: cat, label: categoryLabels[cat] })),
-    [],
-  );
+  async function handleContact(skillId: string) {
+    try {
+      await fetch(`/api/skills/${skillId}/contact`, { method: "POST" });
+      show("已联系邻居，请耐心等待回复。", "success");
+    } catch { show("联系失败", "error"); }
+  }
 
   return (
-    <main className="page-shell">
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.5fr)_360px] gap-4">
-        {/* 左侧主要内容 */}
-        <div className="space-y-4">
-          {/* 移动端专属 PageHeader：在 md:hidden 下显示 */}
-          <div className="md:hidden">
-            <ResidentPageHeader
-              action={currentUser ? <Button size="sm" onPress={handleEditOpen}>登记</Button> : null}
-              kicker="邻里互助"
-              subtitle="发现身边的宝藏邻居"
-              title="技能库"
-            />
-          </div>
+    <div className="mx-auto max-w-5xl space-y-3 px-4 pb-28 pt-5 md:space-y-5 md:p-6">
+      <Toast toast={toast} />
+      <div className="app-panel-strong flex flex-col gap-4 p-4 md:p-5 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <div className="map-coordinate">邻里技能站</div>
+          <h1 className="app-display mt-2 text-[1.85rem] leading-tight md:mt-3 md:text-4xl">邻里技能互助</h1>
+          <p className="mt-2 text-sm leading-6 text-muted-foreground md:leading-7">找到会修、会教、会帮忙的邻居，让能力在小区内部流动起来。</p>
+        </div>
+        {currentUser && (
+          <Button className="min-h-11 font-bold" variant="primary" size="sm" onPress={() => setShowForm(!showForm)}>
+            {showForm ? "取消" : "登记技能"}
+          </Button>
+        )}
+      </div>
 
-          {/* 桌面端专属的面板头部：在 hidden md:flex 下显示 */}
-          <div className="hidden md:flex justify-between items-center bg-white p-5 rounded-2xl border border-[var(--border)]">
+      {/* 登记表单 */}
+      {showForm && (
+        <Card className="app-panel space-y-3 p-3.5 md:p-4">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-xs text-indigo-600 font-semibold">Neighbors Help · 邻里技能与资源互助</div>
-              <h1 className="text-xl font-bold mt-1 text-slate-900">邻里技能库</h1>
+              <h2 className="text-sm font-bold">{editingSkillId ? "编辑技能" : "登记技能"}</h2>
+              <p className="text-xs text-muted-foreground">把能帮什么、适合什么时间说清楚。</p>
             </div>
-            {currentUser && (
-              <Button size="sm" onPress={handleEditOpen}>
-                {mySkill ? "修改我的登记" : "登记我的技能"}
-              </Button>
-            )}
+            <span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-bold text-primary">互助</span>
           </div>
-
-          {/* 搜索与过滤 Tabbar（共享） */}
-          <div className="bg-white p-4 rounded-2xl border border-[var(--border)] space-y-4">
-            <ResidentSearchBar ariaLabel="搜索技能" placeholder="搜索技能 / 住户" value={query} onChange={setQuery} />
-            <ResidentFilterTabs activeKey={activeCategory} items={categoryTabs} onChange={setActiveCategory} />
+          <select className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" value={formCategory} onChange={(e) => setFormCategory(e.target.value as NeighborSkillCategory)}>
+            {(Object.entries(categoryLabels) as [NeighborSkillCategory, string][]).map(([key, label]) => (
+              <option key={key} value={key}>{label}</option>
+            ))}
+          </select>
+          <input className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" placeholder="技能名称" value={formTitle} onChange={(e) => setFormTitle(e.target.value)} />
+          <textarea className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" rows={3} placeholder="技能描述" value={formDesc} onChange={(e) => setFormDesc(e.target.value)} />
+          <input className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" placeholder="标签，逗号分隔" value={formTags} onChange={(e) => setFormTags(e.target.value)} />
+          <div className="flex gap-2">
+            <Button className="min-h-11 flex-1 font-bold" variant="primary" size="sm" isPending={busy} onPress={() => { void handleSave(); }}>
+              {editingSkillId ? "更新技能" : "登记技能"}
+            </Button>
+            {editingSkillId && <Button className="min-h-11" variant="ghost" size="sm" onPress={resetForm}>取消编辑</Button>}
           </div>
+        </Card>
+      )}
 
-          {/* 技能登记编辑面板（共享，只写一次！） */}
-          {isEditing && (
-            <div className="app-card border border-[var(--primary)] p-4 bg-white rounded-2xl">
-              <h3 className="font-semibold text-slate-800 mb-4">{mySkill ? "修改技能卡片" : "登记我的技能"}</h3>
-              <div className="grid gap-4 max-w-lg">
-                <div>
-                  <label className="text-xs text-slate-500 mb-1 block">技能分类</label>
-                  <select
-                    aria-label="技能分类"
-                    className="w-full rounded-[1rem] border border-[var(--field-border)] bg-[var(--surface-secondary)] px-3 py-3 text-[var(--field-foreground)]"
-                    value={editDraft.category}
-                    onChange={(event) => setEditDraft({ ...editDraft, category: event.target.value as NeighborSkillCategory })}
-                  >
-                    {neighborSkillCategories.map((cat) => <option key={cat} value={cat}>{categoryLabels[cat]}</option>)}
-                  </select>
+      {/* 搜索 */}
+      <div className="app-panel flex min-h-12 items-center gap-2 px-3 py-2">
+        <SearchIcon />
+        <input
+          type="text"
+          className="min-h-11 flex-1 bg-transparent text-sm outline-none"
+          placeholder="搜索技能、住户..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+      </div>
+
+      {/* 分类筛选 */}
+      <div className="app-panel mobile-scroll-rail flex gap-2 overflow-x-auto p-3 [-webkit-overflow-scrolling:touch] md:flex-wrap">
+        <button
+          type="button"
+          className={`app-chip app-chip-compact shrink-0 ${filterCategory === "all" ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/15" : "border-default-200 text-muted-foreground"}`}
+          onClick={() => setFilterCategory("all")}
+        >
+          全部
+        </button>
+        {(Object.entries(categoryLabels) as [NeighborSkillCategory, string][]).map(([key, label]) => (
+          <button
+            key={key}
+            type="button"
+            className={`app-chip app-chip-compact shrink-0 ${filterCategory === key ? "border-primary bg-primary text-primary-foreground shadow-sm shadow-primary/15" : "border-default-200 text-muted-foreground"}`}
+            onClick={() => setFilterCategory(key)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {/* 技能列表 */}
+      {filtered.length > 0 ? (
+        <div className="grid gap-3 md:grid-cols-2">
+          {filtered.map((skill) => (
+            <Card key={skill.id} className="app-panel p-4">
+              <div className="flex items-center justify-between">
+                <Chip size="sm" variant="soft">{categoryLabels[skill.category]}</Chip>
+                {skill.isMine && <span className="text-xs text-muted-foreground">我的技能</span>}
+              </div>
+              <h3 className="mt-2 font-semibold">{skill.title}</h3>
+              {skill.description && <p className="mt-1 text-sm text-muted-foreground">{skill.description}</p>}
+              <div className="mt-2 flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-xs font-bold text-primary">
+                    {Array.from(skill.ownerName)[0]}
+                  </div>
+                  <span>{skill.ownerName} · {skill.roomNumber}</span>
                 </div>
-                <div>
-                  <label className="text-xs text-slate-500 mb-1 block">技能标题简述</label>
-                  <Input
-                    placeholder="例如：精通电脑组装与维修"
-                    value={editDraft.title}
-                    onChange={(event) => setEditDraft({ ...editDraft, title: event.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 mb-1 block">服务详情说明与方便联系的时间</label>
-                  <textarea
-                    placeholder="说明您能提供的帮助以及方便的时间" 
-                    className="min-h-28 w-full rounded-[1rem] border border-[var(--field-border)] bg-[var(--surface-secondary)] px-3 py-3 text-[var(--field-foreground)] outline-none"
-                    value={editDraft.description}
-                    onChange={(event) => setEditDraft({ ...editDraft, description: event.target.value })}
-                  />
-                </div>
-                <div className="flex gap-2 pt-2 justify-end">
-                  <Button isPending={isSubmitting} onPress={handleSubmit}>
-                    {isSubmitting ? "保存中..." : "保存登记"}
-                  </Button>
-                  <Button variant="outline" onPress={() => setIsEditing(false)}>取消</Button>
+                <div className="flex gap-1">
+                  {!skill.isMine && currentUser && (
+                    <Button className="min-h-11" size="sm" variant="secondary" onPress={() => { void handleContact(skill.id); }}>联系TA</Button>
+                  )}
+                  {skill.isMine && (
+                    <Button className="min-h-11" size="sm" variant="ghost" onPress={() => {
+                      setFormCategory(skill.category);
+                      setFormTitle(skill.title);
+                      setFormDesc(skill.description ?? "");
+                      setFormTags(skill.tags.join(", "));
+                      setEditingSkillId(skill.id);
+                      setShowForm(true);
+                    }}>编辑</Button>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
-
-          {/* 技能列表（共享） */}
-          <div className="grid gap-3">
-            {!hydrated ? (
-              <div className="app-card p-6 text-sm text-[var(--muted)] text-center">加载中...</div>
-            ) : filteredSkills.length > 0 ? (
-              filteredSkills.map((skill) => <SkillRow key={skill.id} skill={skill} desktop />)
-            ) : (
-              <EmptyState title="没有匹配的技能" description="试试其他搜索词" />
-            )}
-          </div>
+            </Card>
+          ))}
         </div>
-
-        {/* 右侧边栏：仅在桌面端显示 */}
-        <div className="hidden md:grid gap-4 content-start">
-          <CyberPanel title="我的技能状态" kicker="My Skill">
-            {currentUser ? (
-               <div className="p-1">
-                 {mySkill ? (
-                   <div>
-                     <div className="text-sm text-slate-800 font-semibold mb-1">已登记：{mySkill.title}</div>
-                     <div className="text-xs text-slate-500 mb-3">{mySkill.description.substring(0, 30)}...</div>
-                     <Button className="w-full" onPress={handleEditOpen} variant="secondary">
-                       编辑信息
-                     </Button>
-                   </div>
-                 ) : (
-                   <div>
-                     <div className="text-sm text-slate-600 mb-3">你还没有登记任何技能或互助资源。登记后，其他邻居可以通过智能匹配找到你。</div>
-                     <Button className="w-full" onPress={handleEditOpen}>
-                       立即登记
-                     </Button>
-                   </div>
-                 )}
-               </div>
-            ) : (
-               <div className="text-sm text-slate-500">登录后可以登记自己的技能，帮助社区邻居。</div>
-            )}
-          </CyberPanel>
-          <CyberPanel title="目录统计" kicker="Summary">
-            <CyberStatGrid columns={2} items={[
-              { label: "已登记技能", value: hydrated ? String(neighborSkills.length) : "--" },
-              { label: "活跃大类", value: hydrated ? String(new Set(neighborSkills.map(s => s.category)).size) : "--" },
-            ]} />
-          </CyberPanel>
-        </div>
-      </div>
-    </main>
-  );
-}
-
-function SkillRow({ skill, desktop = false }: { skill: NeighborSkillSummary; desktop?: boolean }) {
-  const [contacting, setContacting] = useState(false);
-  const [contacted, setContacted] = useState(false);
-
-  const handleContact = async () => {
-    if (skill.isMine) {
-      alert("这是您自己登记的技能");
-      return;
-    }
-    setContacting(true);
-    try {
-      const res = await fetch(`/api/skills/${skill.id}/contact`, {
-        method: "POST"
-      });
-      if (res.ok) {
-        setContacted(true);
-        alert("已发送通知给该邻居！");
-      } else {
-        const data = await res.json();
-        alert(`通知失败: ${data.error || "未知错误"}`);
-      }
-    } catch {
-      alert("请求失败，请稍后重试");
-    } finally {
-      setContacting(false);
-    }
-  };
-
-  return (
-    <ResidentListRow
-      className={desktop ? "p-4" : undefined}
-      leading={<ResidentAvatar name={skill.ownerName} size="sm" />}
-      meta={<span>{timeAgo(skill.createdAt)}</span>}
-      subtitle={
-        <div className="grid gap-1">
-          <div className="font-medium text-sm text-slate-800">{skill.title}</div>
-          <div className="text-xs text-[var(--muted)]">{skill.description}</div>
-        </div>
-      }
-      title={
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="truncate">{skill.roomNumber} {skill.ownerName}</span>
-          <span className="app-chip">{categoryLabels[skill.category]}</span>
-        </div>
-      }
-      trailing={
-        <Button
-          className={contacted ? "opacity-50" : ""}
-          isDisabled={contacting || contacted || skill.isMine}
-          size="sm"
-          variant={contacted ? "secondary" : "outline"}
-          onPress={handleContact}
-        >
-          {contacting ? "发送中..." : contacted ? "已联系" : "联系TA"}
-        </Button>
-      }
-    />
+      ) : (
+        <EmptyState title="暂无技能登记" description="成为第一个登记技能的邻居吧" actionLabel="登记技能" actionHref="#" />
+      )}
+    </div>
   );
 }

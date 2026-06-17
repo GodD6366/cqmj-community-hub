@@ -1,5 +1,11 @@
 import { prisma } from "./db";
-import type { NeighborSkillDraft, NeighborSkillSummary } from "./types";
+import { matchSkillsForRequest } from "./skill-matcher";
+import type { NeighborSkillCategory, NeighborSkillDraft, NeighborSkillSummary } from "./types";
+
+function parseSkillTags(tags: string) {
+  const parsed = JSON.parse(tags || "[]") as unknown;
+  return Array.isArray(parsed) ? parsed.filter((tag): tag is string => typeof tag === "string") : [];
+}
 
 export async function listNeighborSkillsForViewer(viewerId: string | null): Promise<NeighborSkillSummary[]> {
   const skills = await prisma.neighborSkill.findMany({
@@ -21,10 +27,10 @@ export async function listNeighborSkillsForViewer(viewerId: string | null): Prom
     ownerName: skill.user.name,
     roomNumber: skill.user.roomNumber ?? "未知",
     building: skill.user.roomNumber ? skill.user.roomNumber.split("-")[0] : "未知",
-    category: skill.category as any,
+    category: skill.category as NeighborSkillCategory,
     title: skill.title,
     description: skill.description,
-    tags: JSON.parse(skill.tags || "[]"),
+    tags: parseSkillTags(skill.tags),
     availability: skill.availability,
     active: skill.active,
     createdAt: skill.createdAt.toISOString(),
@@ -80,8 +86,6 @@ export async function updateNeighborSkill(
   return true;
 }
 
-import { matchSkillsForRequest } from "./skill-matcher";
-
 export async function triggerSkillMatching(postId: string, postContent: string) {
   try {
     // 查找所有活跃技能，不包含发帖人自己的技能
@@ -104,10 +108,11 @@ export async function triggerSkillMatching(postId: string, postContent: string) 
 
     const parsedSkills = availableSkills.map(s => ({
       ...s,
-      tags: JSON.parse(s.tags || "[]") as string[]
+      category: s.category as NeighborSkillCategory,
+      tags: parseSkillTags(s.tags),
     }));
 
-    const matches = await matchSkillsForRequest(postContent, parsedSkills as any);
+    const matches = await matchSkillsForRequest(postContent, parsedSkills);
 
     if (matches.length > 0) {
       // 先删除旧匹配

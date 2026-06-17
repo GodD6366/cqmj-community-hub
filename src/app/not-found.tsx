@@ -1,27 +1,29 @@
 import Link from "next/link";
-import { CyberPanel, DataList } from "@/components/resident-shared";
+import { Card } from "@heroui/react";
+import { SearchX } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <main className="page-shell">
-      <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <CyberPanel title="页面不存在" kicker="404 / Not Found">
-          <DataList
-            items={[
-              { label: "状态", value: "404" },
-              { label: "说明", hint: "目标页面不存在、链接已失效，或该内容已被移除。" },
-            ]}
-          />
-        </CyberPanel>
-        <CyberPanel title="返回导航" kicker="Shortcuts">
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Link className="inline-flex h-11 items-center justify-center rounded-full bg-[var(--primary)] px-5 text-sm font-semibold text-[var(--primary-foreground)]" href="/">回到首页</Link>
-            <Link className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--border)] px-5 text-sm font-semibold text-[var(--primary)]" href="/neighbors">进入邻里页</Link>
-            <Link className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--border)] px-5 text-sm font-semibold text-[var(--primary)]" href="/services">查看服务</Link>
-            <Link className="inline-flex h-11 items-center justify-center rounded-full border border-[var(--border)] px-5 text-sm font-semibold text-[var(--primary)]" href="/me">返回我的</Link>
-          </div>
-        </CyberPanel>
-      </section>
-    </main>
+    <div className="flex min-h-dvh items-center justify-center p-4">
+      <Card className="app-panel-strong flex flex-col items-center gap-4 p-8 text-center">
+        <div className="flex h-20 w-20 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <SearchX className="h-10 w-10" />
+        </div>
+        <div>
+          <Card.Title className="justify-center text-2xl">页面不存在</Card.Title>
+          <Card.Description className="mt-2">
+            你访问的页面可能已被移除或链接有误。
+          </Card.Description>
+        </div>
+        <div className="flex gap-3">
+          <Link
+            href="/"
+            className="app-action border border-border bg-white/80 px-4 text-sm text-foreground hover:bg-muted/50"
+          >
+            返回首页
+          </Link>
+        </div>
+      </Card>
+    </div>
   );
 }

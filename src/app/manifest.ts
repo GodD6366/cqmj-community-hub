@@ -13,19 +13,19 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#ffffff',
     icons: [
       {
-        src: '/icon.svg',
-        sizes: 'any',
-        type: 'image/svg+xml',
-      },
-      {
-        src: '/icon.svg',
+        src: '/brand/system-logo-192.png',
         sizes: '192x192',
-        type: 'image/svg+xml',
+        type: 'image/png',
       },
       {
-        src: '/icon.svg',
+        src: '/brand/system-logo-512.png',
         sizes: '512x512',
-        type: 'image/svg+xml',
+        type: 'image/png',
+      },
+      {
+        src: '/brand/system-logo-apple.png',
+        sizes: '180x180',
+        type: 'image/png',
       }
     ],
   };

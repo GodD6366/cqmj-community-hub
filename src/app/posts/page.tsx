@@ -1,4 +1,4 @@
-import { PostsClient } from "../../components/posts-client";
+import { PostsClient } from "@/components/posts-client";
 import { parsePostCategoryFilter } from "@/lib/types";
 import type { PostCategory } from "@/lib/types";
 
@@ -12,11 +12,9 @@ function parseSingle(value: string | string[] | undefined) {
 
 export default async function PostsPage({ searchParams }: PostsPageProps) {
   const params = (await searchParams) ?? {};
-
   const category = parseSingle(params.category);
   const query = parseSingle(params.q) ?? "";
   const mode = parseSingle(params.mode);
-
   const initialCategory: PostCategory | "all" = parsePostCategoryFilter(category);
   const initialMode = mode === "mine" || mode === "favorites" ? mode : "all";
 

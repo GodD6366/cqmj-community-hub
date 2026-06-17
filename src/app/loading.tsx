@@ -1,28 +1,26 @@
-import { CyberPanel } from "@/components/resident-shared";
-
-function SkeletonBlock({ className }: { className: string }) {
-  return <div className={`animate-pulse rounded-[1rem] bg-[rgba(123,166,214,0.12)] ${className}`} />;
-}
+import { Card, Skeleton } from "@heroui/react";
 
 export default function Loading() {
   return (
-    <main className="page-shell">
-      <section className="grid gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-        <CyberPanel title="正在加载社区页面" kicker="加载中">
-          <div className="space-y-3">
-            <SkeletonBlock className="h-10 w-40" />
-            <SkeletonBlock className="h-4 w-full max-w-[14rem] rounded-full" />
-            <SkeletonBlock className="h-24 w-full" />
-          </div>
-        </CyberPanel>
-        <CyberPanel title="内容加载中" kicker="页面骨架">
-          <div className="space-y-4">
-            <SkeletonBlock className="h-14 w-full" />
-            <SkeletonBlock className="h-20 w-full" />
-            <SkeletonBlock className="h-48 w-full" />
-          </div>
-        </CyberPanel>
-      </section>
-    </main>
+    <div className="flex min-h-dvh items-center justify-center p-4">
+      <div className="w-full max-w-lg space-y-4">
+        <Skeleton className="h-12 w-3/4 rounded-xl" />
+        <Skeleton className="h-4 w-1/2 rounded-lg" />
+        <Card className="app-panel space-y-3 p-6">
+          <Skeleton className="h-4 w-full rounded-lg" />
+          <Skeleton className="h-4 w-5/6 rounded-lg" />
+          <Skeleton className="h-4 w-4/6 rounded-lg" />
+        </Card>
+        <Card className="app-panel space-y-3 p-6">
+          <Skeleton className="h-4 w-full rounded-lg" />
+          <Skeleton className="h-4 w-3/4 rounded-lg" />
+        </Card>
+        <Card className="app-panel space-y-3 p-6">
+          <Skeleton className="h-4 w-full rounded-lg" />
+          <Skeleton className="h-4 w-2/3 rounded-lg" />
+          <Skeleton className="h-4 w-5/6 rounded-lg" />
+        </Card>
+      </div>
+    </div>
   );
 }

@@ -1,668 +1,187 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
-import { Alert, Button } from "@heroui/react";
-import {
-  BrainCircuitIcon,
-  ChevronRightIcon,
-  ChevronUpIcon,
-  ClockIcon,
-  CloseIcon,
-  CopyIcon,
-  EditIcon,
-  FileTextIcon,
-  InfoIcon,
-  LogoutIcon,
-  MessagesIcon,
-  ServiceIcon,
-  SettingsIcon,
-  ShieldIcon,
-  StarIcon,
-  WrenchIcon,
-  VoteIcon,
-} from "./app-icons";
-import {
-  CyberPanel,
-  CyberStatGrid,
-  DataList,
-  EmptyState,
-  ResidentAvatar,
-  ResidentListRow,
-  ResidentPageHeader,
-  ResidentPanel,
-} from "./resident-shared";
-import { useCommunityPosts } from "./community-provider";
-import { getCommunityName } from "@/lib/community-brand";
-import { requestStatusMeta, type RequestStatus } from "@/lib/types";
-import { timeAgo } from "@/lib/utils";
-
-const functionItems = [
-  { label: "我的帖子", href: "/posts?mode=mine", icon: <FileTextIcon /> },
-  { label: "我的需求", href: "/posts?mode=mine&category=request", icon: <WrenchIcon /> },
-  { label: "我的收藏", href: "/posts?mode=favorites", icon: <StarIcon /> },
-  { label: "我的投票", href: "/publish?kind=poll", icon: <VoteIcon /> },
-  { label: "我的工单", href: "/services", icon: <ServiceIcon /> },
-] as const;
-
-const extraItems = [
-  { label: "Skill / AI 配置", href: "/skill/connect", icon: <BrainCircuitIcon /> },
-  { label: "浏览历史", href: "/posts", icon: <ClockIcon /> },
-  { label: "邀请邻居", href: "/about", icon: <MessagesIcon /> },
-  { label: "社区规则", href: "/rules", icon: <ShieldIcon /> },
-] as const;
-
-const mobileStats = [
-  {
-    label: "我的帖子",
-    key: "myPosts",
-    href: "/posts?mode=mine",
-    tone: "green",
-    icon: <FileTextIcon />,
-  },
-  {
-    label: "我的收藏",
-    key: "favoritePosts",
-    href: "/posts?mode=favorites",
-    tone: "amber",
-    icon: <StarIcon />,
-  },
-  {
-    label: "我的参与",
-    key: "votedPolls",
-    href: "/neighbors",
-    tone: "green",
-    icon: <MessagesIcon />,
-  },
-  {
-    label: "我的工单",
-    key: "myTickets",
-    href: "/services",
-    tone: "amber",
-    icon: <ServiceIcon />,
-  },
-] as const;
-
-const mobileMenuItems = [
-  {
-    label: "Skill / AI 配置",
-    href: "/skill/connect",
-    tone: "cyan",
-    icon: <BrainCircuitIcon />,
-  },
-  {
-    label: "我的帖子",
-    href: "/posts?mode=mine",
-    tone: "green",
-    icon: <FileTextIcon />,
-  },
-  {
-    label: "我的需求",
-    href: "/posts?mode=mine&category=request",
-    tone: "amber",
-    icon: <WrenchIcon />,
-  },
-  {
-    label: "我的收藏",
-    href: "/posts?mode=favorites",
-    tone: "green",
-    icon: <StarIcon />,
-  },
-  { label: "我的投票", href: "/neighbors", tone: "cyan", icon: <VoteIcon /> },
-  { label: "浏览记录", href: "/posts", tone: "green", icon: <ClockIcon /> },
-  { label: "社区规则", href: "/rules", tone: "green", icon: <ShieldIcon /> },
-  { label: "项目介绍", href: "/about", tone: "green", icon: <InfoIcon /> },
-] as const;
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { Button, Card, Chip } from "@heroui/react";
+import { useCommunityPosts } from "@/lib/community-store";
+import { EmptyState } from "./ui/empty-state";
+import { Toast, useToast } from "./ui/toast";
+import { ChevronRightIcon } from "./app-icons";
 
 export function MeClient() {
-  const {
-    currentUser,
-    posts,
-    polls,
-    serviceTickets,
-    notifications,
-    logout,
-    updateProfile,
-    updateRequestStatus,
-  } =
-    useCommunityPosts();
-  const communityName = getCommunityName();
-  const [loggingOut, setLoggingOut] = useState(false);
-  const [error, setError] = useState("");
-  const [message, setMessage] = useState("");
-  const [settingsOpen, setSettingsOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
-  const [profileSaving, setProfileSaving] = useState(false);
-  const [profileDraft, setProfileDraft] = useState({ username: "", nickname: "", roomNumber: "" });
-  const [requestStatusBusyId, setRequestStatusBusyId] = useState<string | null>(null);
+  const router = useRouter();
+  const { currentUser, posts, serviceTickets, unreadNotificationCount, updateProfile, logout, hydrated } = useCommunityPosts();
+  const { toast, show } = useToast();
+  const [editing, setEditing] = useState(false);
+  const [editUsername, setEditUsername] = useState("");
+  const [editNickname, setEditNickname] = useState("");
+  const [editRoomNumber, setEditRoomNumber] = useState("");
+  const [saving, setSaving] = useState(false);
 
-
-  const openProfileEditor = () => {
-    if (!currentUser) return;
-    setError("");
-    setMessage("");
-    setProfileDraft({
-      username: currentUser.username,
-      nickname: currentUser.nickname,
-      roomNumber: currentUser.roomNumber,
-    });
-    setProfileOpen(true);
-  };
-  const closeProfileEditor = () => {
-    if (!profileSaving) {
-      setProfileOpen(false);
-    }
-  };
-
-  const handleProfileSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setError("");
-    setMessage("");
-    setProfileSaving(true);
-    try {
-      await updateProfile(profileDraft);
-      setProfileOpen(false);
-      setMessage("资料已更新。");
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "更新资料失败");
-    } finally {
-      setProfileSaving(false);
-    }
-  };
-
-  const toggleSettings = () => {
-    setSettingsOpen((isOpen) => !isOpen);
-  };
-  const closeSettings = () => {
-    setSettingsOpen(false);
-  };
-
-  useEffect(() => {
-    if (!settingsOpen && !profileOpen) return;
-    const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = previousOverflow;
-    };
-  }, [profileOpen, settingsOpen]);
-
-  const handleLogout = async () => {
-    setError("");
-    setLoggingOut(true);
-    try {
-      await logout();
-    } catch (logoutError) {
-      setError(logoutError instanceof Error ? logoutError.message : "退出失败");
-    } finally {
-      setLoggingOut(false);
-    }
-  };
-
-  const stats = useMemo(() => {
-    const myPosts = currentUser ? posts.filter((post) => post.isMine) : [];
-    const myRequests = myPosts.filter((post) => post.category === "request");
-    const votedPolls = polls.filter((poll) => poll.hasVoted);
-    const myTickets = serviceTickets.filter((ticket) => ticket.isMine);
-    const favoritePosts = posts.filter((post) => post.favorited);
-    return {
-      myPosts: myPosts.length,
-      myRequests: myRequests.length,
-      favoritePosts: favoritePosts.length,
-      votedPolls: votedPolls.length,
-      myTickets: myTickets.length,
-      comments: notifications.filter((item) => item.type === "comment").length,
-    };
-  }, [currentUser, notifications, polls, posts, serviceTickets]);
-
-  const myRequests = useMemo(
-    () =>
-      posts
-        .filter((post) => post.isMine && post.category === "request")
-        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()),
-    [posts],
-  );
-
-  const handleRequestStatusChange = async (postId: string, status: RequestStatus) => {
-    setError("");
-    setMessage("");
-    setRequestStatusBusyId(postId);
-    try {
-      await updateRequestStatus(postId, status);
-      setMessage("需求状态已更新。");
-    } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "更新需求状态失败");
-    } finally {
-      setRequestStatusBusyId(null);
-    }
-  };
+  if (!hydrated) {
+    return <div className="mx-auto max-w-2xl p-4 pt-8 text-center text-sm text-muted-foreground">加载中...</div>;
+  }
 
   if (!currentUser) {
     return (
-      <main className="page-shell">
-        <EmptyState
-          title="登录后查看个人中心"
-          actionHref="/login?next=/me"
-          actionLabel="去登录"
-        />
-      </main>
+      <div className="mx-auto max-w-2xl p-4 pt-8">
+        <EmptyState title="请先登录" actionHref="/login" actionLabel="去登录" />
+      </div>
     );
   }
 
+  const myPosts = posts.filter((p) => p.isMine);
+  const myTickets = serviceTickets.filter((t) => t.isMine);
+
+  async function handleSaveProfile() {
+    setSaving(true);
+    try {
+      await updateProfile({
+        username: editUsername || currentUser!.username,
+        nickname: editNickname || currentUser!.nickname,
+        roomNumber: editRoomNumber || currentUser!.roomNumber,
+      });
+      setEditing(false);
+      show("资料已更新。", "success");
+    } catch (e) {
+      show(e instanceof Error ? e.message : "保存失败", "error");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleLogout() {
+    try { await logout(); router.push("/login"); }
+    catch (e) { show(e instanceof Error ? e.message : "退出失败", "error"); }
+  }
+
   return (
-    <main className="page-shell space-y-4 md:space-y-5">
-      {error ? (
-        <Alert status="danger">
-          <Alert.Content>
-            <Alert.Description>{error}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
+    <div className="mx-auto max-w-4xl space-y-3 px-4 pb-28 pt-5 md:space-y-5 md:p-6">
+      <Toast toast={toast} />
 
-      {message ? (
-        <Alert status="success">
-          <Alert.Content>
-            <Alert.Description>{message}</Alert.Description>
-          </Alert.Content>
-        </Alert>
-      ) : null}
-
-      {/* 资料编辑模态框在自适应逻辑中共享 */}
-      {profileOpen && currentUser ? (
-        <div className="mobile-register-overlay" style={{ zIndex: 100 }}>
-          <section className="mobile-register-modal">
-            <header className="mobile-register-header">
-              <h2>编辑资料</h2>
-              <button
-                type="button"
-                className="mobile-register-close"
-                onClick={closeProfileEditor}
-                aria-label="关闭"
-                disabled={profileSaving}
-              >
-                ✕
-              </button>
-            </header>
-            <form onSubmit={handleProfileSubmit} className="space-y-4">
-              <label className="mobile-register-field">
-                <span>昵称</span>
-                <span className="mobile-register-input-wrap">
-                  <input
-                    type="text"
-                    value={profileDraft.nickname}
-                    onChange={(event) =>
-                      setProfileDraft((draft) => ({ ...draft, nickname: event.target.value }))
-                    }
-                    placeholder="请输入你的昵称"
-                    maxLength={20}
-                    disabled={profileSaving}
-                  />
-                </span>
-              </label>
-              <label className="mobile-register-field">
-                <span>用户名</span>
-                <span className="mobile-register-input-wrap">
-                  <input
-                    type="text"
-                    value={profileDraft.username}
-                    onChange={(event) =>
-                      setProfileDraft((draft) => ({ ...draft, username: event.target.value }))
-                    }
-                    placeholder="请输入用户名"
-                    disabled={profileSaving}
-                  />
-                </span>
-              </label>
-              <label className="mobile-register-field">
-                <span>房号</span>
-                <span className="mobile-register-input-wrap">
-                  <input
-                    type="text"
-                    value={profileDraft.roomNumber}
-                    onChange={(event) =>
-                      setProfileDraft((draft) => ({ ...draft, roomNumber: event.target.value }))
-                    }
-                    placeholder="如：1-905"
-                    autoCapitalize="none"
-                    disabled={profileSaving}
-                  />
-                </span>
-                <small>格式：楼栋-房号，例如 1-905</small>
-              </label>
-              <button
-                type="submit"
-                className="mobile-register-submit"
-                disabled={profileSaving}
-              >
-                {profileSaving ? "保存中..." : "保存资料"}
-              </button>
-            </form>
-          </section>
+      {/* 用户信息 */}
+      <Card className="app-panel-strong p-5 md:p-6">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div className="flex min-w-0 items-start gap-4">
+            <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[1.25rem] bg-gradient-to-br from-primary/25 to-accent/25 text-2xl font-bold text-primary-strong shadow-sm ring-1 ring-primary/15">
+              {Array.from(currentUser.nickname)[0]}
+            </div>
+            <div className="min-w-0">
+              <div className="map-coordinate mb-2">居民档案</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="app-display min-w-0 break-words text-[1.85rem] leading-tight md:text-3xl">{currentUser.nickname}</h1>
+                {currentUser.role === "admin" && <Chip size="sm" color="warning">管理员</Chip>}
+              </div>
+              <div className="mt-2 grid gap-1 text-sm text-muted-foreground">
+                <span className="break-all">@{currentUser.username}</span>
+                <span className="font-semibold text-foreground">{currentUser.roomNumber}</span>
+              </div>
+            </div>
+          </div>
+          <Button variant="secondary" size="sm" className="min-h-11 w-full sm:w-auto" onPress={() => {
+            setEditUsername(currentUser.username);
+            setEditNickname(currentUser.nickname);
+            setEditRoomNumber(currentUser.roomNumber);
+            setEditing(!editing);
+          }}>
+            {editing ? "取消编辑" : "编辑资料"}
+          </Button>
         </div>
-      ) : null}
 
-      {/* 统一的自适应双栏网格 */}
-      <div className="grid grid-cols-1 md:grid-cols-[280px_minmax(0,1fr)] gap-4">
-        {/* 左侧栏/信息栏 */}
-        <div className="space-y-4">
-          {/* 移动端专属 PageHeader 与信息：在 md:hidden 下显示 */}
-          <div className="md:hidden">
-            <ResidentPageHeader
-              action={<Button size="sm" onPress={openProfileEditor}>编辑资料</Button>}
-              kicker="个人中心"
-              subtitle="消息、工单、发帖记录都在这里统一查看。"
-              title={currentUser.nickname}
+        {/* 编辑表单 */}
+        {editing && (
+          <div className="mt-4 space-y-3 border-t border-border/70 pt-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-bold">编辑资料</h2>
+                <p className="text-xs text-muted-foreground">用户名、昵称和房号会显示在社区互动里。</p>
+              </div>
+              <span className="rounded-full bg-primary/8 px-2.5 py-1 text-xs font-bold text-primary">档案</span>
+            </div>
+            <input
+              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              placeholder="用户名"
+              value={editUsername}
+              onChange={(e) => setEditUsername(e.target.value)}
             />
-
-            <ResidentPanel>
-              <ResidentListRow
-                leading={<ResidentAvatar name={currentUser.nickname} size="lg" />}
-                subtitle={`${communityName} · ${currentUser.roomNumber || "未绑定房号"}`}
-                title={
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-slate-900">{currentUser.nickname}</span>
-                    <span className="app-chip">{currentUser.role === "admin" ? "管理员" : "已认证住户"}</span>
-                  </div>
-                }
-              />
-            </ResidentPanel>
+            <input
+              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              placeholder="显示昵称"
+              value={editNickname}
+              onChange={(e) => setEditNickname(e.target.value)}
+            />
+            <input
+              className="min-h-11 w-full rounded-xl border border-border bg-background px-3 py-2 text-sm"
+              placeholder="房号"
+              value={editRoomNumber}
+              onChange={(e) => setEditRoomNumber(e.target.value)}
+            />
+            <Button variant="primary" className="min-h-11 w-full font-bold" isPending={saving} onPress={() => { void handleSaveProfile(); }}>
+              保存修改
+            </Button>
           </div>
+        )}
 
-          {/* 桌面端专属的个人信息 CyberPanel：仅在桌面端显示 */}
-          <div className="hidden md:block">
-            <CyberPanel title="个人中心" kicker="Profile">
-              <div className="flex items-start gap-4">
-                <ResidentAvatar name={currentUser.nickname} size="lg" />
-                <div className="min-w-0 flex-1">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <div className="text-[1.3rem] font-semibold text-slate-950">
-                      {currentUser.nickname}
-                    </div>
-                    <span className="app-chip">
-                      {currentUser.role === "admin" ? "管理员" : "已认证业主"}
-                    </span>
-                  </div>
-                  <div className="mt-2 text-sm text-[var(--muted)]">
-                    {currentUser.roomNumber}
-                  </div>
-                </div>
-                <Button size="sm" variant="secondary" onPress={openProfileEditor}>
-                  编辑资料
-                </Button>
-              </div>
-              <div className="mt-4">
-                <CyberStatGrid
-                  columns={4}
-                  items={[
-                    { label: "我的帖子", value: stats.myPosts },
-                    { label: "我的需求", value: stats.myRequests },
-                    { label: "我的收藏", value: stats.favoritePosts },
-                    { label: "我的参与", value: stats.votedPolls },
-                    { label: "我的工单", value: stats.myTickets },
-                  ]}
-                />
-              </div>
-            </CyberPanel>
-          </div>
+        {/* 统计 */}
+        <div className="mt-5 grid grid-cols-2 gap-3 md:mt-6 md:grid-cols-4">
+          {[
+            { label: "我的帖子", value: myPosts.length },
+            { label: "我的评论", value: posts.reduce((sum, p) => sum + (p.comments?.filter((c) => c.isMine)?.length ?? 0), 0) },
+            { label: "我的工单", value: myTickets.length },
+            { label: "未读消息", value: unreadNotificationCount },
+          ].map((stat) => (
+            <div key={stat.label} className="rounded-2xl border border-border/70 bg-white/72 p-3 text-center">
+              <div className="app-utility text-2xl font-black tabular-nums">{stat.value}</div>
+              <div className="text-xs text-muted-foreground">{stat.label}</div>
+            </div>
+          ))}
         </div>
+      </Card>
 
-        {/* 右侧栏：包含功能列表、需求列表等 */}
-        <div className="space-y-4">
-          {/* 功能中心：移动端是统计统计和列表 */}
-          <div className="md:hidden space-y-4">
-            <section className="mobile-me-stats" aria-label="个人统计">
-              {mobileStats.map((item) => (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  className="mobile-me-stat-item"
-                >
-                  <span className={`mobile-me-stat-icon is-${item.tone}`}>
-                    {item.icon}
-                  </span>
-                  <strong>{stats[item.key]}</strong>
-                  <span>{item.label}</span>
-                </Link>
-              ))}
-            </section>
-
-            <section className="mobile-me-list" aria-label="个人功能列表">
-              {mobileMenuItems.map((item) => (
-                <Link
-                  key={item.label}
-                  href={item.href}
-                  className="mobile-me-menu-item"
-                >
-                  <span className={`mobile-me-menu-icon is-${item.tone}`}>
-                    {item.icon}
-                  </span>
-                  <span>{item.label}</span>
-                  <span className="mobile-me-menu-arrow"><ChevronRightIcon /></span>
-                </Link>
-              ))}
-              <button
-                type="button"
-                className="mobile-me-menu-item"
-                aria-controls="mobile-me-settings"
-                aria-expanded={settingsOpen}
-                onClick={toggleSettings}
-              >
-                <span className="mobile-me-menu-icon is-green">
-                  <SettingsIcon />
-                </span>
-                <span>设置</span>
-                <span className="mobile-me-menu-arrow" aria-hidden="true">
-                  {settingsOpen ? <ChevronUpIcon /> : <ChevronRightIcon />}
-                </span>
-              </button>
-              
-              {settingsOpen && (
-                <div className="p-4 border-t border-[var(--border)] bg-[var(--surface-secondary)] space-y-2 rounded-2xl mt-2">
-                  <div className="text-xs text-[var(--muted)] mb-2 flex justify-between">
-                    <span>当前账号</span>
-                    <strong>{currentUser.username}</strong>
+      {/* 我的帖子 */}
+      <Card className="app-panel p-5">
+        <Card.Title>我的帖子</Card.Title>
+        {myPosts.length > 0 ? (
+          <div className="mt-3 space-y-2">
+            {myPosts.slice(0, 10).map((post) => (
+              <a key={post.id} href={`/posts/${post.id}`} className="flex min-h-14 items-center justify-between rounded-xl border border-border bg-white/72 p-3 transition-colors hover:bg-muted/30">
+                <div className="min-w-0">
+                  <div className="truncate text-sm font-semibold">{post.title}</div>
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{post.category === "request" ? "求助" : post.category === "secondhand" ? "闲置" : post.category === "discussion" ? "交流" : "约玩"}</span>
+                    {post.requestStatus && <Chip size="sm" variant="soft">{post.requestStatus === "open" ? "待处理" : post.requestStatus === "processing" ? "处理中" : "已解决"}</Chip>}
                   </div>
-                  <Button
-                    isPending={loggingOut}
-                    onPress={handleLogout}
-                    variant="danger"
-                    className="w-full"
-                  >
-                    {loggingOut ? "退出中..." : "退出登录"}
-                  </Button>
                 </div>
-              )}
-            </section>
+                <ChevronRightIcon className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              </a>
+            ))}
           </div>
+        ) : (
+          <p className="mt-3 text-sm text-muted-foreground">暂无帖子</p>
+        )}
+      </Card>
 
-          {/* 桌面端专属的功能中心：在 md:block 下显示 */}
-          <div className="hidden md:block">
-            <CyberPanel title="功能中心" kicker="Function Center">
-              <div className="grid gap-4 xl:grid-cols-2">
-                <div className="grid gap-3">
-                  {functionItems.map((item) => (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className="app-shell-link !p-3"
-                    >
-                      <span className="app-shell-link-icon">{item.icon}</span>
-                      <span className="app-shell-link-copy">
-                        <span className="app-shell-link-title">{item.label}</span>
-                      </span>
-                    </Link>
-                  ))}
-                </div>
-                <div className="grid gap-3">
-                  {extraItems.map((item) => (
-                    <Link
-                      key={item.label}
-                      href={item.href}
-                      className="app-shell-link !p-3"
-                    >
-                      <span className="app-shell-link-icon">{item.icon}</span>
-                      <span className="app-shell-link-copy">
-                        <span className="app-shell-link-title">{item.label}</span>
-                      </span>
-                    </Link>
-                  ))}
-                  <Button
-                    isPending={loggingOut}
-                    onPress={handleLogout}
-                    variant="secondary"
-                  >
-                    {loggingOut ? "退出中..." : "退出登录"}
-                  </Button>
-                </div>
-              </div>
-            </CyberPanel>
-          </div>
-
-          {/* 桌面端账户统计、参与记录、快捷跳转：仅在桌面端显示 */}
-          <div className="hidden md:grid gap-4 xl:grid-cols-3">
-            <CyberPanel title="账户统计" kicker="Summary">
-              <DataList
-                items={[
-                  { label: "我的评论提醒", value: stats.comments },
-                  { label: "我的需求", value: stats.myRequests },
-                  { label: "我的收藏", value: stats.favoritePosts },
-                  { label: "我的工单", value: stats.myTickets },
-                ]}
-              />
-            </CyberPanel>
-            <CyberPanel title="参与记录" kicker="Activity">
-              <DataList
-                items={[
-                  { label: "投票参与", value: stats.votedPolls },
-                  { label: "房号状态", value: currentUser.roomNumber },
-                  {
-                    label: "账号角色",
-                    value: currentUser.role === "admin" ? "管理员" : "居民",
-                  },
-                ]}
-              />
-            </CyberPanel>
-            <CyberPanel title="快捷跳转" kicker="Links">
-              <DataList
-                items={[
-                  {
-                    label: "返回首页",
-                    value: (
-                      <Link href="/" className="text-[var(--primary)]">
-                        前往
-                      </Link>
-                    ),
-                  },
-                  {
-                    label: "查看邻里",
-                    value: (
-                      <Link href="/neighbors" className="text-[var(--primary)]">
-                        前往
-                      </Link>
-                    ),
-                  },
-                  {
-                    label: "发布内容",
-                    value: (
-                      <Link href="/publish" className="text-[var(--primary)]">
-                        前往
-                      </Link>
-                    ),
-                  },
-                ]}
-              />
-            </CyberPanel>
-          </div>
-
-          {/* 我的需求列表：两端共享，只写一次！ */}
-          <section className="grid gap-4">
-            <CyberPanel
-              title="我的需求"
-              kicker="Request Center"
-              action={
-                <Link href="/publish?kind=request" className="text-sm font-semibold text-[var(--primary)]">
-                  新建需求
-                </Link>
-              }
-            >
-              {myRequests.length > 0 ? (
-                <div className="grid gap-3">
-                  {myRequests.map((post) => (
-                    <article
-                      key={post.id}
-                      className="rounded-[1rem] border border-[var(--border)] bg-[var(--surface-secondary)] px-4 py-4"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <Link href={`/posts/${post.id}`} className="text-sm font-semibold text-slate-950 hover:text-[var(--primary)]">
-                              {post.title}
-                            </Link>
-                            {post.requestStatus ? (
-                              <span
-                                className="rounded-full border px-2 py-0.5 text-[0.68rem] font-semibold"
-                                style={{
-                                  borderColor:
-                                    requestStatusMeta[post.requestStatus].tone === "green"
-                                      ? "rgba(57,245,143,0.24)"
-                                      : requestStatusMeta[post.requestStatus].tone === "amber"
-                                      ? "rgba(246,200,95,0.24)"
-                                      : "rgba(72,201,255,0.24)",
-                                  color:
-                                    requestStatusMeta[post.requestStatus].tone === "green"
-                                      ? "#39f58f"
-                                      : requestStatusMeta[post.requestStatus].tone === "amber"
-                                      ? "#f6c85f"
-                                      : "#48c9ff",
-                                  background:
-                                    requestStatusMeta[post.requestStatus].tone === "green"
-                                      ? "rgba(57,245,143,0.08)"
-                                      : requestStatusMeta[post.requestStatus].tone === "amber"
-                                      ? "rgba(246,200,95,0.08)"
-                                      : "rgba(72,201,255,0.08)",
-                                }}
-                              >
-                                {requestStatusMeta[post.requestStatus].label}
-                              </span>
-                            ) : null}
-                          </div>
-                          <p className="mt-2 line-clamp-2 text-sm leading-6 text-[var(--muted)]">
-                            {post.content}
-                          </p>
-                          <div className="mt-2 text-xs text-[var(--muted)]">
-                            更新时间 · {timeAgo(post.updatedAt)}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {(Object.entries(requestStatusMeta) as Array<[RequestStatus, (typeof requestStatusMeta)[RequestStatus]]>).map(
-                            ([status, meta]) => (
-                              <Button
-                                key={status}
-                                size="sm"
-                                variant={post.requestStatus === status ? undefined : "secondary"}
-                                isDisabled={requestStatusBusyId === post.id || post.requestStatus === status}
-                                onPress={() => void handleRequestStatusChange(post.id, status)}
-                              >
-                                {requestStatusBusyId === post.id ? "更新中..." : meta.label}
-                              </Button>
-                            ),
-                          )}
-                        </div>
-                      </div>
-                    </article>
-                  ))}
-                </div>
-              ) : (
-                <EmptyState
-                  title="你还没有发布需求"
-                  description="发布后可在这里统一查看并更新处理状态。"
-                  actionHref="/publish?kind=request"
-                  actionLabel="去提需求"
-                />
-              )}
-            </CyberPanel>
-          </section>
+      {/* 快捷入口 */}
+      <Card className="app-panel p-5">
+        <Card.Title>快捷入口</Card.Title>
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          {[
+            { label: "帮助", href: "/neighbors" },
+            { label: "我的工单", href: "/services" },
+            { label: "发布帖子", href: "/publish" },
+            { label: "消息中心", href: "/messages" },
+          ].map((item) => (
+            <a key={item.label} href={item.href} className="flex min-h-14 items-center justify-center rounded-xl border border-border bg-white/72 p-3 text-center text-sm font-bold transition-colors hover:bg-muted/30">
+              {item.label}
+            </a>
+          ))}
         </div>
-      </div>
-    </main>
+      </Card>
+
+      {/* 退出 */}
+      <Button variant="ghost" className="min-h-11 w-full" onPress={() => { void handleLogout(); }}>
+        退出登录
+      </Button>
+    </div>
   );
 }

@@ -1,130 +1,115 @@
 "use client";
 
 import Link from "next/link";
-import { useDeferredValue, useMemo, useState } from "react";
-import type { PostCategory } from "@/lib/types";
-import { categoryMeta } from "@/lib/types";
-import { useCommunityPosts } from "./community-provider";
+import { useMemo, useState } from "react";
+import { useCommunityPosts } from "@/lib/community-store";
 import { filterPublicPosts } from "@/lib/community-store";
-import { ButtonLink } from "./ui";
-import {
-  CyberPanel,
-  CyberStatGrid,
-  EmptyState,
-  ResidentFilterTabs,
-  ResidentPageHeader,
-  ResidentPanel,
-  ResidentSearchBar,
-} from "./resident-shared";
-import { PostCard } from "./post-card";
-import { filterPosts, sortPosts, uniquePosts } from "@/lib/utils";
+import { PostCard } from "./post/post-card";
+import { EmptyState } from "./ui/empty-state";
+import { PostCategoryTabs } from "./post/category-tabs";
+import { filterPosts, sortPosts } from "@/lib/utils";
+import type { PostCategory, SortMode } from "@/lib/types";
+import { PublishIcon, SearchIcon } from "./app-icons";
 
-export function PostsClient({
-  initialCategory = "all",
-  initialQuery = "",
-  initialMode = "all",
-}: {
+const sortModes: Array<{ key: SortMode; label: string }> = [
+  { key: "latest", label: "最新" },
+  { key: "popular", label: "最热" },
+  { key: "featured", label: "精选" },
+];
+
+interface PostsClientProps {
   initialCategory?: PostCategory | "all";
+  initialMode?: string;
   initialQuery?: string;
-  initialMode?: "all" | "mine" | "favorites";
-}) {
-  const { currentUser, posts, hydrated } = useCommunityPosts();
+}
+
+export function PostsClient({ initialCategory = "all", initialMode = "all", initialQuery = "" }: PostsClientProps) {
+  const { posts, hydrated } = useCommunityPosts();
   const [category, setCategory] = useState<PostCategory | "all">(initialCategory);
   const [query, setQuery] = useState(initialQuery);
-  const deferredQuery = useDeferredValue(query);
+  const [sortMode, setSortMode] = useState<SortMode>(initialMode === "mine" || initialMode === "favorites" ? "latest" : initialMode as SortMode || "latest");
 
-  const visiblePosts = useMemo(() => {
-    if (initialMode === "mine" && currentUser) return uniquePosts(posts.filter((post) => post.isMine));
-    if (initialMode === "favorites") return uniquePosts(filterPublicPosts(posts).filter((post) => post.favorited));
-    return uniquePosts(filterPublicPosts(posts));
-  }, [currentUser, initialMode, posts]);
+  const publicPosts = useMemo(() => filterPublicPosts(posts), [posts]);
 
-  const filteredPosts = useMemo(() => sortPosts(filterPosts(visiblePosts, { category, query: deferredQuery }), "latest"), [category, deferredQuery, visiblePosts]);
-  const categoryEntries = useMemo(() => Object.entries(categoryMeta) as Array<[PostCategory, (typeof categoryMeta)[PostCategory]]>, []);
-  const categoryTabs = useMemo(
-    () => [{ key: "all" as const, label: "全部" }, ...categoryEntries.map(([value, meta]) => ({ key: value, label: meta.badge }))],
-    [categoryEntries],
-  );
+  const displayPosts = useMemo(() => {
+    let result = filterPosts(publicPosts, { category, query: query.trim() });
+    result = sortPosts(result, sortMode);
+    return result;
+  }, [publicPosts, category, query, sortMode]);
 
   return (
-    <main className="page-shell">
-      <div className="grid grid-cols-1 md:grid-cols-[minmax(0,1.5fr)_320px] gap-4">
-        {/* 左侧主要内容 */}
-        <div className="space-y-4">
-          {/* 移动端专属 PageHeader：在 md:hidden 下显示 */}
-          <div className="md:hidden">
-            <ResidentPageHeader
-              action={
-                <ButtonLink className="min-w-0" href="/publish" size="sm">
-                  发布
-                </ButtonLink>
-              }
-              kicker="社区动态"
-              subtitle="需求、闲置、交流、约玩统一查看"
-              title="社区动态"
-            />
-          </div>
+    <div className="mx-auto max-w-6xl space-y-5 p-4 md:p-6">
+      {/* 桌面端 Hero */}
+      <div className="app-panel-strong hidden p-6 md:flex md:items-end md:justify-between">
+        <div>
+          <div className="map-coordinate">公开动态站</div>
+          <h1 className="app-display mt-3 text-4xl leading-tight">帖子广场</h1>
+          <p className="mt-2 max-w-xl text-sm leading-7 text-muted-foreground">把需求、闲置、交流和约玩按同一条社区动线归档，方便邻居找到来龙去脉。</p>
+        </div>
+        <Link
+          href="/publish"
+          className="app-action bg-primary px-4 text-sm text-primary-foreground shadow-sm shadow-primary/15 hover:bg-primary-strong"
+        >
+          <PublishIcon />
+          发布内容
+        </Link>
+      </div>
 
-          {/* 搜索与过滤栏（共享） */}
-          <div className="bg-white p-4 rounded-2xl border border-[var(--border)] space-y-4">
-            <ResidentFilterTabs activeKey={category} items={categoryTabs} onChange={setCategory} />
-            <ResidentSearchBar
-              ariaLabel="搜索动态"
-              placeholder="搜索标题 / 作者 / 标签"
-              value={query}
-              onChange={setQuery}
-            />
-          </div>
-
-          {/* 帖子列表（共享） */}
-          <div className="grid gap-3">
-            {!hydrated ? (
-              <div className="app-card p-6 text-sm text-[var(--muted)] text-center">加载中...</div>
-            ) : filteredPosts.length > 0 ? (
-              filteredPosts.map((post) => <PostCard key={post.id} post={post} />)
-            ) : (
-              <EmptyState title="没有匹配的社区动态" actionHref="/publish" actionLabel="去发布" />
-            )}
-          </div>
+      {/* 过滤器 */}
+      <div className="app-panel space-y-3 p-4">
+        {/* 搜索 */}
+        <div className="flex min-h-12 items-center gap-2 rounded-2xl border border-border bg-white/80 px-3 py-2 shadow-sm">
+          <SearchIcon />
+          <input
+            type="text"
+            className="min-h-11 flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            placeholder="搜索标题、内容、标签..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            aria-label="搜索帖子"
+          />
         </div>
 
-        {/* 右侧边栏：仅在桌面端显示 */}
-        <div className="hidden md:grid gap-4 auto-rows-max">
-          <CyberPanel title="列表统计" kicker="Summary">
-            <CyberStatGrid
-              columns={2}
-              items={[
-                {
-                  label:
-                    initialMode === "mine"
-                      ? "我的内容"
-                      : initialMode === "favorites"
-                      ? "我的收藏"
-                      : "公开动态",
-                  value: hydrated ? String(visiblePosts.length) : "--",
-                },
-                { label: "筛选结果", value: hydrated ? String(filteredPosts.length) : "--" },
-              ]}
-            />
-          </CyberPanel>
-          <CyberPanel title="快捷入口" kicker="Actions">
-            <div className="grid gap-2 text-sm">
-              <Link href="/publish" className="app-shell-link !p-3">
-                <span className="app-shell-link-copy">
-                  <span className="app-shell-link-title">发布内容</span>
-                  <span className="app-shell-link-meta">发帖、报修、投票</span>
-                </span>
-              </Link>
-              <Link href="/neighbors" className="app-shell-link !p-3">
-                <span className="app-shell-link-copy">
-                  <span className="app-shell-link-title">投票</span>
-                  <span className="app-shell-link-meta">参与社区投票</span>
-                </span>
-              </Link>
-            </div>
-          </CyberPanel>
+        {/* 分类和排序 */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border/70 pt-3">
+          <PostCategoryTabs
+            allowDeselect
+            ariaLabel="帖子分类筛选"
+            onChange={(cat) => setCategory(cat ?? "all")}
+            value={category === "all" ? null : category}
+          />
+          <select
+            aria-label="排序方式"
+            className="min-h-11 w-28 rounded-xl border border-border bg-white/82 px-3 text-sm font-semibold text-foreground shadow-sm outline-none transition-colors hover:border-primary/35 focus-visible:border-primary"
+            value={sortMode}
+            onChange={(event) => {
+              setSortMode(event.target.value as SortMode);
+            }}
+          >
+            {sortModes.map((mode) => (
+              <option key={mode.key} value={mode.key}>
+                {mode.label}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
-    </main>
+
+      {/* 帖子列表 */}
+      <div className="space-y-3">
+        {!hydrated ? (
+          <div className="app-panel p-6 text-center text-sm text-muted-foreground">加载中...</div>
+        ) : displayPosts.length > 0 ? (
+          displayPosts.map((post) => <PostCard key={post.id} post={post} />)
+        ) : (
+          <EmptyState
+            title="暂无帖子"
+            description={query ? `未找到包含"${query}"的帖子` : "还没有人发帖，去发布第一条吧"}
+            actionHref="/publish"
+            actionLabel="去发布"
+          />
+        )}
+      </div>
+    </div>
   );
 }

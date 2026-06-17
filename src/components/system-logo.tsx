@@ -1,7 +1,9 @@
 import { cn } from "@heroui/react";
+import Image from "next/image";
 import { getCommunityName } from "@/lib/community-brand";
 
 const communityName = getCommunityName();
+const systemLogoSrc = "/brand/system-logo.png";
 
 export function SystemLogo({
   className,
@@ -14,8 +16,16 @@ export function SystemLogo({
 }) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
-      <div className={cn("app-logo-mark", markClassName)}>
-        <span className="relative text-lg font-bold">邻</span>
+      <div className={cn("app-logo-mark overflow-hidden", markClassName)}>
+        <Image
+          src={systemLogoSrc}
+          alt={`${communityName} logo`}
+          width={96}
+          height={96}
+          sizes="64px"
+          loading="eager"
+          className="h-full w-full object-cover"
+        />
       </div>
       {showLabel ? (
         <div className="min-w-0">

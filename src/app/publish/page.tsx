@@ -1,5 +1,4 @@
-
-import { PublishClient } from "../../components/publish-client";
+import { PublishClient } from "@/components/publish-client";
 
 interface PublishPageProps {
   searchParams?: Promise<Record<string, string | string[] | undefined>>;

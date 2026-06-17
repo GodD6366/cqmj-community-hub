@@ -10,6 +10,7 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["10.0.0.44"],
+  devIndicators: false,
   turbopack: {
     root: path.join(__dirname),
   },
